@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transparent Transaction App</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f6f8fa;
+      margin: 0; padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      background: #1976d2; color: white;
+      padding: 1rem; width: 100%; text-align: center;
+    }
+    .container {
+      width: 90%; max-width: 400px;
+      background: white; padding: 1rem; margin-top: 1rem;
+      border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    input, button {
+      width: 100%; padding: 10px; margin-top: 10px;
+      border: 1px solid #ccc; border-radius: 5px;
+      font-size: 1rem;
+    }
+    button {
+      background: #1976d2; color: white; border: none; cursor: pointer;
+    }
+    ul { list-style-type: none; padding: 0; }
+    li { background: #e3f2fd; margin: 5px 0; padding: 8px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h2>Transparent Transaction App</h2>
+    <p>Transfer debt in one tap</p>
+  </header>
+
+  <div class="container">
+    <input id="name" placeholder="Enter name">
+    <input id="amount" type="number" placeholder="Enter amount">
+    <button onclick="addTransaction()">Add Transaction</button>
+    <ul id="ledger"></ul>
+  </div>
+
+  <script>
+    const ledger = JSON.parse(localStorage.getItem('ledger')) || [];
+
+    function render() {
+      const list = document.getElementById('ledger');
+      list.innerHTML = '';
+      ledger.forEach((entry, i) => {
+        list.innerHTML += `<li>${entry.name}: ₹${entry.amount}</li>`;
+      });
+    }
+
+    function addTransaction() {
+      const name = document.getElementById('name').value.trim();
+      const amount = document.getElementById('amount').value.trim();
+      if (!name || !amount) return alert('Please fill all fields');
+      ledger.push({ name, amount: parseFloat(amount) });
+      localStorage.setItem('ledger', JSON.stringify(ledger));
+      render();
+      document.getElementById('name').value = '';
+      document.getElementById('amount').value = '';
+    }
+
+    render();
+
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').then(() => {
+        console.log('Service Worker registered');
+      });
+    }
+  </script>
+</body>
+</html>
