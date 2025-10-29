@@ -1,11 +1,13 @@
+```javascript
+// sw.js - Works on GitHub Pages
+const CACHE = 'tt-app-v1';
+const urls = ['/', '/index.html', '/manifest.json'];
+
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open('tta-v1').then(cache => cache.addAll(['/', '/index.html']))
-  );
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(urls)));
 });
 
 self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(response => response || fetch(e.request))
-  );
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
 });
+```
