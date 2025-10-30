@@ -1,186 +1,191 @@
 ```html
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Transparent Transaction</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="manifest" href="manifest.json">
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <style>
-    body { font-family: Arial; padding: 20px; background: #f4f6f9; }
-    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-    input, button { padding: 12px; margin: 8px 0; width: 100%; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial; background: #f0f4f8; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+    header { background: #1976d2; color: white; width: 100%; text-align: center; padding: 1.2rem; }
+    .container { width: 90%; max-width: 420px; background: white; margin: 1rem; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    input, button { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
     button { background: #1976d2; color: white; border: none; font-weight: bold; cursor: pointer; }
     button:hover { background: #1565c0; }
-    ul { list-style: none; padding: 0; }
-    li { padding: 12px; background: #e3f2fd; margin: 6px 0; border-radius: 8px; }
-    .report { background: #4caf50; }
-    .clear { background: #d32f2f; }
-    .footer { text-align: center; margin-top: 30px; font-size: 0.9rem; color: #666; }
     .hidden { display: none; }
+    ul { list-style: none; margin-top: 15px; }
+    li { background: #e3f2fd; padding: 10px; margin: 6px 0; border-radius: 8px; font-size: 0.95rem; }
+    .logout { background: #d32f2f; margin-top: 15px; }
+    .status { font-size: 0.9rem; color: #666; margin: 10px 0; }
   </style>
 </head>
 <body>
+  <header>
+    <h2>Transparent Transaction</h2>
+    <p>One-tap debt transfer</p>
+  </header>
 
-  <!-- Phone Entry -->
-  <div id="phonePage" class="card">
-    <h2>Login</h2>
-    <input id="phone" type="tel" placeholder="Enter 10-digit mobile" maxlength="10">
-    <button onclick="sendOTP()">Send OTP</button>
-  </div>
+  <div class="container">
+    <!-- Login -->
+    <div id="login">
+      <p class="status">Enter phone to get OTP via SMS</p>
+      <input id="phone" placeholder="Phone (10 digits)" maxlength="10" inputmode="numeric">
+      <button onclick="sendLocalOTP()">Send OTP via SMS</button>
+      <input id="otp" class="hidden" placeholder="Enter 6-digit OTP" maxlength="6" inputmode="numeric">
+      <button id="verifyBtn" class="hidden" onclick="verifyLocalOTP()">Verify OTP</button>
+      <p id="otpStatus" class="status hidden"></p>
+    </div>
 
-  <!-- OTP Entry -->
-  <div id="otpPage" class="card hidden">
-    <h2>Enter OTP</h2>
-    <input id="otp" type="number" placeholder="4-digit OTP" maxlength="4">
-    <button onclick="verifyOTP()">Verify</button>
-  </div>
-
-  <!-- Main App -->
-  <div id="appPage" class="hidden">
-    <div class="card">
-      <h2>Transparent Transaction</h2>
-      <p><strong>Belgaum Crew Ledger</strong></p>
+    <!-- App -->
+    <div id="app" class="hidden">
+      <p><strong id="userPhone"></strong></p>
       <input id="name" placeholder="Name">
-      <input id="amount" type="number" placeholder="Amount (₹)">
-      <button onclick="add()">Add Transaction</button>
-    </div>
-
-    <div class="card">
-      <h3>Transactions</h3>
-      <ul id="list"></ul>
-      <button class="report" onclick="generateReport()">Generate Report (₹10)</button>
-      <button class="clear" onclick="clearAll()">Clear All Data</button>
-    </div>
-
-    <div class="footer">
-      Pay ₹10 via UPI: <strong>9740883741-0@airtel</strong><br>
-      Report will be sent via WhatsApp/Email
+      <input id="amount" type="number" placeholder="Amount (₹)" inputmode="numeric">
+      <button onclick="addEntry()">Add Transaction</button>
+      <ul id="ledger"></ul>
+      <button class="logout" onclick="logout()">Logout</button>
     </div>
   </div>
 
   <script>
-    const { jsPDF } = window.jspdf;
-    let db;
-    let currentUser = '';
+    let currentUserPhone = '';
     let generatedOTP = '';
 
-    // IndexedDB
-    const request = indexedDB.open('TT_DB', 1);
-    request.onupgradeneeded = e => {
-      db = e.target.result;
-      db.createObjectStore('ledger', { keyPath: 'id', autoIncrement: true });
-      db.createObjectStore('users', { keyPath: 'phone' });
-    };
-    request.onsuccess = e => { db = e.target.result; };
-
-    // Send OTP
-    function sendOTP() {
-      const phone = document.getElementById('phone').value.trim();
-      if (!/^\d{10}$/.test(phone)) return alert('Enter valid 10-digit number');
-
-      // Generate 4-digit OTP
-      generatedOTP = Math.floor(1000 + Math.random() * 9000).toString();
-      alert(`Your OTP is: ${generatedOTP}`); // In real app: send via SMS
-
-      currentUser = phone;
-      document.getElementById('phonePage').classList.add('hidden');
-      document.getElementById('otpPage').classList.remove('hidden');
-    }
-
-    // Verify OTP
-    function verifyOTP() {
-      const entered = document.getElementById('otp').value.trim();
-      if (entered === generatedOTP) {
-        const tx = db.transaction('users', 'readwrite');
-        tx.objectStore('users').put({ phone: currentUser, loggedIn: true });
-        tx.oncomplete = () => {
-          document.getElementById('otpPage').classList.add('hidden');
-          document.getElementById('appPage').classList.remove('hidden');
-          load();
-        };
-      } else {
-        alert('Wrong OTP. Try again.');
-      }
-    }
-
-    // App Functions (add, load, report, clear) — same as before, filtered by currentUser
-    function add() {
-      const name = document.getElementById('name').value.trim();
-      const amount = +document.getElementById('amount').value;
-      if (!name || !amount) return alert('Fill all');
-
-      const tx = db.transaction('ledger', 'readwrite');
-      tx.objectStore('ledger').add({ name, amount, time: Date.now(), phone: currentUser });
-      tx.oncomplete = () => {
-        document.getElementById('name').value = '';
-        document.getElementById('amount').value = '';
-        load();
-      };
-    }
-
-    function load() {
-      const list = document.getElementById('list');
-      list.innerHTML = '';
-      const tx = db.transaction('ledger', 'readonly');
-      tx.objectStore('ledger').openCursor().onsuccess = e => {
-        const cursor = e.target.result;
-        if (cursor && cursor.value.phone === currentUser) {
-          const li = document.createElement('li');
-          const date = new Date(cursor.value.time).toLocaleString('en-IN');
-          li.innerHTML = `<strong>${cursor.value.name}</strong>: ₹${cursor.value.amount} <small>(${date})</small>`;
-          list.appendChild(li);
-          cursor.continue();
-        }
-      };
-    }
-
-    function generateReport() {
-      const tx = db.transaction('ledger', 'readonly');
-      const entries = [];
-      let total = 0;
-      tx.objectStore('ledger').openCursor().onsuccess = e => {
-        const cursor = e.target.result;
-        if (cursor && cursor.value.phone === currentUser) {
-          entries.push(cursor.value);
-          total += cursor.value.amount;
-          cursor.continue();
-        } else if (!cursor) {
-          createPDF(entries, total);
-        }
-      };
-    }
-
-    function createPDF(entries, total) {
-      const doc = new jsPDF();
-      doc.setFontSize(16);
-      doc.text('Transparent Transaction Report', 20, 20);
-      doc.setFontSize(12);
-      doc.text(`User: ${currentUser}`, 20, 30);
-      doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, 20, 40);
-      doc.text(`Total: ₹${total}`, 20, 50);
-      let y = 70;
-      entries.forEach(e => {
-        doc.text(`${e.name}: ₹${e.amount}`, 20, y);
-        y += 10;
-      });
-      doc.text('Pay ₹10 to: 9740883741-0@airtel', 20, y + 20);
-      doc.save('TT_Report.pdf');
-      window.open(`https://wa.me/919740883741?text=Report%20for%20${currentUser}%20-%20Total:%20₹${total}`);
-    }
-
-    function clearAll() {
-      if (confirm('Delete your data?')) {
-        const tx = db.transaction('ledger', 'readwrite');
-        tx.objectStore('ledger').openCursor().onsuccess = e => {
-          const cursor = e.target.result;
-          if (cursor && cursor.value.phone === currentUser) {
-            cursor.delete();
-            cursor.continue();
+    // Restore OTP and phone if we navigated away (e.g., opened SMS app) and came back
+    try {
+      const savedOtp = sessionStorage.getItem('tt_generatedOTP');
+      const savedPhone = sessionStorage.getItem('tt_currentUserPhone');
+      if (savedOtp && savedPhone) {
+        generatedOTP = savedOtp;
+        currentUserPhone = savedPhone;
+        // Reveal OTP UI so user can paste/enter it
+        document.addEventListener('DOMContentLoaded', () => {
+          const otpEl = document.getElementById('otp');
+          const verifyBtn = document.getElementById('verifyBtn');
+          const otpStatus = document.getElementById('otpStatus');
+          if (otpEl && verifyBtn) {
+            otpEl.classList.remove('hidden');
+            verifyBtn.classList.remove('hidden');
+            otpStatus.textContent = 'Returned from SMS — enter the OTP you sent.';
+            otpStatus.classList.remove('hidden');
+            document.getElementById('userPhone') && (document.getElementById('userPhone').textContent = currentUserPhone);
           }
-        };
-        setTimeout(load, 500);
+        });
       }
+    } catch (e) {
+      console.warn('Could not restore OTP from sessionStorage', e);
+    }
+
+    // Generate 6-digit OTP
+    function generateOTP() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    // Open phone's SMS app
+    function sendLocalOTP() {
+      const phone = document.getElementById('phone').value.trim();
+      if (!/^\d{10}$/.test(phone)) return alert('Enter 10-digit phone');
+
+      currentUserPhone = '+91' + phone;
+      generatedOTP = generateOTP();
+
+      const message = `Your OTP for Transparent Transaction is ${generatedOTP}. Do not share.`;
+      const smsUrl = `sms:${currentUserPhone}?body=${encodeURIComponent(message)}`;
+
+      // Persist OTP & phone so it's available if the page navigates away (to SMS app) and returns
+      try {
+        sessionStorage.setItem('tt_generatedOTP', generatedOTP);
+        sessionStorage.setItem('tt_currentUserPhone', currentUserPhone);
+      } catch (e) {
+        console.warn('Could not persist OTP to sessionStorage', e);
+      }
+
+      // Open SMS app (may navigate away from the page)
+      window.location.href = smsUrl;
+
+      // Show OTP input after 2 sec (if still on the page)
+      setTimeout(() => {
+        const otpEl = document.getElementById('otp');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const otpStatus = document.getElementById('otpStatus');
+        if (otpEl && verifyBtn) {
+          otpEl.classList.remove('hidden');
+          verifyBtn.classList.remove('hidden');
+          otpStatus.textContent = 'SMS opened! Send it.';
+          otpStatus.classList.remove('hidden');
+        }
+      }, 2000);
+    }
+
+    // Verify OTP (user types it)
+    function verifyLocalOTP() {
+      const otp = document.getElementById('otp').value.trim();
+      // Try to restore from sessionStorage if in-memory value is missing
+      if (!generatedOTP) {
+        try { generatedOTP = sessionStorage.getItem('tt_generatedOTP') || ''; } catch (e) { /* ignore */ }
+        try { currentUserPhone = sessionStorage.getItem('tt_currentUserPhone') || currentUserPhone; } catch (e) { /* ignore */ }
+      }
+
+      if (otp === generatedOTP) {
+        document.getElementById('login').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        document.getElementById('userPhone').textContent = currentUserPhone;
+        loadLedger();
+        // Clear stored OTP once used
+        try {
+          sessionStorage.removeItem('tt_generatedOTP');
+          sessionStorage.removeItem('tt_currentUserPhone');
+        } catch (e) { /* ignore */ }
+      } else {
+        alert('Wrong OTP! Try again.');
+      }
+    }
+
+    // Load Ledger
+    function loadLedger() {
+      const key = 'ledger_' + currentUserPhone;
+      const saved = localStorage.getItem(key);
+      const list = document.getElementById('ledger');
+      list.innerHTML = saved ? JSON.parse(saved).map(e => `<li>${e.name}: ₹${e.amount}</li>`).join('') : '';
+    }
+
+    // Add Entry
+    function addEntry() {
+      const name = document.getElementById('name').value.trim();
+      const amount = parseFloat(document.getElementById('amount').value);
+      if (!name || !amount) return alert('Enter name and amount');
+
+      const entry = { name, amount };
+      const key = 'ledger_' + currentUserPhone;
+      const ledger = JSON.parse(localStorage.getItem(key) || '[]');
+      ledger.push(entry);
+      localStorage.setItem(key, JSON.stringify(ledger));
+      loadLedger();
+
+      document.getElementById('name').value = '';
+      document.getElementById('amount').value = '';
+    }
+
+    // Logout
+    function logout() {
+      document.getElementById('app').classList.add('hidden');
+      document.getElementById('login').classList.remove('hidden');
+      document.getElementById('phone').value = '';
+      document.getElementById('otp').value = '';
+      document.getElementById('otp').classList.add('hidden');
+      document.getElementById('verifyBtn').classList.add('hidden');
+      document.getElementById('otpStatus').classList.add('hidden');
+      currentUserPhone = '';
+      generatedOTP = '';
+    }
+
+    // Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(err => {
+        console.warn('Service worker registration failed (ignoring):', err);
+      });
     }
   </script>
 </body>
