@@ -6,12 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Transparent Transaction</title>
   <link rel="manifest" href="manifest.json">
-
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
-
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', Arial; background: #f0f4f8; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
@@ -24,7 +18,6 @@
     ul { list-style: none; margin-top: 15px; }
     li { background: #e3f2fd; padding: 10px; margin: 6px 0; border-radius: 8px; font-size: 0.95rem; }
     .logout { background: #d32f2f; margin-top: 15px; }
-    .referral { background: #4caf50; margin-top: 10px; font-size: 0.9rem; }
     .status { font-size: 0.9rem; color: #666; margin: 10px 0; }
   </style>
 </head>
@@ -35,144 +28,73 @@
   </header>
 
   <div class="container">
-    <!-- Login -->
+    <!-- Instant Login -->
     <div id="login">
-      <p class="status">Enter phone to get OTP</p>
+      <p class="status">Enter your phone to start</p>
       <input id="phone" placeholder="Phone (10 digits)" maxlength="10" inputmode="numeric">
-      <button onclick="sendOTP()">Send OTP</button>
-      <input id="otp" class="hidden" placeholder="Enter 6-digit OTP" maxlength="6" inputmode="numeric">
-      <button id="verifyBtn" class="hidden" onclick="verifyOTP()">Verify OTP</button>
-      <p id="otpStatus" class="status hidden"></p>
+      <button onclick="instantLogin()">Start Now</button>
     </div>
 
-    <!-- App -->
+    <!-- Main App -->
     <div id="app" class="hidden">
       <p><strong id="userPhone"></strong></p>
-      <p id="referralMsg" class="referral hidden"></p>
-      
       <input id="name" placeholder="Name">
       <input id="amount" type="number" placeholder="Amount (₹)" inputmode="numeric">
       <button onclick="addEntry()">Add Transaction</button>
       <ul id="ledger"></ul>
-      
-      <p>Your Referral Link:</p>
-      <input id="refLink" readonly style="background:#eee;">
-      <button onclick="copyLink()" style="background:#4caf50;">Copy Link</button>
-      
       <button class="logout" onclick="logout()">Logout</button>
     </div>
   </div>
 
-  <div id="recaptcha-container"></div>
-
   <script>
-    // YOUR CONFIG
-    const firebaseConfig = {
-      apiKey: "AIzaSyB3c7MFNf7u_4R3UtHXLkPPjjZJ0mzoeFY",
-      authDomain: "transparent-transactions.firebaseapp.com",
-      projectId: "transparent-transactions",
-      storageBucket: "transparent-transactions.firebasestorage.app",
-      messagingSenderId: "985011611337",
-      appId: "1:985011611337:web:061691f2170eb438234f18"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-
-    let confirmationResult;
     let currentUserPhone = '';
-    let referrer = new URLSearchParams(window.location.search).get('ref') || '';
 
-    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', { size: 'invisible' });
-    window.recaptchaVerifier.render().catch(() => {});
-
-    function sendOTP() {
+    // Instant Login — NO OTP
+    function instantLogin() {
       const phone = document.getElementById('phone').value.trim();
       if (!/^\d{10}$/.test(phone)) return alert('Enter 10-digit phone');
 
       currentUserPhone = '+91' + phone;
-      auth.signInWithPhoneNumber(currentUserPhone, window.recaptchaVerifier)
-        .then(result => {
-          confirmationResult = result;
-          document.getElementById('otp').classList.remove('hidden');
-          document.getElementById('verifyBtn').classList.remove('hidden');
-          document.getElementById('otpStatus').textContent = 'OTP sent!';
-          document.getElementById('otpStatus').classList.remove('hidden');
-        })
-        .catch(err => alert('Error: ' + err.message));
+      document.getElementById('login').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      document.getElementById('userPhone').textContent = currentUserPhone;
+      loadLedger();
     }
 
-    function verifyOTP() {
-      const otp = document.getElementById('otp').value;
-      confirmationResult.confirm(otp)
-        .then(result => {
-          const user = result.user;
-          document.getElementById('login').classList.add('hidden');
-          document.getElementById('app').classList.remove('hidden');
-          document.getElementById('userPhone').textContent = currentUserPhone;
-
-          const refCode = btoa(currentUserPhone).substring(0, 8);
-          const refLink = `${window.location.origin}${window.location.pathname}?ref=${refCode}`;
-          document.getElementById('refLink').value = refLink;
-
-          db.collection('users').doc(user.uid).set({
-            phone: currentUserPhone,
-            refCode: refCode,
-            referrer: referrer,
-            joinedAt: firebase.firestore.FieldValue.serverTimestamp()
-          }).then(() => {
-            if (referrer) {
-              document.getElementById('referralMsg').textContent = `Referred by ${referrer}! You both earn ₹1.6 on first deal.`;
-              document.getElementById('referralMsg').classList.remove('hidden');
-            }
-          });
-
-          loadLedger(user.uid);
-        })
-        .catch(err => alert('Invalid OTP'));
-    }
-
-    function loadLedger(uid) {
-      const key = 'ledger_' + uid;
+    // Load Ledger
+    function loadLedger() {
+      const key = 'ledger_' + currentUserPhone;
       const saved = localStorage.getItem(key);
       const list = document.getElementById('ledger');
       list.innerHTML = saved ? JSON.parse(saved).map(e => `<li>${e.name}: ₹${e.amount}</li>`).join('') : '';
     }
 
+    // Add Entry
     function addEntry() {
       const name = document.getElementById('name').value.trim();
       const amount = parseFloat(document.getElementById('amount').value);
-      if (!name || !amount) return;
+      if (!name || !amount) return alert('Enter name and amount');
 
-      const uid = auth.currentUser.uid;
-      const entry = { name, amount, timestamp: Date.now() };
-      const key = 'ledger_' + uid;
+      const entry = { name, amount };
+      const key = 'ledger_' + currentUserPhone;
       const ledger = JSON.parse(localStorage.getItem(key) || '[]');
       ledger.push(entry);
       localStorage.setItem(key, JSON.stringify(ledger));
-      loadLedger(uid);
-
-      if (ledger.length === 1) {
-        alert('₹1.6 earned! Share your link to earn more.');
-      }
+      loadLedger();
 
       document.getElementById('name').value = '';
       document.getElementById('amount').value = '';
     }
 
-    function copyLink() {
-      const link = document.getElementById('refLink');
-      link.select();
-      document.execCommand('copy');
-      alert('Link copied! Share to earn ₹1.6');
-    }
-
+    // Logout
     function logout() {
-      auth.signOut();
-      location.reload();
+      document.getElementById('app').classList.add('hidden');
+      document.getElementById('login').classList.remove('hidden');
+      document.getElementById('phone').value = '';
+      currentUserPhone = '';
     }
 
+    // Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
     }
