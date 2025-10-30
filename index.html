@@ -17,51 +17,101 @@
     .report { background: #4caf50; }
     .clear { background: #d32f2f; }
     .footer { text-align: center; margin-top: 30px; font-size: 0.9rem; color: #666; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>Transparent Transaction</h2>
-    <p><strong>Belgaum Crew Ledger</strong></p>
-    <input id="name" placeholder="Name">
-    <input id="amount" type="number" placeholder="Amount (₹)">
-    <button onclick="add()">Add Transaction</button>
+
+  <!-- Phone Entry -->
+  <div id="phonePage" class="card">
+    <h2>Login</h2>
+    <input id="phone" type="tel" placeholder="Enter 10-digit mobile" maxlength="10">
+    <button onclick="sendOTP()">Send OTP</button>
   </div>
 
-  <div class="card">
-    <h3>Transactions</h3>
-    <ul id="list"></ul>
-    <button class="report" onclick="generateReport()">Generate Report (₹10)</button>
-    <button class="clear" onclick="clearAll()">Clear All Data</button>
+  <!-- OTP Entry -->
+  <div id="otpPage" class="card hidden">
+    <h2>Enter OTP</h2>
+    <input id="otp" type="number" placeholder="4-digit OTP" maxlength="4">
+    <button onclick="verifyOTP()">Verify</button>
   </div>
 
-  <div class="footer">
-    Pay ₹10 via UPI: <strong>9740883741-0@airtel</strong><br>
-    Report will be sent via WhatsApp/Email
+  <!-- Main App -->
+  <div id="appPage" class="hidden">
+    <div class="card">
+      <h2>Transparent Transaction</h2>
+      <p><strong>Belgaum Crew Ledger</strong></p>
+      <input id="name" placeholder="Name">
+      <input id="amount" type="number" placeholder="Amount (₹)">
+      <button onclick="add()">Add Transaction</button>
+    </div>
+
+    <div class="card">
+      <h3>Transactions</h3>
+      <ul id="list"></ul>
+      <button class="report" onclick="generateReport()">Generate Report (₹10)</button>
+      <button class="clear" onclick="clearAll()">Clear All Data</button>
+    </div>
+
+    <div class="footer">
+      Pay ₹10 via UPI: <strong>9740883741-0@airtel</strong><br>
+      Report will be sent via WhatsApp/Email
+    </div>
   </div>
 
   <script>
     const { jsPDF } = window.jspdf;
     let db;
-    const request = indexedDB.open('TT_DB', 1);
+    let currentUser = '';
+    let generatedOTP = '';
 
+    // IndexedDB
+    const request = indexedDB.open('TT_DB', 1);
     request.onupgradeneeded = e => {
       db = e.target.result;
       db.createObjectStore('ledger', { keyPath: 'id', autoIncrement: true });
+      db.createObjectStore('users', { keyPath: 'phone' });
     };
+    request.onsuccess = e => { db = e.target.result; };
 
-    request.onsuccess = e => {
-      db = e.target.result;
-      load();
-    };
+    // Send OTP
+    function sendOTP() {
+      const phone = document.getElementById('phone').value.trim();
+      if (!/^\d{10}$/.test(phone)) return alert('Enter valid 10-digit number');
 
+      // Generate 4-digit OTP
+      generatedOTP = Math.floor(1000 + Math.random() * 9000).toString();
+      alert(`Your OTP is: ${generatedOTP}`); // In real app: send via SMS
+
+      currentUser = phone;
+      document.getElementById('phonePage').classList.add('hidden');
+      document.getElementById('otpPage').classList.remove('hidden');
+    }
+
+    // Verify OTP
+    function verifyOTP() {
+      const entered = document.getElementById('otp').value.trim();
+      if (entered === generatedOTP) {
+        const tx = db.transaction('users', 'readwrite');
+        tx.objectStore('users').put({ phone: currentUser, loggedIn: true });
+        tx.oncomplete = () => {
+          document.getElementById('otpPage').classList.add('hidden');
+          document.getElementById('appPage').classList.remove('hidden');
+          load();
+        };
+      } else {
+        alert('Wrong OTP. Try again.');
+      }
+    }
+
+    // App Functions (add, load, report, clear) — same as before, filtered by currentUser
     function add() {
       const name = document.getElementById('name').value.trim();
       const amount = +document.getElementById('amount').value;
-      if (!name || !amount) return alert('Enter name and amount');
+      if (!name || !amount) return alert('Fill all');
 
       const tx = db.transaction('ledger', 'readwrite');
-      tx.objectStore('ledger').add({ name, amount, time: Date.now() });
+      tx.objectStore('ledger').add({ name, amount, time: Date.now(), phone: currentUser });
       tx.oncomplete = () => {
         document.getElementById('name').value = '';
         document.getElementById('amount').value = '';
@@ -73,10 +123,9 @@
       const list = document.getElementById('list');
       list.innerHTML = '';
       const tx = db.transaction('ledger', 'readonly');
-      const store = tx.objectStore('ledger');
-      store.openCursor().onsuccess = e => {
+      tx.objectStore('ledger').openCursor().onsuccess = e => {
         const cursor = e.target.result;
-        if (cursor) {
+        if (cursor && cursor.value.phone === currentUser) {
           const li = document.createElement('li');
           const date = new Date(cursor.value.time).toLocaleString('en-IN');
           li.innerHTML = `<strong>${cursor.value.name}</strong>: ₹${cursor.value.amount} <small>(${date})</small>`;
@@ -88,17 +137,15 @@
 
     function generateReport() {
       const tx = db.transaction('ledger', 'readonly');
-      const store = tx.objectStore('ledger');
       const entries = [];
       let total = 0;
-
-      store.openCursor().onsuccess = e => {
+      tx.objectStore('ledger').openCursor().onsuccess = e => {
         const cursor = e.target.result;
-        if (cursor) {
+        if (cursor && cursor.value.phone === currentUser) {
           entries.push(cursor.value);
           total += cursor.value.amount;
           cursor.continue();
-        } else {
+        } else if (!cursor) {
           createPDF(entries, total);
         }
       };
@@ -109,29 +156,30 @@
       doc.setFontSize(16);
       doc.text('Transparent Transaction Report', 20, 20);
       doc.setFontSize(12);
-      doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, 20, 30);
-      doc.text(`Total: ₹${total}`, 20, 40);
-
-      let y = 60;
+      doc.text(`User: ${currentUser}`, 20, 30);
+      doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, 20, 40);
+      doc.text(`Total: ₹${total}`, 20, 50);
+      let y = 70;
       entries.forEach(e => {
-        const date = new Date(e.time).toLocaleDateString('en-IN');
-        doc.text(`${e.name}: ₹${e.amount} (${date})`, 20, y);
+        doc.text(`${e.name}: ₹${e.amount}`, 20, y);
         y += 10;
       });
-
       doc.text('Pay ₹10 to: 9740883741-0@airtel', 20, y + 20);
-      doc.text('Contact: +91-9740883741', 20, y + 30);
-
       doc.save('TT_Report.pdf');
-
-      const waText = `Hi, here's your report! Total: ₹${total}. Pay ₹10 to 9740883741-0@airtel`;
-      window.open(`https://wa.me/919740883741?text=${encodeURIComponent(waText)}`);
+      window.open(`https://wa.me/919740883741?text=Report%20for%20${currentUser}%20-%20Total:%20₹${total}`);
     }
 
     function clearAll() {
-      if (confirm('Delete all data?')) {
-        indexedDB.deleteDatabase('TT_DB');
-        document.getElementById('list').innerHTML = '<li>All cleared!</li>';
+      if (confirm('Delete your data?')) {
+        const tx = db.transaction('ledger', 'readwrite');
+        tx.objectStore('ledger').openCursor().onsuccess = e => {
+          const cursor = e.target.result;
+          if (cursor && cursor.value.phone === currentUser) {
+            cursor.delete();
+            cursor.continue();
+          }
+        };
+        setTimeout(load, 500);
       }
     }
   </script>
