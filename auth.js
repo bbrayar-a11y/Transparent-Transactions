@@ -4,9 +4,9 @@ class AuthManager {
         this.currentUser = null;
         this.isInitialized = false;
         this.otpTimer = null;
-        this.otpExpiryTime = null;
-        this.pendingOTP = null; // Store OTP in memory
-        this.pendingPhone = null; // Store phone in memory
+        this.pendingOTP = null;
+        this.pendingPhone = null;
+        console.log('🔐 Auth Manager created');
         this.init();
     }
 
@@ -14,11 +14,15 @@ class AuthManager {
         if (this.isInitialized) return;
         
         try {
+            console.log('🔄 Initializing Auth Manager...');
+            
             // Wait for database to be ready
-            if (!window.transparentDB || !window.transparentDB.db) {
+            if (!window.transparentDB) {
+                console.log('⏳ Waiting for database...');
                 await new Promise(resolve => {
                     const checkDB = () => {
                         if (window.transparentDB && window.transparentDB.db) {
+                            console.log('✅ Database ready for auth');
                             resolve();
                         } else {
                             setTimeout(checkDB, 100);
@@ -28,19 +32,20 @@ class AuthManager {
                 });
             }
 
-            // ✅ ADDED: Check if returning from SMS app
+            // Check if returning from SMS app
             this.checkReturnFromSMS();
 
             // Check for existing session
             await this.checkExistingSession();
             this.isInitialized = true;
-            console.log('Auth manager initialized');
+            console.log('✅ Auth manager initialized successfully');
+
         } catch (error) {
-            console.error('Auth initialization failed:', error);
+            console.error('❌ Auth initialization failed:', error);
         }
     }
 
-    // ✅ ADDED: Check for returning from SMS app
+    // Check for returning from SMS app
     checkReturnFromSMS() {
         try {
             const savedOtp = sessionStorage.getItem('tt_otp_data');
@@ -55,6 +60,7 @@ class AuthManager {
                     this.showOTPSection();
                     this.showAuthStatus('Returned from SMS - enter the OTP you sent.', 'info');
                 }
+                console.log('📱 Detected return from SMS app');
             }
         } catch (e) {
             console.warn('Could not restore OTP from sessionStorage', e);
@@ -63,6 +69,8 @@ class AuthManager {
 
     // Initialize event listeners for auth UI
     initAuthEvents() {
+        console.log('🔌 Initializing auth event listeners...');
+        
         const sendOtpBtn = document.getElementById('sendOtpBtn');
         const verifyOtpBtn = document.getElementById('verifyOtpBtn');
         const resendOtpBtn = document.getElementById('resendOtpBtn');
@@ -71,14 +79,17 @@ class AuthManager {
 
         if (sendOtpBtn) {
             sendOtpBtn.addEventListener('click', () => this.sendOTP());
+            console.log('✅ Send OTP button listener added');
         }
 
         if (verifyOtpBtn) {
             verifyOtpBtn.addEventListener('click', () => this.verifyOTP());
+            console.log('✅ Verify OTP button listener added');
         }
 
         if (resendOtpBtn) {
             resendOtpBtn.addEventListener('click', () => this.resendOTP());
+            console.log('✅ Resend OTP button listener added');
         }
 
         // Enter key support
@@ -93,10 +104,14 @@ class AuthManager {
                 if (e.key === 'Enter') this.verifyOTP();
             });
         }
+
+        console.log('🎯 All auth event listeners initialized');
     }
 
-    // Send OTP to phone number - WITH SMS FUNCTIONALITY RESTORED
+    // Send OTP to phone number - WITH SMS FUNCTIONALITY
     async sendOTP() {
+        console.log('📤 Starting OTP send process...');
+        
         try {
             const phoneInput = document.getElementById('phoneInput');
             const phone = phoneInput.value.trim();
@@ -127,11 +142,7 @@ class AuthManager {
                 timestamp: this.otpTimestamp
             }));
 
-            // ✅ RESTORED SMS FUNCTIONALITY (like your original version)
-            const message = `Your OTP for Transparent Transactions is ${otp}. Do not share. Valid for 10 minutes.`;
-            const smsUrl = `sms:${fullPhone}?body=${encodeURIComponent(message)}`;
-
-            console.log(`OTP ${otp} generated for ${fullPhone}`);
+            console.log(`✅ OTP ${otp} generated for ${fullPhone}`);
             
             // Show OTP input section
             this.showOTPSection();
@@ -140,13 +151,19 @@ class AuthManager {
             // Show status
             this.showAuthStatus('Opening SMS app... Please send the message to complete OTP verification.', 'success');
             
-            // Open SMS app after a short delay so user can read the message
+            // ✅ RESTORED SMS FUNCTIONALITY
+            const message = `Your OTP for Transparent Transactions is ${otp}. Do not share. Valid for 10 minutes.`;
+            const smsUrl = `sms:${fullPhone}?body=${encodeURIComponent(message)}`;
+            
+            console.log('📱 Opening SMS app...');
+            
+            // Open SMS app after a short delay
             setTimeout(() => {
                 window.location.href = smsUrl;
-            }, 2000);
+            }, 1000);
 
         } catch (error) {
-            console.error('Send OTP failed:', error);
+            console.error('❌ Send OTP failed:', error);
             this.showAuthStatus('Failed to send OTP. Please try again.', 'error');
             document.getElementById('sendOtpBtn').disabled = false;
         }
@@ -154,6 +171,8 @@ class AuthManager {
 
     // Verify entered OTP
     async verifyOTP() {
+        console.log('🔍 Starting OTP verification...');
+        
         try {
             const otpInput = document.getElementById('otpInput');
             const enteredOtp = otpInput.value.trim();
@@ -186,37 +205,29 @@ class AuthManager {
                 return;
             }
 
-            console.log(`Verifying: Entered=${enteredOtp}, Expected=${validOTP}`);
+            console.log(`🔐 Verifying OTP: Entered=${enteredOtp}, Expected=${validOTP}`);
 
             // Verify OTP
             if (enteredOtp === validOTP) {
-                // OTP verified successfully
+                console.log('✅ OTP verified successfully');
                 await this.handleSuccessfulAuth(validPhone);
             } else {
+                console.log('❌ OTP mismatch');
                 this.showAuthStatus('Invalid OTP. Please try again.', 'error');
                 document.getElementById('verifyOtpBtn').disabled = false;
-                console.log(`OTP mismatch: ${enteredOtp} vs ${validOTP}`);
             }
 
         } catch (error) {
-            console.error('Verify OTP failed:', error);
+            console.error('❌ Verify OTP failed:', error);
             this.showAuthStatus('Verification failed. Please try again.', 'error');
             document.getElementById('verifyOtpBtn').disabled = false;
         }
     }
 
-    // Resend OTP
-    async resendOTP() {
-        if (this.pendingPhone) {
-            // Extract phone number without country code
-            const phone = this.pendingPhone.replace('+91', '');
-            document.getElementById('phoneInput').value = phone;
-            await this.sendOTP();
-        }
-    }
-
     // Handle successful authentication
     async handleSuccessfulAuth(phone) {
+        console.log('🎉 Starting successful authentication for:', phone);
+        
         try {
             // Clear OTP data
             this.pendingOTP = null;
@@ -227,21 +238,26 @@ class AuthManager {
             this.stopOTPTimer();
 
             // Create or get user
+            console.log('👤 Creating/updating user in database...');
             const user = await this.createOrUpdateUser(phone);
             
             // Set current user
             this.currentUser = user;
+            console.log('✅ User set:', user.phone);
             
             // Save session
             this.saveSession(user);
+            console.log('💾 Session saved to localStorage');
             
             // Update UI
+            console.log('🖥️ Showing app screen...');
             await uiManager.showAppScreen(user);
             
             this.showAuthStatus('Successfully signed in!', 'success');
+            console.log('🎊 Authentication completed successfully!');
 
         } catch (error) {
-            console.error('Authentication failed:', error);
+            console.error('❌ Authentication failed:', error);
             this.showAuthStatus('Authentication failed. Please try again.', 'error');
             this.hideOTPSection();
         }
@@ -250,9 +266,9 @@ class AuthManager {
     // Create or update user in database
     async createOrUpdateUser(phone) {
         const user = {
-            id: phone, // Use phone as ID
+            id: phone,
             phone: phone,
-            name: `User ${phone.slice(-4)}`, // Default name
+            name: `User ${phone.slice(-4)}`,
             avatar: '',
             createdAt: new Date().toISOString(),
             lastLogin: new Date().toISOString()
@@ -270,17 +286,26 @@ class AuthManager {
                 await transparentDB.executeTransaction('users', 'readwrite', (store) => {
                     return store.put(user);
                 });
-                console.log('User updated:', user.phone);
+                console.log('✅ User updated:', user.phone);
             } else {
                 // Create new user
                 await transparentDB.addUser(user);
-                console.log('New user created:', user.phone);
+                console.log('✅ New user created:', user.phone);
             }
 
             return user;
         } catch (error) {
-            console.error('Error saving user:', error);
+            console.error('❌ Error saving user:', error);
             throw new Error('Failed to save user data');
+        }
+    }
+
+    // Resend OTP
+    async resendOTP() {
+        if (this.pendingPhone) {
+            const phone = this.pendingPhone.replace('+91', '');
+            document.getElementById('phoneInput').value = phone;
+            await this.sendOTP();
         }
     }
 
@@ -298,6 +323,7 @@ class AuthManager {
     showOTPSection() {
         document.getElementById('otpSection').classList.remove('hidden');
         document.getElementById('otpInput').focus();
+        console.log('📭 OTP input section shown');
     }
 
     // Hide OTP input section
@@ -308,9 +334,9 @@ class AuthManager {
 
     // Start OTP expiry timer
     startOTPTimer() {
-        this.stopOTPTimer(); // Clear any existing timer
+        this.stopOTPTimer();
         
-        let timeLeft = 60; // 60 seconds
+        let timeLeft = 60;
         const timerElement = document.getElementById('otpTimer');
         const countElement = document.getElementById('timerCount');
         const resendBtn = document.getElementById('resendOtpBtn');
@@ -328,6 +354,8 @@ class AuthManager {
                 resendBtn.disabled = false;
             }
         }, 1000);
+        
+        console.log('⏰ OTP timer started (60 seconds)');
     }
 
     // Stop OTP timer
@@ -347,7 +375,6 @@ class AuthManager {
         statusElement.className = `auth-status ${type}`;
         statusElement.classList.remove('hidden');
 
-        // Auto-hide success messages after 5 seconds
         if (type === 'success') {
             setTimeout(() => {
                 statusElement.classList.add('hidden');
@@ -364,22 +391,23 @@ class AuthManager {
                 
                 // Check if session is still valid (30 days)
                 const sessionAge = Date.now() - new Date(session.lastActive).getTime();
-                const maxSessionAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+                const maxSessionAge = 30 * 24 * 60 * 60 * 1000;
                 
                 if (sessionAge < maxSessionAge) {
                     const user = await transparentDB.getUser(session.userId);
                     if (user) {
                         this.currentUser = user;
                         this.updateSessionActivity();
+                        console.log('✅ Existing session found:', user.phone);
                         return user;
                     }
                 } else {
-                    // Session expired
+                    console.log('📅 Session expired, clearing...');
                     this.clearSession();
                 }
             }
         } catch (error) {
-            console.error('Session check failed:', error);
+            console.error('❌ Session check failed:', error);
             this.clearSession();
         }
         return null;
@@ -413,6 +441,7 @@ class AuthManager {
         this.pendingPhone = null;
         this.currentUser = null;
         this.stopOTPTimer();
+        console.log('🧹 All sessions cleared');
     }
 
     // Get current user
@@ -434,113 +463,16 @@ class AuthManager {
     // Logout user
     async logout() {
         try {
-            // Clear all sessions
+            console.log('🚪 Logging out user...');
             this.clearSession();
-            
-            // Clear any pending operations
-            this.currentUser = null;
-            
-            // Show login screen
             await uiManager.showLoginScreen();
-            
             uiManager.showStatus('Successfully signed out', 'success');
+            console.log('✅ User logged out successfully');
             
         } catch (error) {
-            console.error('Logout error:', error);
-            // Force logout even if there's an error
+            console.error('❌ Logout error:', error);
             this.clearSession();
             window.location.reload();
-        }
-    }
-
-    // Get user profile
-    async getUserProfile(userId) {
-        try {
-            return await transparentDB.getUser(userId);
-        } catch (error) {
-            console.error('Error getting user profile:', error);
-            return null;
-        }
-    }
-
-    // Update user profile
-    async updateUserProfile(updates) {
-        if (!this.currentUser) {
-            throw new Error('No user logged in');
-        }
-
-        try {
-            const currentUser = await transparentDB.getUser(this.currentUser.id);
-            const updatedUser = {
-                ...currentUser,
-                ...updates,
-                updatedAt: new Date().toISOString()
-            };
-
-            await transparentDB.executeTransaction('users', 'readwrite', (store) => {
-                return store.put(updatedUser);
-            });
-
-            this.currentUser = updatedUser;
-            this.saveSession(updatedUser);
-            
-            return updatedUser;
-        } catch (error) {
-            console.error('Error updating user profile:', error);
-            throw new Error('Failed to update profile');
-        }
-    }
-
-    // Validate user session (for periodic checks)
-    async validateSession() {
-        if (!this.currentUser) return false;
-
-        try {
-            const user = await transparentDB.getUser(this.currentUser.id);
-            if (user) {
-                this.currentUser = user;
-                this.updateSessionActivity();
-                return true;
-            }
-        } catch (error) {
-            console.error('Session validation failed:', error);
-        }
-
-        // Session is invalid
-        this.clearSession();
-        return false;
-    }
-
-    // Get user statistics
-    async getUserStats() {
-        if (!this.currentUser) return null;
-
-        try {
-            const transactions = await transparentDB.getLedgerEntries(this.currentUser.phone);
-            const pending = await transparentDB.getPendingTransactions(this.currentUser.phone);
-            
-            return {
-                totalTransactions: transactions.length,
-                pendingApprovals: pending.length,
-                activeContacts: await this.getActiveContactsCount(),
-                joinedDate: this.currentUser.createdAt
-            };
-        } catch (error) {
-            console.error('Error getting user stats:', error);
-            return null;
-        }
-    }
-
-    // Get count of active contacts
-    async getActiveContactsCount() {
-        if (!this.currentUser) return 0;
-        
-        try {
-            const contacts = await transparentDB.getContacts(this.currentUser.phone);
-            return contacts.length;
-        } catch (error) {
-            console.error('Error counting contacts:', error);
-            return 0;
         }
     }
 }
@@ -607,13 +539,13 @@ window.exportData = async () => {
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         authManager.initAuthEvents();
-    }, 100);
+    }, 500);
 });
 
-// Session maintenance - validate every hour
+// Session maintenance
 setInterval(() => {
     if (authManager.currentUser) {
-        authManager.validateSession().catch(console.error);
+        authManager.validateSession?.().catch(console.error);
     }
 }, 60 * 60 * 1000);
 
