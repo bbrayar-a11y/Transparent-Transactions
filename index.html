@@ -287,54 +287,63 @@
     <div id="modalsContainer"></div>
 
     <!-- App Initialization -->
-    <script>
-        // Global app state
-        window.appState = {
-            currentUser: null,
-            isOnline: navigator.onLine,
-            dbInitialized: false
-        };
+<script>
+    // Global app state
+    window.appState = {
+        currentUser: null,
+        isOnline: navigator.onLine,
+        dbInitialized: false
+    };
 
-        // Initialize app when DOM is loaded
-        document.addEventListener('DOMContentLoaded', async function() {
-            try {
-                // Initialize database first
+    // Initialize app when DOM is loaded
+    document.addEventListener('DOMContentLoaded', async function() {
+        try {
+            // Show loading screen longer
+            console.log('Starting app initialization...');
+            
+            // Wait a bit for all scripts to load
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Initialize database first
+            if (window.transparentDB) {
                 await transparentDB.init();
                 window.appState.dbInitialized = true;
-                
-                // Check if user is already signed in
-                const savedUser = await authManager.getCurrentUser();
-                if (savedUser) {
-                    await uiManager.showAppScreen(savedUser);
-                } else {
-                    await uiManager.showLoginScreen();
-                }
-                
-                // Hide loading screen
-                document.getElementById('loadingScreen').classList.remove('active');
-                
-            } catch (error) {
-                console.error('App initialization failed:', error);
-                document.getElementById('loadingScreen').classList.remove('active');
-                uiManager.showError('Failed to initialize app. Please refresh.');
+                console.log('Database initialized successfully');
+            } else {
+                throw new Error('Database module not loaded');
             }
-        });
-
-        // Handle online/offline status
-        window.addEventListener('online', () => {
-            window.appState.isOnline = true;
-            uiManager.showStatus('Back online', 'success');
-        });
-
-        window.addEventListener('offline', () => {
-            window.appState.isOnline = false;
-            uiManager.showStatus('Working offline', 'warning');
-        });
-
-        // Simple privacy info
-        window.showPrivacyInfo = function() {
-            alert(`Privacy Information:\n\n• We only store your phone number for authentication\n• All transaction data stays on your device\n• We never share your data with anyone\n• You can export or delete your data anytime\n• No personal information is collected without your consent`);
-        };
-    </script>
+            
+            // Wait for auth manager to be ready
+            if (window.authManager) {
+                await authManager.init();
+            }
+            
+            // Check if user is already signed in
+            const savedUser = await authManager.getCurrentUser();
+            if (savedUser) {
+                console.log('Found existing user session');
+                await uiManager.showAppScreen(savedUser);
+            } else {
+                console.log('No existing session, showing login');
+                await uiManager.showLoginScreen();
+            }
+            
+            // Hide loading screen
+            document.getElementById('loadingScreen').classList.remove('active');
+            console.log('App initialized successfully');
+            
+        } catch (error) {
+            console.error('App initialization failed:', error);
+            document.getElementById('loadingScreen').classList.remove('active');
+            
+            // Show more helpful error message
+            const errorMessage = error.message.includes('Database') 
+                ? 'Database loading failed. Please check browser support.' 
+                : 'Failed to initialize app. Please refresh.';
+                
+            uiManager.showError(errorMessage);
+        }
+    });
+</script>
 </body>
 </html>
