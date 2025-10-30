@@ -225,43 +225,46 @@ class AuthManager {
     }
 
     // Handle successful authentication
-    async handleSuccessfulAuth(phone) {
-        console.log('🎉 Starting successful authentication for:', phone);
+async handleSuccessfulAuth(phone) {
+    console.log('🎉 Starting successful authentication for:', phone);
+    
+    try {
+        // ✅ FIX: Clear the "Verifying OTP" message immediately
+        document.getElementById('authStatus').classList.add('hidden');
         
-        try {
-            // Clear OTP data
-            this.pendingOTP = null;
-            this.pendingPhone = null;
-            sessionStorage.removeItem('tt_otp_data');
-            
-            // Stop OTP timer
-            this.stopOTPTimer();
+        // Clear OTP data
+        this.pendingOTP = null;
+        this.pendingPhone = null;
+        sessionStorage.removeItem('tt_otp_data');
+        
+        // Stop OTP timer
+        this.stopOTPTimer();
 
-            // Create or get user
-            console.log('👤 Creating/updating user in database...');
-            const user = await this.createOrUpdateUser(phone);
-            
-            // Set current user
-            this.currentUser = user;
-            console.log('✅ User set:', user.phone);
-            
-            // Save session
-            this.saveSession(user);
-            console.log('💾 Session saved to localStorage');
-            
-            // Update UI
-            console.log('🖥️ Showing app screen...');
-            await uiManager.showAppScreen(user);
-            
-            this.showAuthStatus('Successfully signed in!', 'success');
-            console.log('🎊 Authentication completed successfully!');
+        // Create or get user
+        console.log('👤 Creating/updating user in database...');
+        const user = await this.createOrUpdateUser(phone);
+        
+        // Set current user
+        this.currentUser = user;
+        console.log('✅ User set:', user.phone);
+        
+        // Save session
+        this.saveSession(user);
+        console.log('💾 Session saved to localStorage');
+        
+        // Update UI
+        console.log('🖥️ Showing app screen...');
+        await uiManager.showAppScreen(user);
+        
+        this.showAuthStatus('Successfully signed in!', 'success');
+        console.log('🎊 Authentication completed successfully!');
 
-        } catch (error) {
-            console.error('❌ Authentication failed:', error);
-            this.showAuthStatus('Authentication failed. Please try again.', 'error');
-            this.hideOTPSection();
-        }
+    } catch (error) {
+        console.error('❌ Authentication failed:', error);
+        this.showAuthStatus('Authentication failed. Please try again.', 'error');
+        this.hideOTPSection();
     }
+}
 
     // Create or update user in database
     async createOrUpdateUser(phone) {
@@ -555,3 +558,4 @@ document.addEventListener('click', () => {
         authManager.updateSessionActivity();
     }
 });
+
