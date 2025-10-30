@@ -4,6 +4,7 @@ class UIManager {
         this.currentScreen = null;
         this.currentTab = 'dashboard';
         this.isInitialized = false;
+        console.log('🎨 UI Manager created');
         this.init();
     }
 
@@ -11,17 +12,18 @@ class UIManager {
         if (this.isInitialized) return;
         
         try {
-            // Initialize event listeners
             this.initEventListeners();
             this.isInitialized = true;
-            console.log('UI manager initialized');
+            console.log('✅ UI manager initialized');
         } catch (error) {
-            console.error('UI initialization failed:', error);
+            console.error('❌ UI initialization failed:', error);
         }
     }
 
     // Initialize all UI event listeners
     initEventListeners() {
+        console.log('🔌 Setting up UI event listeners...');
+        
         // Navigation tabs
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('nav-tab')) {
@@ -39,7 +41,6 @@ class UIManager {
                 userMenu.classList.toggle('hidden');
             });
 
-            // Close menu when clicking outside
             document.addEventListener('click', () => {
                 userMenu.classList.add('hidden');
             });
@@ -85,32 +86,31 @@ class UIManager {
                 this.closeAllModals();
             }
         });
+
+        console.log('✅ All UI event listeners set up');
     }
 
     // Show login screen
     async showLoginScreen() {
+        console.log('🔐 Showing login screen');
         this.hideAllScreens();
         document.getElementById('loginScreen').classList.add('active');
         this.currentScreen = 'login';
-        
-        // Reset form
         this.resetLoginForm();
     }
 
     // Show main app screen
     async showAppScreen(user) {
+        console.log('🏠 Showing app screen for user:', user.phone);
         this.hideAllScreens();
         document.getElementById('appScreen').classList.add('active');
         this.currentScreen = 'app';
         
-        // Update user information
         this.updateUserInfo(user);
-        
-        // Load initial data
         await this.loadDashboardData();
-        
-        // Set active tab
         this.switchTab('dashboard');
+        
+        console.log('✅ App screen loaded successfully');
     }
 
     // Hide all screens
@@ -136,45 +136,33 @@ class UIManager {
 
     // Update user information in UI
     updateUserInfo(user) {
-        // Update greeting
         const greeting = document.getElementById('userGreeting');
         if (greeting) {
             greeting.textContent = `Hello, ${user.name || 'User'}!`;
         }
 
-        // Update welcome text
         const welcomeText = document.getElementById('userWelcomeText');
         if (welcomeText) {
             welcomeText.textContent = `Welcome, ${user.name || 'User'}!`;
         }
 
-        // Update phone display
         const phoneDisplay = document.getElementById('userPhoneDisplay');
         if (phoneDisplay) {
             phoneDisplay.textContent = user.phone;
         }
 
-        // Update avatar
-        const avatar = document.getElementById('userAvatar');
-        if (avatar) {
-            if (user.avatar) {
-                avatar.innerHTML = `<img src="${user.avatar}" alt="User avatar">`;
-            } else {
-                avatar.textContent = '👤';
-                avatar.className = 'avatar-placeholder';
-            }
-        }
+        console.log('✅ User info updated in UI');
     }
 
     // Switch between tabs
     switchTab(tabName) {
-        // Update tab buttons
+        console.log('📑 Switching to tab:', tabName);
+        
         const tabButtons = document.querySelectorAll('.nav-tab');
         tabButtons.forEach(button => {
             button.classList.toggle('active', button.dataset.tab === tabName);
         });
 
-        // Update tab content
         const tabContents = document.querySelectorAll('.tab-content');
         tabContents.forEach(content => {
             content.classList.toggle('active', content.id === `${tabName}Tab`);
@@ -182,7 +170,6 @@ class UIManager {
 
         this.currentTab = tabName;
 
-        // Load tab-specific data
         switch (tabName) {
             case 'dashboard':
                 this.loadDashboardData();
@@ -204,17 +191,13 @@ class UIManager {
         if (!authManager.currentUser) return;
 
         try {
-            // Load balance information
+            console.log('📊 Loading dashboard data...');
             await this.updateBalanceOverview();
-            
-            // Load recent activity
             await this.updateRecentActivity();
-            
-            // Update notification count
             await this.updateNotificationCount();
-
+            console.log('✅ Dashboard data loaded');
         } catch (error) {
-            console.error('Error loading dashboard data:', error);
+            console.error('❌ Error loading dashboard data:', error);
         }
     }
 
@@ -249,13 +232,8 @@ class UIManager {
                 netBalanceElement.className = `balance-amount ${netBalance >= 0 ? 'positive' : 'negative'}`;
             }
 
-            if (receivableElement) {
-                receivableElement.textContent = `₹${totalReceivable}`;
-            }
-
-            if (payableElement) {
-                payableElement.textContent = `₹${totalPayable}`;
-            }
+            if (receivableElement) receivableElement.textContent = `₹${totalReceivable}`;
+            if (payableElement) payableElement.textContent = `₹${totalPayable}`;
 
             if (trendElement) {
                 if (transactions.length === 0) {
@@ -270,7 +248,7 @@ class UIManager {
             }
 
         } catch (error) {
-            console.error('Error updating balance overview:', error);
+            console.error('❌ Error updating balance overview:', error);
         }
     }
 
@@ -284,10 +262,7 @@ class UIManager {
 
             if (!activityList) return;
 
-            // Sort by date (newest first)
             transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
-            
-            // Take last 5 transactions
             const recentTransactions = transactions.slice(0, 5);
 
             if (recentTransactions.length === 0) {
@@ -306,11 +281,10 @@ class UIManager {
                 const isSent = tx.fromPhone === authManager.currentUser.phone;
                 const otherParty = isSent ? tx.toPhone : tx.fromPhone;
                 const amount = isSent ? -tx.amount : tx.amount;
-                const type = isSent ? 'sent' : 'received';
                 const date = new Date(tx.date).toLocaleDateString();
 
                 return `
-                    <div class="activity-item ${type}">
+                    <div class="activity-item ${isSent ? 'sent' : 'received'}">
                         <div class="activity-details">
                             <span class="activity-type">${isSent ? 'Sent to' : 'Received from'}</span>
                             <span class="activity-party">${otherParty}</span>
@@ -324,7 +298,7 @@ class UIManager {
             }).join('');
 
         } catch (error) {
-            console.error('Error updating recent activity:', error);
+            console.error('❌ Error updating recent activity:', error);
             activityList.innerHTML = '<div class="error-state">Error loading activity</div>';
         }
     }
@@ -351,7 +325,7 @@ class UIManager {
             }
 
         } catch (error) {
-            console.error('Error updating notification count:', error);
+            console.error('❌ Error updating notification count:', error);
         }
     }
 
@@ -378,25 +352,21 @@ class UIManager {
             }
 
             contactsList.innerHTML = contacts.map(contact => `
-                <div class="contact-item" data-contact-phone="${contact.contactPhone}">
+                <div class="contact-item">
                     <div class="contact-avatar">${contact.name ? contact.name.charAt(0).toUpperCase() : '👤'}</div>
                     <div class="contact-info">
                         <div class="contact-name">${contact.name || 'Unknown Contact'}</div>
                         <div class="contact-phone">${contact.contactPhone}</div>
                     </div>
                     <div class="contact-actions">
-                        <button class="icon-btn small" onclick="uiManager.contactDetails('${contact.contactPhone}')" title="View Details">
-                            👁️
-                        </button>
-                        <button class="icon-btn small" onclick="uiManager.transactWithContact('${contact.contactPhone}')" title="New Transaction">
-                            💰
-                        </button>
+                        <button class="icon-btn small" title="View Details">👁️</button>
+                        <button class="icon-btn small" title="New Transaction">💰</button>
                     </div>
                 </div>
             `).join('');
 
         } catch (error) {
-            console.error('Error loading contacts:', error);
+            console.error('❌ Error loading contacts:', error);
             contactsList.innerHTML = '<div class="error-state">Error loading contacts</div>';
         }
     }
@@ -407,40 +377,16 @@ class UIManager {
 
         try {
             const transactions = await transparentDB.getLedgerEntries(authManager.currentUser.phone);
-            const pendingTransactions = await transparentDB.getPendingTransactions(authManager.currentUser.phone);
             const transactionsList = document.getElementById('transactionsList');
-            const filter = document.getElementById('transactionFilter')?.value || 'all';
 
             if (!transactionsList) return;
 
-            const allTransactions = [
-                ...transactions.map(tx => ({ ...tx, type: 'approved' })),
-                ...pendingTransactions.map(tx => ({ ...tx, type: 'pending' }))
-            ];
+            transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            // Apply filter
-            let filteredTransactions = allTransactions;
-            if (filter === 'pending') {
-                filteredTransactions = allTransactions.filter(tx => tx.type === 'pending');
-            } else if (filter === 'approved') {
-                filteredTransactions = allTransactions.filter(tx => tx.type === 'approved');
-            } else if (filter === 'sent') {
-                filteredTransactions = allTransactions.filter(tx => 
-                    tx.fromPhone === authManager.currentUser.phone
-                );
-            } else if (filter === 'received') {
-                filteredTransactions = allTransactions.filter(tx => 
-                    tx.toPhone === authManager.currentUser.phone
-                );
-            }
-
-            // Sort by date (newest first)
-            filteredTransactions.sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt));
-
-            if (filteredTransactions.length === 0) {
+            if (transactions.length === 0) {
                 transactionsList.innerHTML = `
                     <div class="empty-state">
-                        <p>No transactions found</p>
+                        <p>No transactions yet</p>
                         <button id="firstTransactionBtn2" class="btn-outline small">
                             Create your first transaction
                         </button>
@@ -449,23 +395,20 @@ class UIManager {
                 return;
             }
 
-            transactionsList.innerHTML = filteredTransactions.map(tx => {
-                const isPending = tx.type === 'pending';
+            transactionsList.innerHTML = transactions.map(tx => {
                 const isSent = tx.fromPhone === authManager.currentUser.phone;
                 const otherParty = isSent ? tx.toPhone : tx.fromPhone;
                 const amount = isSent ? -tx.amount : tx.amount;
-                const date = new Date(tx.date || tx.createdAt).toLocaleDateString();
-                const status = isPending ? 'Pending' : 'Approved';
+                const date = new Date(tx.date).toLocaleDateString();
 
                 return `
-                    <div class="transaction-item ${tx.type} ${isSent ? 'sent' : 'received'}">
+                    <div class="transaction-item ${isSent ? 'sent' : 'received'}">
                         <div class="transaction-details">
                             <div class="transaction-party">${otherParty}</div>
                             <div class="transaction-meta">
                                 <span class="transaction-date">${date}</span>
-                                <span class="transaction-status ${tx.type}">${status}</span>
+                                <span class="transaction-status approved">Approved</span>
                             </div>
-                            ${tx.description ? `<div class="transaction-description">${tx.description}</div>` : ''}
                         </div>
                         <div class="transaction-amount ${amount >= 0 ? 'positive' : 'negative'}">
                             ${amount >= 0 ? '+' : ''}₹${Math.abs(amount)}
@@ -475,7 +418,7 @@ class UIManager {
             }).join('');
 
         } catch (error) {
-            console.error('Error loading transactions:', error);
+            console.error('❌ Error loading transactions:', error);
             transactionsList.innerHTML = '<div class="error-state">Error loading transactions</div>';
         }
     }
@@ -495,35 +438,22 @@ class UIManager {
 
     // Show status message
     showStatus(message, type = 'info') {
-        // Remove existing status message
         const existingStatus = document.querySelector('.status-message');
-        if (existingStatus) {
-            existingStatus.remove();
-        }
+        if (existingStatus) existingStatus.remove();
 
-        // Create new status message
         const statusElement = document.createElement('div');
         statusElement.className = `status-message status-${type}`;
         statusElement.textContent = message;
-
         document.body.appendChild(statusElement);
 
-        // Auto-remove after 3 seconds
         setTimeout(() => {
-            if (statusElement.parentNode) {
-                statusElement.remove();
-            }
+            if (statusElement.parentNode) statusElement.remove();
         }, 3000);
     }
 
     // Show error message
     showError(message) {
         this.showStatus(message, 'error');
-    }
-
-    // Show loading state
-    showLoading(message = 'Loading...') {
-        this.showStatus(message, 'loading');
     }
 
     // Modal management
@@ -536,7 +466,6 @@ class UIManager {
                 </div>
                 <div class="modal-content">
                     <p>Transaction creation will be available in the next update.</p>
-                    <p>First, we need to complete the contacts system.</p>
                 </div>
                 <div class="modal-actions">
                     <button class="btn-primary" onclick="uiManager.closeAllModals()">OK</button>
@@ -554,7 +483,6 @@ class UIManager {
                 </div>
                 <div class="modal-content">
                     <p>Contact management will be available in the next update.</p>
-                    <p>We'll integrate with your phone's contact list.</p>
                 </div>
                 <div class="modal-actions">
                     <button class="btn-primary" onclick="uiManager.closeAllModals()">OK</button>
@@ -572,7 +500,6 @@ class UIManager {
                 </div>
                 <div class="modal-content">
                     <p>Credit transfer feature will be available soon.</p>
-                    <p>This will allow you to transfer credits between your contacts with mutual consent.</p>
                 </div>
                 <div class="modal-actions">
                     <button class="btn-primary" onclick="uiManager.closeAllModals()">OK</button>
@@ -593,7 +520,7 @@ class UIManager {
         modalsContainer.innerHTML = '';
     }
 
-    // Placeholder methods for future features
+    // Placeholder methods
     importContactsFromPhone() {
         this.showStatus('Contact import will be available soon', 'info');
     }
@@ -601,25 +528,15 @@ class UIManager {
     generateReport() {
         this.showStatus('Report generation will be available soon', 'info');
     }
-
-    contactDetails(contactPhone) {
-        this.showStatus(`Contact details for ${contactPhone} will be available soon`, 'info');
-    }
-
-    transactWithContact(contactPhone) {
-        this.showStatus(`Transaction with ${contactPhone} will be available soon`, 'info');
-    }
 }
 
 // Initialize UI manager
 const uiManager = new UIManager();
-
-// Export to global scope
 window.uiManager = uiManager;
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         uiManager.init();
-    }, 100);
+    }, 500);
 });
