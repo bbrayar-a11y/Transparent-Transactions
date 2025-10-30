@@ -5,21 +5,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Transparent Transaction</title>
+  
+  <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="app-preview.png">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Arial; background: #f0f4f8; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-    header { background: #1976d2; color: white; width: 100%; text-align: center; padding: 1.2rem; }
-    .container { width: 90%; max-width: 420px; background: white; margin: 1rem; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    input, button { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
-    button { background: #1976d2; color: white; border: none; font-weight: bold; cursor: pointer; }
-    button:hover { background: #1565c0; }
-    .hidden { display: none; }
-    ul { list-style: none; margin-top: 15px; }
-    li { background: #e3f2fd; padding: 10px; margin: 6px 0; border-radius: 8px; font-size: 0.95rem; }
-    .logout { background: #d32f2f; margin-top: 15px; }
-  </style>
+  
+  <!-- iOS Support -->
+  <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+  
+  <!-- Force HTTPS -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  
+  <style>...</style>
 </head>
 <body>
   <header>
