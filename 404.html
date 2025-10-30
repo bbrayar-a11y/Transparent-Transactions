@@ -1,13 +1,20 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta http-equiv="refresh" content="0; url=/transparent-transaction/">
+<head>
+    <title>Redirecting to Transparent Transactions</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>
-      // For browsers that ignore meta refresh
-      window.location.href = "/transparent-transaction/";
+        // ✅ Redirect all 404s to the main app
+        sessionStorage.redirect = location.pathname;
+        window.location.href = '/Transparent-Transactions/';
     </script>
-  </head>
-  <body>
-    <p>Redirecting to the app…</p>
-  </body>
+</head>
+<body>
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h1>Redirecting...</h1>
+        <p>Taking you to Transparent Transactions app</p>
+        <p>If you are not redirected, <a href="/Transparent-Transactions/">click here</a>.</p>
+    </div>
+</body>
 </html>
