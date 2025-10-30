@@ -5,35 +5,92 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Transparent Transaction</title>
-  
-  <!-- PWA Manifest -->
+
+  <!-- PWA Manifest (App Icon) -->
   <link rel="manifest" href="manifest.json">
-  
-  <!-- iOS Support -->
+
+  <!-- iOS Home Screen Icon -->
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
-  
-  <!-- Force HTTPS -->
+
+  <!-- Fullscreen App Mode -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  
-  <style>...</style>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      background: #1976d2;
+      color: white;
+      width: 100%;
+      text-align: center;
+      padding: 1.2rem;
+    }
+    .container {
+      width: 90%;
+      max-width: 420px;
+      background: white;
+      margin: 1rem;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    button {
+      background: #1976d2;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { background: #1565c0; }
+    .hidden { display: none; }
+    ul { list-style: none; margin-top: 15px; }
+    li {
+      background: #e3f2fd;
+      padding: 10px;
+      margin: 6px 0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+    .logout {
+      background: #d32f2f;
+      margin-top: 15px;
+    }
+  </style>
 </head>
 <body>
+
   <header>
     <h2>Transparent Transaction</h2>
     <p>One-tap debt transfer</p>
   </header>
 
-  
-  <!-- END -->
-
   <div class="container">
+
+    <!-- Login Screen -->
     <div id="login">
-      <input id="phone" placeholder="Phone (10 digits)" maxlength="10" inputmode="numeric">
+      <input id="phone" type="tel" placeholder="Phone (10 digits)" maxlength="10" inputmode="numeric">
       <button onclick="start()">Start Now</button>
     </div>
 
+    <!-- Main App -->
     <div id="app" class="hidden">
       <p><strong id="userPhone"></strong></p>
       <input id="name" placeholder="Name">
@@ -42,27 +99,38 @@
       <ul id="ledger"></ul>
       <button class="logout" onclick="logout()">Logout</button>
     </div>
+
   </div>
 
   <script>
     let phone = '';
+
     function start() {
-      phone = '+91' + document.getElementById('phone').value.trim();
-      if (!/^\+91\d{10}$/.test(phone)) return alert('Enter 10 digits');
+      const input = document.getElementById('phone').value.trim();
+      if (!/^\d{10}$/.test(input)) {
+        alert('Please enter a valid 10-digit phone number');
+        return;
+      }
+      phone = '+91' + input;
       document.getElementById('login').classList.add('hidden');
       document.getElementById('app').classList.remove('hidden');
       document.getElementById('userPhone').textContent = phone;
       load();
     }
+
     function load() {
       const list = document.getElementById('ledger');
       const saved = localStorage.getItem('ledger_' + phone);
       list.innerHTML = saved ? JSON.parse(saved).map(e => `<li>${e.name}: ₹${e.amount}</li>`).join('') : '';
     }
+
     function add() {
       const name = document.getElementById('name').value.trim();
       const amount = parseFloat(document.getElementById('amount').value);
-      if (!name || !amount) return;
+      if (!name || !amount || amount <= 0) {
+        alert('Enter valid name and amount');
+        return;
+      }
       const entry = { name, amount };
       const ledger = JSON.parse(localStorage.getItem('ledger_' + phone) || '[]');
       ledger.push(entry);
@@ -71,15 +139,24 @@
       document.getElementById('name').value = '';
       document.getElementById('amount').value = '';
     }
+
     function logout() {
       document.getElementById('app').classList.add('hidden');
       document.getElementById('login').classList.remove('hidden');
       document.getElementById('phone').value = '';
+      phone = '';
     }
+
+    // Register Service Worker (Offline + Installable)
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('SW registered'))
+          .catch(err => console.log('SW error:', err));
+      });
     }
   </script>
+
 </body>
 </html>
 ```
