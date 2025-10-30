@@ -2,9 +2,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <div style="text-align:center; margin:15px 0;">
-  <img src="app-preview.png" alt="App Preview" style="width:100%; max-width:380px; border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,0.1);">
-</div>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Transparent Transaction</title>
@@ -21,7 +18,6 @@
     ul { list-style: none; margin-top: 15px; }
     li { background: #e3f2fd; padding: 10px; margin: 6px 0; border-radius: 8px; font-size: 0.95rem; }
     .logout { background: #d32f2f; margin-top: 15px; }
-    .status { font-size: 0.9rem; color: #666; margin: 10px 0; }
   </style>
 </head>
 <body>
@@ -30,74 +26,60 @@
     <p>One-tap debt transfer</p>
   </header>
 
+  <!-- ADD THIS: App Preview Image -->
+  <div style="text-align:center; margin:15px 0;">
+    <img src="app-preview.png" alt="App Preview" style="width:100%; max-width:380px; border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,0.1);">
+  </div>
+  <!-- END -->
+
   <div class="container">
-    <!-- Instant Login -->
     <div id="login">
-      <p class="status">Enter your phone to start</p>
       <input id="phone" placeholder="Phone (10 digits)" maxlength="10" inputmode="numeric">
-      <button onclick="instantLogin()">Start Now</button>
+      <button onclick="start()">Start Now</button>
     </div>
 
-    <!-- Main App -->
     <div id="app" class="hidden">
       <p><strong id="userPhone"></strong></p>
       <input id="name" placeholder="Name">
       <input id="amount" type="number" placeholder="Amount (₹)" inputmode="numeric">
-      <button onclick="addEntry()">Add Transaction</button>
+      <button onclick="add()">Add Transaction</button>
       <ul id="ledger"></ul>
       <button class="logout" onclick="logout()">Logout</button>
     </div>
   </div>
 
   <script>
-    let currentUserPhone = '';
-
-    // Instant Login — NO OTP
-    function instantLogin() {
-      const phone = document.getElementById('phone').value.trim();
-      if (!/^\d{10}$/.test(phone)) return alert('Enter 10-digit phone');
-
-      currentUserPhone = '+91' + phone;
+    let phone = '';
+    function start() {
+      phone = '+91' + document.getElementById('phone').value.trim();
+      if (!/^\+91\d{10}$/.test(phone)) return alert('Enter 10 digits');
       document.getElementById('login').classList.add('hidden');
       document.getElementById('app').classList.remove('hidden');
-      document.getElementById('userPhone').textContent = currentUserPhone;
-      loadLedger();
+      document.getElementById('userPhone').textContent = phone;
+      load();
     }
-
-    // Load Ledger
-    function loadLedger() {
-      const key = 'ledger_' + currentUserPhone;
-      const saved = localStorage.getItem(key);
+    function load() {
       const list = document.getElementById('ledger');
+      const saved = localStorage.getItem('ledger_' + phone);
       list.innerHTML = saved ? JSON.parse(saved).map(e => `<li>${e.name}: ₹${e.amount}</li>`).join('') : '';
     }
-
-    // Add Entry
-    function addEntry() {
+    function add() {
       const name = document.getElementById('name').value.trim();
       const amount = parseFloat(document.getElementById('amount').value);
-      if (!name || !amount) return alert('Enter name and amount');
-
+      if (!name || !amount) return;
       const entry = { name, amount };
-      const key = 'ledger_' + currentUserPhone;
-      const ledger = JSON.parse(localStorage.getItem(key) || '[]');
+      const ledger = JSON.parse(localStorage.getItem('ledger_' + phone) || '[]');
       ledger.push(entry);
-      localStorage.setItem(key, JSON.stringify(ledger));
-      loadLedger();
-
+      localStorage.setItem('ledger_' + phone, JSON.stringify(ledger));
+      load();
       document.getElementById('name').value = '';
       document.getElementById('amount').value = '';
     }
-
-    // Logout
     function logout() {
       document.getElementById('app').classList.add('hidden');
       document.getElementById('login').classList.remove('hidden');
       document.getElementById('phone').value = '';
-      currentUserPhone = '';
     }
-
-    // Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
     }
