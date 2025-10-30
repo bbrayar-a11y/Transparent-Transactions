@@ -2,7 +2,7 @@
     "name": "Transparent Transactions",
     "short_name": "Transact",
     "description": "Secure P2P transaction tracking with mutual trust",
-    "start_url": "/",
+    "start_url": "/Transparent-Transactions/",
     "display": "standalone",
     "background_color": "#1976d2",
     "theme_color": "#1976d2",
