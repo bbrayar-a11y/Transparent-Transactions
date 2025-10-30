@@ -287,63 +287,94 @@
     <div id="modalsContainer"></div>
 
     <!-- App Initialization -->
-<script>
-    // Global app state
-    window.appState = {
-        currentUser: null,
-        isOnline: navigator.onLine,
-        dbInitialized: false
-    };
+    <script>
+        // Global app state
+        window.appState = {
+            currentUser: null,
+            isOnline: navigator.onLine,
+            dbInitialized: false
+        };
 
-    // Initialize app when DOM is loaded
-    document.addEventListener('DOMContentLoaded', async function() {
-        try {
-            // Show loading screen longer
-            console.log('Starting app initialization...');
+        // Initialize app when everything is loaded
+        window.addEventListener('load', async function() {
+            console.log('🚀 Starting app initialization...');
             
-            // Wait a bit for all scripts to load
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Initialize database first
-            if (window.transparentDB) {
+            try {
+                // Wait for all scripts to load
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Check if all modules are loaded
+                if (!window.transparentDB) {
+                    throw new Error('Database module not loaded');
+                }
+                if (!window.authManager) {
+                    throw new Error('Auth module not loaded');
+                }
+                if (!window.uiManager) {
+                    throw new Error('UI module not loaded');
+                }
+
+                console.log('✅ All modules loaded, initializing database...');
+                
+                // Initialize database
                 await transparentDB.init();
                 window.appState.dbInitialized = true;
-                console.log('Database initialized successfully');
-            } else {
-                throw new Error('Database module not loaded');
-            }
-            
-            // Wait for auth manager to be ready
-            if (window.authManager) {
+                console.log('✅ Database initialized');
+
+                // Initialize auth manager
                 await authManager.init();
-            }
-            
-            // Check if user is already signed in
-            const savedUser = await authManager.getCurrentUser();
-            if (savedUser) {
-                console.log('Found existing user session');
-                await uiManager.showAppScreen(savedUser);
-            } else {
-                console.log('No existing session, showing login');
-                await uiManager.showLoginScreen();
-            }
-            
-            // Hide loading screen
-            document.getElementById('loadingScreen').classList.remove('active');
-            console.log('App initialized successfully');
-            
-        } catch (error) {
-            console.error('App initialization failed:', error);
-            document.getElementById('loadingScreen').classList.remove('active');
-            
-            // Show more helpful error message
-            const errorMessage = error.message.includes('Database') 
-                ? 'Database loading failed. Please check browser support.' 
-                : 'Failed to initialize app. Please refresh.';
+                console.log('✅ Auth manager initialized');
+
+                // Check for existing user session
+                const savedUser = await authManager.getCurrentUser();
+                if (savedUser) {
+                    console.log('✅ Found existing user:', savedUser.phone);
+                    await uiManager.showAppScreen(savedUser);
+                } else {
+                    console.log('ℹ️ No existing session, showing login');
+                    await uiManager.showLoginScreen();
+                }
+
+                // Hide loading screen
+                document.getElementById('loadingScreen').classList.remove('active');
+                console.log('🎉 App initialized successfully!');
+
+            } catch (error) {
+                console.error('❌ App initialization failed:', error);
+                document.getElementById('loadingScreen').classList.remove('active');
                 
-            uiManager.showError(errorMessage);
-        }
-    });
-</script>
+                let errorMessage = 'Failed to initialize app. ';
+                if (error.message.includes('Database')) {
+                    errorMessage += 'Please check if your browser supports IndexedDB.';
+                } else if (error.message.includes('module')) {
+                    errorMessage += 'Some files failed to load. Please refresh.';
+                } else {
+                    errorMessage += 'Please refresh the page.';
+                }
+                
+                if (window.uiManager) {
+                    uiManager.showError(errorMessage);
+                } else {
+                    alert(errorMessage);
+                }
+            }
+        });
+
+        // Handle online/offline status
+        window.addEventListener('online', () => {
+            window.appState.isOnline = true;
+            if (window.uiManager) uiManager.showStatus('Back online', 'success');
+        });
+
+        window.addEventListener('offline', () => {
+            window.appState.isOnline = false;
+            if (window.uiManager) uiManager.showStatus('Working offline', 'warning');
+        });
+
+        // Simple privacy info
+        window.showPrivacyInfo = function() {
+            alert(`Privacy Information:\n\n• We only store your phone number for authentication\n• All transaction data stays on your device\n• We never share your data with anyone\n• You can export or delete your data anytime\n• No personal information is collected without your consent`);
+        };
+    </script>
 </body>
 </html>
