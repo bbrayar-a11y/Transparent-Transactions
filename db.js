@@ -2,47 +2,47 @@
 class TransparentTransactionsDB {
     constructor() {
         this.dbName = 'TransparentTransactionsDB';
-        this.version = 3; // Increment when schema changes
+        this.version = 3;
         this.db = null;
+        console.log('🗄️ Database manager created');
     }
 
     // Initialize database with all object stores
     async init() {
+        console.log('🔄 Initializing database...');
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(this.dbName, this.version);
 
             request.onerror = () => {
-                console.error('Database failed to open:', request.error);
+                console.error('❌ Database failed to open:', request.error);
                 reject(request.error);
             };
 
             request.onsuccess = () => {
                 this.db = request.result;
-                console.log('Database opened successfully');
+                console.log('✅ Database opened successfully');
                 resolve(this.db);
             };
 
             request.onupgradeneeded = (event) => {
+                console.log('📊 Database upgrade needed, creating schema...');
                 const db = event.target.result;
                 this.createObjectStores(db);
-                console.log('Database upgrade completed');
+                console.log('✅ Database schema created');
             };
         });
     }
 
     // Create all object stores for our schema
     createObjectStores(db) {
-        // Users store - for app users
+        // Users store
         if (!db.objectStoreNames.contains('users')) {
-            const userStore = db.createObjectStore('users', { 
-                keyPath: 'id' 
-            });
+            const userStore = db.createObjectStore('users', { keyPath: 'id' });
             userStore.createIndex('phone', 'phone', { unique: true });
-            userStore.createIndex('email', 'email', { unique: true });
-            userStore.createIndex('googleId', 'googleId', { unique: true });
+            console.log('✅ Users store created');
         }
 
-        // Contacts store - user's business contacts
+        // Contacts store
         if (!db.objectStoreNames.contains('contacts')) {
             const contactStore = db.createObjectStore('contacts', {
                 keyPath: 'id',
@@ -50,10 +50,10 @@ class TransparentTransactionsDB {
             });
             contactStore.createIndex('ownerPhone', 'ownerPhone', { unique: false });
             contactStore.createIndex('contactPhone', 'contactPhone', { unique: false });
-            contactStore.createIndex('name', 'name', { unique: false });
+            console.log('✅ Contacts store created');
         }
 
-        // Pending transactions - waiting for approval
+        // Pending transactions
         if (!db.objectStoreNames.contains('pending_transactions')) {
             const pendingStore = db.createObjectStore('pending_transactions', {
                 keyPath: 'id',
@@ -61,8 +61,7 @@ class TransparentTransactionsDB {
             });
             pendingStore.createIndex('fromPhone', 'fromPhone', { unique: false });
             pendingStore.createIndex('toPhone', 'toPhone', { unique: false });
-            pendingStore.createIndex('status', 'status', { unique: false }); // pending, approved, rejected
-            pendingStore.createIndex('createdAt', 'createdAt', { unique: false });
+            console.log('✅ Pending transactions store created');
         }
 
         // Ledger - approved transactions
@@ -73,41 +72,31 @@ class TransparentTransactionsDB {
             });
             ledgerStore.createIndex('fromPhone', 'fromPhone', { unique: false });
             ledgerStore.createIndex('toPhone', 'toPhone', { unique: false });
-            ledgerStore.createIndex('amount', 'amount', { unique: false });
-            ledgerStore.createIndex('date', 'date', { unique: false });
-            ledgerStore.createIndex('type', 'type', { unique: false }); // direct, credit_transfer
-            ledgerStore.createIndex('status', 'status', { unique: false }); // active, settled
+            console.log('✅ Ledger store created');
         }
 
-        // Credit transfers - three-party agreements
+        // Credit transfers
         if (!db.objectStoreNames.contains('credit_transfers')) {
             const creditStore = db.createObjectStore('credit_transfers', {
                 keyPath: 'id',
                 autoIncrement: true
             });
             creditStore.createIndex('initiatorPhone', 'initiatorPhone', { unique: false });
-            creditStore.createIndex('fromPhone', 'fromPhone', { unique: false });
-            creditStore.createIndex('toPhone', 'toPhone', { unique: false });
-            creditStore.createIndex('amount', 'amount', { unique: false });
-            creditStore.createIndex('status', 'status', { unique: false }); // pending, completed, rejected
-            creditStore.createIndex('createdAt', 'createdAt', { unique: false });
+            console.log('✅ Credit transfers store created');
         }
 
-        // User settings and preferences
+        // User settings
         if (!db.objectStoreNames.contains('settings')) {
-            const settingsStore = db.createObjectStore('settings', {
-                keyPath: 'phone'
-            });
-            settingsStore.createIndex('language', 'language', { unique: false });
-            settingsStore.createIndex('currency', 'currency', { unique: false });
+            db.createObjectStore('settings', { keyPath: 'phone' });
+            console.log('✅ Settings store created');
         }
     }
 
     // User Management
     async addUser(userData) {
+        console.log('👤 Adding user to database:', userData.phone);
         return this.executeTransaction('users', 'readwrite', (store) => {
             return store.add({
-                id: userData.phone, // Use phone as ID for now
                 ...userData,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
@@ -145,20 +134,17 @@ class TransparentTransactionsDB {
             return store.add({
                 ...transactionData,
                 status: 'pending',
-                createdAt: new Date().toISOString(),
-                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+                createdAt: new Date().toISOString()
             });
         });
     }
 
     async getPendingTransactions(phone) {
         return Promise.all([
-            // Transactions where user is sender
             this.executeTransaction('pending_transactions', 'readonly', (store) => {
                 const index = store.index('fromPhone');
                 return index.getAll(phone);
             }),
-            // Transactions where user is receiver
             this.executeTransaction('pending_transactions', 'readonly', (store) => {
                 const index = store.index('toPhone');
                 return index.getAll(phone);
@@ -182,8 +168,7 @@ class TransparentTransactionsDB {
                 description: transaction.description,
                 date: new Date().toISOString(),
                 type: 'direct',
-                status: 'active',
-                createdAt: new Date().toISOString()
+                status: 'active'
             });
         });
 
@@ -195,12 +180,6 @@ class TransparentTransactionsDB {
         return transaction;
     }
 
-    async rejectPendingTransaction(transactionId) {
-        return this.executeTransaction('pending_transactions', 'readwrite', (store) => {
-            return store.delete(transactionId);
-        });
-    }
-
     // Ledger Operations
     async getLedgerEntries(phone) {
         return this.executeTransaction('ledger', 'readonly', (store) => {
@@ -208,36 +187,9 @@ class TransparentTransactionsDB {
             const toIndex = store.index('toPhone');
             
             return Promise.all([
-                fromIndex.getAll(phone), // Transactions where user sent money
-                toIndex.getAll(phone)    // Transactions where user received money
+                fromIndex.getAll(phone),
+                toIndex.getAll(phone)
             ]).then(([sent, received]) => [...sent, ...received]);
-        });
-    }
-
-    async getBalanceWithContact(userPhone, contactPhone) {
-        const ledgerEntries = await this.getLedgerEntries(userPhone);
-        
-        let balance = 0;
-        ledgerEntries.forEach(entry => {
-            if (entry.fromPhone === userPhone && entry.toPhone === contactPhone) {
-                balance -= entry.amount; // User sent money to contact
-            } else if (entry.toPhone === userPhone && entry.fromPhone === contactPhone) {
-                balance += entry.amount; // User received money from contact
-            }
-        });
-
-        return balance;
-    }
-
-    // Credit Transfer Operations
-    async createCreditTransfer(transferData) {
-        return this.executeTransaction('credit_transfers', 'readwrite', (store) => {
-            return store.add({
-                ...transferData,
-                status: 'pending',
-                createdAt: new Date().toISOString(),
-                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-            });
         });
     }
 
@@ -272,27 +224,17 @@ class TransparentTransactionsDB {
             });
         }
     }
-
-    async getDatabaseSize() {
-        // Estimate database size (approximate)
-        let totalSize = 0;
-        const storeNames = Array.from(this.db.objectStoreNames);
-
-        for (const storeName of storeNames) {
-            const count = await this.executeTransaction(storeName, 'readonly', (store) => {
-                return store.count();
-            });
-            totalSize += count * 1024; // Approximate 1KB per record
-        }
-
-        return totalSize;
-    }
 }
 
 // Create and export singleton instance
 const transparentDB = new TransparentTransactionsDB();
 
 // Initialize database when module loads
-transparentDB.init().catch(console.error);
+transparentDB.init().then(() => {
+    console.log('🎉 Database initialization complete');
+}).catch(error => {
+    console.error('💥 Database initialization failed:', error);
+});
 
-export default transparentDB;
+// Export for global access
+window.transparentDB = transparentDB;
