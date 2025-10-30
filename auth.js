@@ -1,4 +1,4 @@
-// auth.js - Phone Number Authentication and User Management (FIXED VERSION)
+// auth.js - Phone Number Authentication and User Management (WITH SMS RESTORED)
 class AuthManager {
     constructor() {
         this.currentUser = null;
@@ -28,12 +28,36 @@ class AuthManager {
                 });
             }
 
+            // ✅ ADDED: Check if returning from SMS app
+            this.checkReturnFromSMS();
+
             // Check for existing session
             await this.checkExistingSession();
             this.isInitialized = true;
             console.log('Auth manager initialized');
         } catch (error) {
             console.error('Auth initialization failed:', error);
+        }
+    }
+
+    // ✅ ADDED: Check for returning from SMS app
+    checkReturnFromSMS() {
+        try {
+            const savedOtp = sessionStorage.getItem('tt_otp_data');
+            if (savedOtp) {
+                const otpData = JSON.parse(savedOtp);
+                this.pendingOTP = otpData.otp;
+                this.pendingPhone = otpData.phone;
+                
+                // If OTP section is hidden but we have OTP data, show it
+                const otpSection = document.getElementById('otpSection');
+                if (otpSection && otpSection.classList.contains('hidden')) {
+                    this.showOTPSection();
+                    this.showAuthStatus('Returned from SMS - enter the OTP you sent.', 'info');
+                }
+            }
+        } catch (e) {
+            console.warn('Could not restore OTP from sessionStorage', e);
         }
     }
 
@@ -71,7 +95,7 @@ class AuthManager {
         }
     }
 
-    // Send OTP to phone number
+    // Send OTP to phone number - WITH SMS FUNCTIONALITY RESTORED
     async sendOTP() {
         try {
             const phoneInput = document.getElementById('phoneInput');
@@ -91,7 +115,7 @@ class AuthManager {
             const otp = this.generateOTP();
             const fullPhone = '+91' + phone;
 
-            // Store OTP data in memory (FIXED: Using instance variables)
+            // Store OTP data in memory
             this.pendingOTP = otp;
             this.pendingPhone = fullPhone;
             this.otpTimestamp = Date.now();
@@ -103,18 +127,23 @@ class AuthManager {
                 timestamp: this.otpTimestamp
             }));
 
-            // DEMO: Show OTP in console and alert for testing
-            console.log(`DEMO: OTP ${otp} sent to ${fullPhone}`);
-            this.showAuthStatus(`DEMO: OTP is ${otp} (check console)`, 'success');
+            // ✅ RESTORED SMS FUNCTIONALITY (like your original version)
+            const message = `Your OTP for Transparent Transactions is ${otp}. Do not share. Valid for 10 minutes.`;
+            const smsUrl = `sms:${fullPhone}?body=${encodeURIComponent(message)}`;
+
+            console.log(`OTP ${otp} generated for ${fullPhone}`);
             
             // Show OTP input section
             this.showOTPSection();
-            
-            // Start OTP timer
             this.startOTPTimer();
             
-            // In production, you would enable this:
-            // await this.sendRealSMS(fullPhone, otp);
+            // Show status
+            this.showAuthStatus('Opening SMS app... Please send the message to complete OTP verification.', 'success');
+            
+            // Open SMS app after a short delay so user can read the message
+            setTimeout(() => {
+                window.location.href = smsUrl;
+            }, 2000);
 
         } catch (error) {
             console.error('Send OTP failed:', error);
@@ -137,7 +166,7 @@ class AuthManager {
             this.showAuthStatus('Verifying OTP...', 'loading');
             document.getElementById('verifyOtpBtn').disabled = true;
 
-            // Check OTP from memory first (FIXED: Use instance variables)
+            // Check OTP from memory first
             let validOTP = this.pendingOTP;
             let validPhone = this.pendingPhone;
             let timestamp = this.otpTimestamp;
@@ -157,16 +186,16 @@ class AuthManager {
                 return;
             }
 
-            console.log(`Verifying: Entered=${enteredOtp}, Expected=${validOTP}`); // Debug log
+            console.log(`Verifying: Entered=${enteredOtp}, Expected=${validOTP}`);
 
-            // Verify OTP (FIXED: Direct comparison)
+            // Verify OTP
             if (enteredOtp === validOTP) {
                 // OTP verified successfully
                 await this.handleSuccessfulAuth(validPhone);
             } else {
                 this.showAuthStatus('Invalid OTP. Please try again.', 'error');
                 document.getElementById('verifyOtpBtn').disabled = false;
-                console.log(`OTP mismatch: ${enteredOtp} vs ${validOTP}`); // Debug log
+                console.log(`OTP mismatch: ${enteredOtp} vs ${validOTP}`);
             }
 
         } catch (error) {
@@ -513,31 +542,6 @@ class AuthManager {
             console.error('Error counting contacts:', error);
             return 0;
         }
-    }
-
-    // Real SMS sending function (placeholder for production)
-    async sendRealSMS(phone, otp) {
-        // In production, integrate with SMS service like:
-        // - Twilio
-        // - TextLocal
-        // - Fast2SMS
-        // - Your custom SMS gateway
-        
-        const message = `Your OTP for Transparent Transactions is ${otp}. Valid for 10 minutes.`;
-        
-        // Example with fetch API:
-        /*
-        const response = await fetch('/api/send-sms', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone, message })
-        });
-        
-        if (!response.ok) throw new Error('SMS sending failed');
-        */
-        
-        console.log(`SMS would be sent to ${phone}: ${message}`);
-        return true;
     }
 }
 
