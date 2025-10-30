@@ -376,5 +376,16 @@
             alert(`Privacy Information:\n\n• We only store your phone number for authentication\n• All transaction data stays on your device\n• We never share your data with anyone\n• You can export or delete your data anytime\n• No personal information is collected without your consent`);
         };
     </script>
+    <script>
+    // ✅ Handle PWA routing - redirect any invalid routes to main app
+    if (window.location.pathname !== '/' && !window.location.pathname.endsWith('.html')) {
+        window.history.replaceState(null, null, '/');
+    }
+    
+    // ✅ Handle GitHub Pages 404 redirects
+    if (sessionStorage.redirect) {
+        sessionStorage.removeItem('redirect');
+    }
+</script>
 </body>
 </html>
