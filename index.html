@@ -1,83 +1,182 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Transparent Transaction App</title>
+  <title>Transparent Transaction</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f6f8fa;
-      margin: 0; padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    header {
-      background: #1976d2; color: white;
-      padding: 1rem; width: 100%; text-align: center;
-    }
-    .container {
-      width: 90%; max-width: 400px;
-      background: white; padding: 1rem; margin-top: 1rem;
-      border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    input, button {
-      width: 100%; padding: 10px; margin-top: 10px;
-      border: 1px solid #ccc; border-radius: 5px;
-      font-size: 1rem;
-    }
-    button {
-      background: #1976d2; color: white; border: none; cursor: pointer;
-    }
-    ul { list-style-type: none; padding: 0; }
-    li { background: #e3f2fd; margin: 5px 0; padding: 8px; border-radius: 5px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial; background: #f0f4f8; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+    header { background: #1976d2; color: white; width: 100%; text-align: center; padding: 1.2rem; }
+    .container { width: 90%; max-width: 420px; background: white; margin: 1rem; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    input, button { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
+    button { background: #1976d2; color: white; border: none; font-weight: bold; cursor: pointer; }
+    button:hover { background: #1565c0; }
+    .hidden { display: none; }
+    ul { list-style: none; margin-top: 15px; }
+    li { background: #e3f2fd; padding: 10px; margin: 6px 0; border-radius: 8px; font-size: 0.95rem; }
+    .logout { background: #d32f2f; margin-top: 15px; }
+    .referral { background: #4caf50; margin-top: 10px; font-size: 0.9rem; }
+    .status { font-size: 0.9rem; color: #666; margin: 10px 0; }
   </style>
 </head>
 <body>
   <header>
-    <h2>Transparent Transaction App</h2>
-    <p>Transfer debt in one tap</p>
+    <h2>Transparent Transaction</h2>
+    <p>One-tap debt transfer</p>
   </header>
 
   <div class="container">
-    <input id="name" placeholder="Enter name">
-    <input id="amount" type="number" placeholder="Enter amount">
-    <button onclick="addTransaction()">Add Transaction</button>
-    <ul id="ledger"></ul>
+    <!-- Login -->
+    <div id="login">
+      <p class="status">Enter phone to get OTP</p>
+      <input id="phone" placeholder="Phone (10 digits)" maxlength="10" inputmode="numeric">
+      <button onclick="sendOTP()">Send OTP</button>
+      <input id="otp" class="hidden" placeholder="Enter 6-digit OTP" maxlength="6" inputmode="numeric">
+      <button id="verifyBtn" class="hidden" onclick="verifyOTP()">Verify OTP</button>
+      <p id="otpStatus" class="status hidden"></p>
+    </div>
+
+    <!-- App -->
+    <div id="app" class="hidden">
+      <p><strong id="userPhone"></strong></p>
+      <p id="referralMsg" class="referral hidden"></p>
+      
+      <input id="name" placeholder="Name">
+      <input id="amount" type="number" placeholder="Amount (₹)" inputmode="numeric">
+      <button onclick="addEntry()">Add Transaction</button>
+      <ul id="ledger"></ul>
+      
+      <p>Your Referral Link:</p>
+      <input id="refLink" readonly style="background:#eee;">
+      <button onclick="copyLink()" style="background:#4caf50;">Copy Link</button>
+      
+      <button class="logout" onclick="logout()">Logout</button>
+    </div>
   </div>
 
-  <script>
-    const ledger = JSON.parse(localStorage.getItem('ledger')) || [];
+  <div id="recaptcha-container"></div>
 
-    function render() {
-      const list = document.getElementById('ledger');
-      list.innerHTML = '';
-      ledger.forEach((entry, i) => {
-        list.innerHTML += `<li>${entry.name}: ₹${entry.amount}</li>`;
-      });
+  <script>
+    // YOUR CONFIG
+    const firebaseConfig = {
+      apiKey: "AIzaSyB3c7MFNf7u_4R3UtHXLkPPjjZJ0mzoeFY",
+      authDomain: "transparent-transactions.firebaseapp.com",
+      projectId: "transparent-transactions",
+      storageBucket: "transparent-transactions.firebasestorage.app",
+      messagingSenderId: "985011611337",
+      appId: "1:985011611337:web:061691f2170eb438234f18"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let confirmationResult;
+    let currentUserPhone = '';
+    let referrer = new URLSearchParams(window.location.search).get('ref') || '';
+
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', { size: 'invisible' });
+    window.recaptchaVerifier.render().catch(() => {});
+
+    function sendOTP() {
+      const phone = document.getElementById('phone').value.trim();
+      if (!/^\d{10}$/.test(phone)) return alert('Enter 10-digit phone');
+
+      currentUserPhone = '+91' + phone;
+      auth.signInWithPhoneNumber(currentUserPhone, window.recaptchaVerifier)
+        .then(result => {
+          confirmationResult = result;
+          document.getElementById('otp').classList.remove('hidden');
+          document.getElementById('verifyBtn').classList.remove('hidden');
+          document.getElementById('otpStatus').textContent = 'OTP sent!';
+          document.getElementById('otpStatus').classList.remove('hidden');
+        })
+        .catch(err => alert('Error: ' + err.message));
     }
 
-    function addTransaction() {
+    function verifyOTP() {
+      const otp = document.getElementById('otp').value;
+      confirmationResult.confirm(otp)
+        .then(result => {
+          const user = result.user;
+          document.getElementById('login').classList.add('hidden');
+          document.getElementById('app').classList.remove('hidden');
+          document.getElementById('userPhone').textContent = currentUserPhone;
+
+          const refCode = btoa(currentUserPhone).substring(0, 8);
+          const refLink = `${window.location.origin}${window.location.pathname}?ref=${refCode}`;
+          document.getElementById('refLink').value = refLink;
+
+          db.collection('users').doc(user.uid).set({
+            phone: currentUserPhone,
+            refCode: refCode,
+            referrer: referrer,
+            joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }).then(() => {
+            if (referrer) {
+              document.getElementById('referralMsg').textContent = `Referred by ${referrer}! You both earn ₹1.6 on first deal.`;
+              document.getElementById('referralMsg').classList.remove('hidden');
+            }
+          });
+
+          loadLedger(user.uid);
+        })
+        .catch(err => alert('Invalid OTP'));
+    }
+
+    function loadLedger(uid) {
+      const key = 'ledger_' + uid;
+      const saved = localStorage.getItem(key);
+      const list = document.getElementById('ledger');
+      list.innerHTML = saved ? JSON.parse(saved).map(e => `<li>${e.name}: ₹${e.amount}</li>`).join('') : '';
+    }
+
+    function addEntry() {
       const name = document.getElementById('name').value.trim();
-      const amount = document.getElementById('amount').value.trim();
-      if (!name || !amount) return alert('Please fill all fields');
-      ledger.push({ name, amount: parseFloat(amount) });
-      localStorage.setItem('ledger', JSON.stringify(ledger));
-      render();
+      const amount = parseFloat(document.getElementById('amount').value);
+      if (!name || !amount) return;
+
+      const uid = auth.currentUser.uid;
+      const entry = { name, amount, timestamp: Date.now() };
+      const key = 'ledger_' + uid;
+      const ledger = JSON.parse(localStorage.getItem(key) || '[]');
+      ledger.push(entry);
+      localStorage.setItem(key, JSON.stringify(ledger));
+      loadLedger(uid);
+
+      if (ledger.length === 1) {
+        alert('₹1.6 earned! Share your link to earn more.');
+      }
+
       document.getElementById('name').value = '';
       document.getElementById('amount').value = '';
     }
 
-    render();
+    function copyLink() {
+      const link = document.getElementById('refLink');
+      link.select();
+      document.execCommand('copy');
+      alert('Link copied! Share to earn ₹1.6');
+    }
 
-    // Register service worker
+    function logout() {
+      auth.signOut();
+      location.reload();
+    }
+
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then(() => {
-        console.log('Service Worker registered');
-      });
+      navigator.serviceWorker.register('sw.js');
     }
   </script>
 </body>
 </html>
+```

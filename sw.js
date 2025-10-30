@@ -1,6 +1,5 @@
 ```javascript
-// sw.js - Works on GitHub Pages
-const CACHE = 'tt-app-v1';
+const CACHE = 'tt-v1';
 const urls = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
