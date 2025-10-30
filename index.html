@@ -1,193 +1,340 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Transparent Transaction</title>
-  <link rel="manifest" href="manifest.json">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Arial; background: #f0f4f8; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-    header { background: #1976d2; color: white; width: 100%; text-align: center; padding: 1.2rem; }
-    .container { width: 90%; max-width: 420px; background: white; margin: 1rem; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    input, button { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
-    button { background: #1976d2; color: white; border: none; font-weight: bold; cursor: pointer; }
-    button:hover { background: #1565c0; }
-    .hidden { display: none; }
-    ul { list-style: none; margin-top: 15px; }
-    li { background: #e3f2fd; padding: 10px; margin: 6px 0; border-radius: 8px; font-size: 0.95rem; }
-    .logout { background: #d32f2f; margin-top: 15px; }
-    .status { font-size: 0.9rem; color: #666; margin: 10px 0; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transparent Transactions</title>
+    <meta name="description" content="Secure P2P transaction tracking with mutual consent">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- App Modules -->
+    <script src="db.js" defer></script>
+    <script src="auth.js" defer></script>
+    <script src="contacts.js" defer></script>
+    <script src="transactions.js" defer></script>
+    <script src="ui.js" defer></script>
 </head>
 <body>
-  <header>
-    <h2>Transparent Transaction</h2>
-    <p>One-tap debt transfer</p>
-  </header>
-
-  <div class="container">
-    <!-- Login -->
-    <div id="login">
-      <p class="status">Enter phone to get OTP via SMS</p>
-      <input id="phone" placeholder="Phone (10 digits)" maxlength="10" inputmode="numeric">
-      <button onclick="sendLocalOTP()">Send OTP via SMS</button>
-      <input id="otp" class="hidden" placeholder="Enter 6-digit OTP" maxlength="6" inputmode="numeric">
-      <button id="verifyBtn" class="hidden" onclick="verifyLocalOTP()">Verify OTP</button>
-      <p id="otpStatus" class="status hidden"></p>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="screen active">
+        <div class="loading-container">
+            <div class="logo">₹</div>
+            <h1>Transparent Transactions</h1>
+            <p>Loading your secure ledger...</p>
+        </div>
     </div>
 
-    <!-- App -->
-    <div id="app" class="hidden">
-      <p><strong id="userPhone"></strong></p>
-      <input id="name" placeholder="Name">
-      <input id="amount" type="number" placeholder="Amount (₹)" inputmode="numeric">
-      <button onclick="addEntry()">Add Transaction</button>
-      <ul id="ledger"></ul>
-      <button class="logout" onclick="logout()">Logout</button>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="screen">
+        <div class="login-container">
+            <div class="app-header">
+                <div class="logo">₹</div>
+                <h1>Transparent Transactions</h1>
+                <p class="tagline">Track payments with mutual trust</p>
+            </div>
+            
+            <div class="features-list">
+                <div class="feature">
+                    <span class="feature-icon">🤝</span>
+                    <span>Mutual transaction approval</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">🔒</span>
+                    <span>Your data stays private</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">📱</span>
+                    <span>Works completely offline</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">🇮🇳</span>
+                    <span>Made for Rural India</span>
+                </div>
+            </div>
+
+            <div class="auth-section">
+                <p class="auth-info">Enter your mobile number to get started</p>
+                
+                <div class="phone-input-container">
+                    <div class="country-code">+91</div>
+                    <input 
+                        type="tel" 
+                        id="phoneInput" 
+                        placeholder="Enter 10-digit mobile number" 
+                        maxlength="10"
+                        inputmode="numeric"
+                        pattern="[0-9]{10}"
+                    >
+                </div>
+                
+                <button id="sendOtpBtn" class="btn-primary full-width">
+                    Send OTP via SMS
+                </button>
+
+                <div id="otpSection" class="hidden">
+                    <p class="otp-info">We've sent a 6-digit OTP to your number</p>
+                    
+                    <div class="otp-input-container">
+                        <input 
+                            type="tel" 
+                            id="otpInput" 
+                            placeholder="Enter 6-digit OTP" 
+                            maxlength="6"
+                            inputmode="numeric"
+                            pattern="[0-9]{6}"
+                        >
+                    </div>
+                    
+                    <div class="otp-actions">
+                        <button id="verifyOtpBtn" class="btn-primary">
+                            Verify OTP
+                        </button>
+                        <button id="resendOtpBtn" class="btn-outline">
+                            Resend OTP
+                        </button>
+                    </div>
+                    
+                    <div id="otpTimer" class="otp-timer hidden">
+                        Resend OTP in <span id="timerCount">60</span> seconds
+                    </div>
+                </div>
+
+                <div id="authStatus" class="auth-status hidden">
+                    <!-- Status messages will appear here -->
+                </div>
+            </div>
+
+            <div class="privacy-notice">
+                <p>Your phone number is only used for authentication. 
+                   We never share your data.
+                   <a href="#privacy" onclick="showPrivacyInfo()">Learn more</a>
+                </p>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script>
-    let currentUserPhone = '';
-    let generatedOTP = '';
+    <!-- Main App Screen -->
+    <div id="appScreen" class="screen">
+        <header class="app-header-bar">
+            <div class="header-left">
+                <h2>My Ledger</h2>
+                <span id="userGreeting">Hello!</span>
+            </div>
+            <div class="header-right">
+                <button id="notificationsBtn" class="icon-btn" aria-label="Notifications">
+                    🔔
+                    <span id="notificationCount" class="notification-badge hidden">0</span>
+                </button>
+                <button id="userMenuBtn" class="user-avatar" aria-label="User menu">
+                    <div id="userAvatar" class="avatar-placeholder">👤</div>
+                </button>
+            </div>
+        </header>
 
-    // Restore OTP and phone if we navigated away (e.g., opened SMS app) and came back
-    try {
-      const savedOtp = sessionStorage.getItem('tt_generatedOTP');
-      const savedPhone = sessionStorage.getItem('tt_currentUserPhone');
-      if (savedOtp && savedPhone) {
-        generatedOTP = savedOtp;
-        currentUserPhone = savedPhone;
-        // Reveal OTP UI so user can paste/enter it
-        document.addEventListener('DOMContentLoaded', () => {
-          const otpEl = document.getElementById('otp');
-          const verifyBtn = document.getElementById('verifyBtn');
-          const otpStatus = document.getElementById('otpStatus');
-          if (otpEl && verifyBtn) {
-            otpEl.classList.remove('hidden');
-            verifyBtn.classList.remove('hidden');
-            otpStatus.textContent = 'Returned from SMS — enter the OTP you sent.';
-            otpStatus.classList.remove('hidden');
-            document.getElementById('userPhone') && (document.getElementById('userPhone').textContent = currentUserPhone);
-          }
+        <!-- Navigation Tabs -->
+        <nav class="app-nav">
+            <button class="nav-tab active" data-tab="dashboard">Dashboard</button>
+            <button class="nav-tab" data-tab="contacts">Contacts</button>
+            <button class="nav-tab" data-tab="transactions">Transactions</button>
+            <button class="nav-tab" data-tab="reports">Reports</button>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="app-main">
+            <!-- Dashboard Tab -->
+            <div id="dashboardTab" class="tab-content active">
+                <div class="user-welcome">
+                    <h3 id="userWelcomeText">Welcome!</h3>
+                    <p id="userPhoneDisplay" class="user-phone"></p>
+                </div>
+
+                <div class="balance-overview">
+                    <div class="balance-card net-balance">
+                        <h3>Net Balance</h3>
+                        <div id="netBalance" class="balance-amount">₹0</div>
+                        <div id="balanceTrend" class="balance-trend">No transactions yet</div>
+                    </div>
+                    <div class="balance-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">You'll Receive</span>
+                            <span id="totalReceivable" class="stat-amount positive">₹0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">You'll Pay</span>
+                            <span id="totalPayable" class="stat-amount negative">₹0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <h3>Quick Actions</h3>
+                    <div class="action-buttons">
+                        <button id="addTransactionBtn" class="action-btn primary">
+                            <span class="btn-icon">➕</span>
+                            New Transaction
+                        </button>
+                        <button id="addContactBtn" class="action-btn secondary">
+                            <span class="btn-icon">👤</span>
+                            Add Contact
+                        </button>
+                        <button id="creditTransferBtn" class="action-btn secondary">
+                            <span class="btn-icon">🔄</span>
+                            Transfer Credit
+                        </button>
+                    </div>
+                </div>
+
+                <div class="recent-activity">
+                    <h3>Recent Activity</h3>
+                    <div id="recentActivityList" class="activity-list">
+                        <div class="empty-state">
+                            <p>No transactions yet</p>
+                            <button id="firstTransactionBtn" class="btn-outline small">
+                                Create your first transaction
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contacts Tab -->
+            <div id="contactsTab" class="tab-content">
+                <div class="contacts-header">
+                    <h3>My Business Contacts</h3>
+                    <button id="importContactsBtn" class="btn-outline">
+                        📞 Import from Phone
+                    </button>
+                </div>
+                <div id="contactsList" class="contacts-list">
+                    <div class="empty-state">
+                        <p>No contacts yet</p>
+                        <button id="firstContactBtn" class="btn-outline small">
+                            Add your first contact
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transactions Tab -->
+            <div id="transactionsTab" class="tab-content">
+                <div class="transactions-header">
+                    <h3>All Transactions</h3>
+                    <div class="filter-options">
+                        <select id="transactionFilter">
+                            <option value="all">All Transactions</option>
+                            <option value="pending">Pending Approval</option>
+                            <option value="approved">Approved</option>
+                            <option value="sent">Sent by Me</option>
+                            <option value="received">Received by Me</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="transactionsList" class="transactions-list">
+                    <div class="empty-state">
+                        <p>No transactions yet</p>
+                        <button id="firstTransactionBtn2" class="btn-outline small">
+                            Create your first transaction
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="reportsTab" class="tab-content">
+                <div class="reports-header">
+                    <h3>Financial Reports</h3>
+                    <button id="generateReportBtn" class="btn-primary">
+                        📊 Generate Report
+                    </button>
+                </div>
+                <div id="reportsContent" class="reports-content">
+                    <div class="empty-state">
+                        <p>No report data available</p>
+                        <p class="hint">Create some transactions to generate reports</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- User Menu Dropdown -->
+        <div id="userMenu" class="dropdown-menu hidden">
+            <div class="menu-item" onclick="showProfile()">
+                <span class="menu-icon">👤</span>
+                My Profile
+            </div>
+            <div class="menu-item" onclick="exportData()">
+                <span class="menu-icon">📤</span>
+                Export Data
+            </div>
+            <div class="menu-item" onclick="showSettings()">
+                <span class="menu-icon">⚙️</span>
+                Settings
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-item logout" onclick="logout()">
+                <span class="menu-icon">🚪</span>
+                Sign Out
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals will be added by JavaScript -->
+    <div id="modalsContainer"></div>
+
+    <!-- App Initialization -->
+    <script>
+        // Global app state
+        window.appState = {
+            currentUser: null,
+            isOnline: navigator.onLine,
+            dbInitialized: false
+        };
+
+        // Initialize app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Initialize database first
+                await transparentDB.init();
+                window.appState.dbInitialized = true;
+                
+                // Check if user is already signed in
+                const savedUser = await authManager.getCurrentUser();
+                if (savedUser) {
+                    await uiManager.showAppScreen(savedUser);
+                } else {
+                    await uiManager.showLoginScreen();
+                }
+                
+                // Hide loading screen
+                document.getElementById('loadingScreen').classList.remove('active');
+                
+            } catch (error) {
+                console.error('App initialization failed:', error);
+                document.getElementById('loadingScreen').classList.remove('active');
+                uiManager.showError('Failed to initialize app. Please refresh.');
+            }
         });
-      }
-    } catch (e) {
-      console.warn('Could not restore OTP from sessionStorage', e);
-    }
 
-    // Generate 6-digit OTP
-    function generateOTP() {
-      return Math.floor(100000 + Math.random() * 900000).toString();
-    }
+        // Handle online/offline status
+        window.addEventListener('online', () => {
+            window.appState.isOnline = true;
+            uiManager.showStatus('Back online', 'success');
+        });
 
-    // Open phone's SMS app
-    function sendLocalOTP() {
-      const phone = document.getElementById('phone').value.trim();
-      if (!/^\d{10}$/.test(phone)) return alert('Enter 10-digit phone');
+        window.addEventListener('offline', () => {
+            window.appState.isOnline = false;
+            uiManager.showStatus('Working offline', 'warning');
+        });
 
-      currentUserPhone = '+91' + phone;
-      generatedOTP = generateOTP();
-
-      const message = `Your OTP for Transparent Transaction is ${generatedOTP}. Do not share.`;
-      const smsUrl = `sms:${currentUserPhone}?body=${encodeURIComponent(message)}`;
-
-      // Persist OTP & phone so it's available if the page navigates away (to SMS app) and returns
-      try {
-        sessionStorage.setItem('tt_generatedOTP', generatedOTP);
-        sessionStorage.setItem('tt_currentUserPhone', currentUserPhone);
-      } catch (e) {
-        console.warn('Could not persist OTP to sessionStorage', e);
-      }
-
-      // Open SMS app (may navigate away from the page)
-      window.location.href = smsUrl;
-
-      // Show OTP input after 2 sec (if still on the page)
-      setTimeout(() => {
-        const otpEl = document.getElementById('otp');
-        const verifyBtn = document.getElementById('verifyBtn');
-        const otpStatus = document.getElementById('otpStatus');
-        if (otpEl && verifyBtn) {
-          otpEl.classList.remove('hidden');
-          verifyBtn.classList.remove('hidden');
-          otpStatus.textContent = 'SMS opened! Send it.';
-          otpStatus.classList.remove('hidden');
-        }
-      }, 2000);
-    }
-
-    // Verify OTP (user types it)
-    function verifyLocalOTP() {
-      const otp = document.getElementById('otp').value.trim();
-      // Try to restore from sessionStorage if in-memory value is missing
-      if (!generatedOTP) {
-        try { generatedOTP = sessionStorage.getItem('tt_generatedOTP') || ''; } catch (e) { /* ignore */ }
-        try { currentUserPhone = sessionStorage.getItem('tt_currentUserPhone') || currentUserPhone; } catch (e) { /* ignore */ }
-      }
-
-      if (otp === generatedOTP) {
-        document.getElementById('login').classList.add('hidden');
-        document.getElementById('app').classList.remove('hidden');
-        document.getElementById('userPhone').textContent = currentUserPhone;
-        loadLedger();
-        // Clear stored OTP once used
-        try {
-          sessionStorage.removeItem('tt_generatedOTP');
-          sessionStorage.removeItem('tt_currentUserPhone');
-        } catch (e) { /* ignore */ }
-      } else {
-        alert('Wrong OTP! Try again.');
-      }
-    }
-
-    // Load Ledger
-    function loadLedger() {
-      const key = 'ledger_' + currentUserPhone;
-      const saved = localStorage.getItem(key);
-      const list = document.getElementById('ledger');
-      list.innerHTML = saved ? JSON.parse(saved).map(e => `<li>${e.name}: ₹${e.amount}</li>`).join('') : '';
-    }
-
-    // Add Entry
-    function addEntry() {
-      const name = document.getElementById('name').value.trim();
-      const amount = parseFloat(document.getElementById('amount').value);
-      if (!name || !amount) return alert('Enter name and amount');
-
-      const entry = { name, amount };
-      const key = 'ledger_' + currentUserPhone;
-      const ledger = JSON.parse(localStorage.getItem(key) || '[]');
-      ledger.push(entry);
-      localStorage.setItem(key, JSON.stringify(ledger));
-      loadLedger();
-
-      document.getElementById('name').value = '';
-      document.getElementById('amount').value = '';
-    }
-
-    // Logout
-    function logout() {
-      document.getElementById('app').classList.add('hidden');
-      document.getElementById('login').classList.remove('hidden');
-      document.getElementById('phone').value = '';
-      document.getElementById('otp').value = '';
-      document.getElementById('otp').classList.add('hidden');
-      document.getElementById('verifyBtn').classList.add('hidden');
-      document.getElementById('otpStatus').classList.add('hidden');
-      currentUserPhone = '';
-      generatedOTP = '';
-    }
-
-    // Service Worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(err => {
-        console.warn('Service worker registration failed (ignoring):', err);
-      });
-    }
-  </script>
+        // Simple privacy info
+        window.showPrivacyInfo = function() {
+            alert(`Privacy Information:\n\n• We only store your phone number for authentication\n• All transaction data stays on your device\n• We never share your data with anyone\n• You can export or delete your data anytime\n• No personal information is collected without your consent`);
+        };
+    </script>
 </body>
 </html>
-```
