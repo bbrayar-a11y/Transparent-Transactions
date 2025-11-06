@@ -1,0 +1,26 @@
+{
+  "name": "transparent-transactions",
+  "version": "1.0.0",
+  "description": "Secure P2P transaction tracking with mutual trust",
+  "homepage": "https://yourusername.github.io/Transparent-Transactions",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "gh-pages -d dist"
+  },
+  "keywords": [
+    "pwa",
+    "transactions",
+    "finance",
+    "ledger",
+    "mobile-app"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^4.4.0",
+    "gh-pages": "^5.0.0"
+  }
+}
