@@ -7,7 +7,7 @@
     "display": "standalone",
     "background_color": "#1976d2",
     "theme_color": "#1976d2",
-    "orientation": "portrait",
+    "orientation": "portrait-primary",
     "icons": [
         {
             "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9IiMxOTc2ZDIiLz4KPHRleHQgeD0iOTYiIHk9IjExMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9Ijg4IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4KSLPC90ZXh0Pgo8L3N2Zz4K",
@@ -23,5 +23,6 @@
         }
     ],
     "categories": ["finance", "business", "productivity"],
-    "lang": "en"
+    "lang": "en",
+    "prefer_related_applications": false
 }
