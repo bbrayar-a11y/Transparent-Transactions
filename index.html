@@ -10,6 +10,14 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
     
+    <!-- Theme Color for PWA -->
+    <meta name="theme-color" content="#1976d2">
+    
+    <!-- iOS Safari PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Transact">
+    
     <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
     
@@ -287,6 +295,66 @@
     <!-- Modals will be added by JavaScript -->
     <div id="modalsContainer"></div>
 
+    <!-- Service Worker Registration -->
+    <script>
+        // Service Worker Registration with Error Handling
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                const basePath = '/Transparent-Transactions/';
+                
+                // First, clear any old service workers
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                        registration.unregister();
+                        console.log('🗑️ Unregistered old SW');
+                    }
+                    
+                    // Clear caches
+                    return caches.keys();
+                }).then(function(cacheNames) {
+                    cacheNames.forEach(function(cacheName) {
+                        caches.delete(cacheName);
+                        console.log('🗑️ Deleted cache:', cacheName);
+                    });
+                    
+                    // Now register the new service worker
+                    return navigator.serviceWorker.register(basePath + 'sw.js', {
+                        scope: basePath
+                    });
+                }).then(function(registration) {
+                    console.log('✅ SW registered successfully with scope:', registration.scope);
+                    
+                    // Check for updates
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        console.log('🔄 SW update found!');
+                        
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                console.log('🔄 New content is available; please refresh.');
+                                if (window.uiManager) {
+                                    uiManager.showStatus('New version available! Refresh the app.', 'info');
+                                }
+                            }
+                        });
+                    });
+                }).catch(function(error) {
+                    console.log('❌ SW registration failed:', error);
+                });
+            });
+
+            // Listen for controller changes
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                console.log('🔄 SW controller changed');
+                if (window.uiManager) {
+                    uiManager.showStatus('App updated successfully!', 'success');
+                }
+            });
+        } else {
+            console.log('ℹ️ Service workers not supported');
+        }
+    </script>
+
     <!-- App Initialization -->
     <script>
         // Global app state
@@ -376,17 +444,30 @@
         window.showPrivacyInfo = function() {
             alert(`Privacy Information:\n\n• We only store your phone number for authentication\n• All transaction data stays on your device\n• We never share your data with anyone\n• You can export or delete your data anytime\n• No personal information is collected without your consent`);
         };
+
+        // Handle PWA routing - ensure all navigation stays within the app
+        window.addEventListener('popstate', function(event) {
+            // Ensure we don't navigate away from the app
+            if (!window.location.pathname.includes('Transparent-Transactions')) {
+                window.history.replaceState(null, null, '/Transparent-Transactions/');
+            }
+        });
     </script>
+
+    <!-- Handle GitHub Pages routing -->
     <script>
-    // ✅ Handle PWA routing - redirect any invalid routes to main app
-    if (window.location.pathname !== '/' && !window.location.pathname.endsWith('.html')) {
-        window.history.replaceState(null, null, '/');
-    }
-    
-    // ✅ Handle GitHub Pages 404 redirects
-    if (sessionStorage.redirect) {
-        sessionStorage.removeItem('redirect');
-    }
-</script>
+        // ✅ Handle GitHub Pages 404 redirects
+        if (sessionStorage.redirect) {
+            const redirect = sessionStorage.redirect;
+            sessionStorage.removeItem('redirect');
+            window.history.replaceState(null, null, redirect);
+        }
+
+        // ✅ Ensure we're always on the correct base path
+        if (!window.location.pathname.endsWith('/Transparent-Transactions/') && 
+            !window.location.pathname.endsWith('/Transparent-Transactions/index.html')) {
+            window.history.replaceState(null, null, '/Transparent-Transactions/');
+        }
+    </script>
 </body>
 </html>
