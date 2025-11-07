@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Transparent Transactions</title>
     <style>
+        /* Your existing CSS styles remain exactly the same */
         * {
             margin: 0;
             padding: 0;
@@ -263,6 +264,12 @@
             100% { transform: rotate(360deg); }
         }
 
+        .init-message {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
         @media (max-width: 480px) {
             .login-container {
                 border-radius: 10px;
@@ -301,57 +308,67 @@
                 ← Back to Home
             </a>
 
-            <!-- Message container for status updates -->
-            <div id="messageContainer"></div>
-
-            <div class="form-group">
-                <label for="phone">Phone Number</label>
-                <div class="input-group">
-                    <div class="country-code">+91</div>
-                    <input 
-                        type="tel" 
-                        id="phone" 
-                        placeholder="Enter your 10-digit mobile number" 
-                        maxlength="10"
-                        oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                    >
-                </div>
+            <!-- Initialization message -->
+            <div class="init-message" id="initMessage">
+                Initializing system... Please wait
             </div>
 
-            <div class="otp-container" id="otpContainer">
+            <!-- Main form (hidden until initialized) -->
+            <div id="mainForm" style="display: none;">
+                <!-- Message container for status updates -->
+                <div id="messageContainer"></div>
+
                 <div class="form-group">
-                    <label for="otp">Enter OTP</label>
-                    <div class="otp-inputs">
-                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 1)">
-                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 2)">
-                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 3)">
-                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 4)">
-                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 5)">
-                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 6)">
+                    <label for="phone">Phone Number</label>
+                    <div class="input-group">
+                        <div class="country-code">+91</div>
+                        <input 
+                            type="tel" 
+                            id="phone" 
+                            placeholder="Enter your 10-digit mobile number" 
+                            maxlength="10"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                        >
                     </div>
                 </div>
 
-                <div class="timer" id="timer">
-                    Resend OTP in <span id="countdown">59</span> seconds
+                <div class="otp-container" id="otpContainer">
+                    <div class="form-group">
+                        <label for="otp">Enter OTP</label>
+                        <div class="otp-inputs">
+                            <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 1)">
+                            <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 2)">
+                            <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 3)">
+                            <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 4)">
+                            <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 5)">
+                            <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 6)">
+                        </div>
+                    </div>
+
+                    <div class="timer" id="timer">
+                        Resend OTP in <span id="countdown">59</span> seconds
+                    </div>
+
+                    <div style="text-align: center;">
+                        <a class="resend-link" id="resendLink" onclick="resendOTP()">Resend OTP</a>
+                    </div>
                 </div>
 
-                <div style="text-align: center;">
-                    <a class="resend-link" id="resendLink" onclick="resendOTP()">Resend OTP</a>
-                </div>
+                <button class="btn" id="submitBtn" onclick="sendOTP()">
+                    Send OTP
+                </button>
+
+                <button class="btn" id="verifyBtn" onclick="verifyOTP()" style="display: none;">
+                    Verify OTP
+                </button>
             </div>
-
-            <button class="btn" id="submitBtn" onclick="sendOTP()">
-                Send OTP
-            </button>
-
-            <button class="btn" id="verifyBtn" onclick="verifyOTP()" style="display: none;">
-                Verify OTP
-            </button>
         </div>
     </div>
 
-    <!-- Load database and auth scripts -->
+    <!-- Load database first -->
     <script src="/js/database.js"></script>
+    
+    <!-- Then load auth -->
     <script src="/js/auth.js"></script>
 
     <script>
@@ -360,6 +377,7 @@
         const referralCode = urlParams.get('ref') || 'admin123';
         let currentPhone = '';
         let resendTimer = null;
+        let isSystemReady = false;
 
         function goBack() {
             window.location.href = 'index.html';
@@ -387,7 +405,48 @@
             }
         }
 
+        // Wait for system to be ready
+        async function waitForSystemReady() {
+            const maxAttempts = 30;
+            const attemptDelay = 500;
+            
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                // Check if both database and auth are ready
+                const dbReady = window.databaseManager && window.databaseManager.db;
+                const authReady = window.authManager && window.authManager.isDatabaseReady;
+                
+                console.log(`System check attempt ${attempt}: DB=${dbReady}, Auth=${authReady}`);
+                
+                if (dbReady && authReady) {
+                    isSystemReady = true;
+                    document.getElementById('initMessage').style.display = 'none';
+                    document.getElementById('mainForm').style.display = 'block';
+                    document.getElementById('phone').focus();
+                    console.log('✅ System ready!');
+                    return true;
+                }
+                
+                // Update init message
+                document.getElementById('initMessage').innerHTML = 
+                    `Initializing system... (${attempt}/${maxAttempts})`;
+                
+                if (attempt === maxAttempts) {
+                    document.getElementById('initMessage').innerHTML = 
+                        'System initialization failed. Please refresh the page.';
+                    return false;
+                }
+                
+                // Wait before next attempt
+                await new Promise(resolve => setTimeout(resolve, attemptDelay));
+            }
+        }
+
         async function sendOTP() {
+            if (!isSystemReady) {
+                showMessage('System not ready yet. Please wait.', 'error');
+                return;
+            }
+
             const phoneInput = document.getElementById('phone');
             const phone = phoneInput.value.trim();
             const submitBtn = document.getElementById('submitBtn');
@@ -432,7 +491,7 @@
                     showMessage(result.error || 'Failed to send OTP', 'error');
                 }
             } catch (error) {
-                showMessage('Error sending OTP: ' + (error.message || 'Unknown error'), 'error');
+                showMessage('Error sending OTP: ' + (error.message || error), 'error');
             } finally {
                 setLoading(submitBtn, false);
             }
@@ -489,6 +548,11 @@
         }
 
         async function resendOTP() {
+            if (!isSystemReady) {
+                showMessage('System not ready yet. Please wait.', 'error');
+                return;
+            }
+
             const submitBtn = document.getElementById('submitBtn');
             setLoading(submitBtn, true);
 
@@ -513,13 +577,18 @@
                     showMessage(result.error || 'Failed to resend OTP', 'error');
                 }
             } catch (error) {
-                showMessage('Error resending OTP: ' + (error.message || 'Unknown error'), 'error');
+                showMessage('Error resending OTP: ' + (error.message || error), 'error');
             } finally {
                 setLoading(submitBtn, false);
             }
         }
 
         async function verifyOTP() {
+            if (!isSystemReady) {
+                showMessage('System not ready yet. Please wait.', 'error');
+                return;
+            }
+
             const verifyBtn = document.getElementById('verifyBtn');
             const otpInputs = document.querySelectorAll('.otp-input');
             let otp = '';
@@ -539,6 +608,8 @@
                 const result = await window.authManager.verifyOTP(currentPhone, otp);
                 
                 if (result.success) {
+                    showMessage('OTP verified successfully!', 'success');
+                    
                     // Check if user exists or needs to create profile
                     const existingUser = await window.databaseManager.getUser(currentPhone);
                     
@@ -547,7 +618,6 @@
                         const loginResult = await window.authManager.createUserSession(currentPhone);
                         
                         if (loginResult.success) {
-                            showMessage('Login successful! Redirecting...', 'success');
                             setTimeout(() => {
                                 window.location.href = 'dashboard.html';
                             }, 1000);
@@ -559,7 +629,6 @@
                         localStorage.setItem('pendingPhone', currentPhone);
                         localStorage.setItem('referralCode', referralCode);
                         
-                        showMessage('OTP verified! Please complete your profile.', 'success');
                         setTimeout(() => {
                             window.location.href = `profile-setup.html?ref=${referralCode}`;
                         }, 1500);
@@ -573,15 +642,29 @@
                     document.querySelector('.otp-input').focus();
                 }
             } catch (error) {
-                showMessage('Error verifying OTP: ' + (error.message || 'Unknown error'), 'error');
+                showMessage('Error verifying OTP: ' + (error.message || error), 'error');
             } finally {
                 setLoading(verifyBtn, false);
             }
         }
 
+        // Initialize the system when page loads
+        window.addEventListener('load', async () => {
+            console.log('🚀 Starting system initialization...');
+            await waitForSystemReady();
+            
+            // Check if user is already logged in
+            if (isSystemReady && window.authManager && window.authManager.isAuthenticated()) {
+                showMessage('You are already logged in. Redirecting...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            }
+        });
+
         // Allow Enter key to submit phone number
         document.getElementById('phone').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && isSystemReady) {
                 sendOTP();
             }
         });
@@ -589,7 +672,7 @@
         // Allow Enter key in OTP inputs
         document.querySelectorAll('.otp-input').forEach((input, index) => {
             input.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
+                if (e.key === 'Enter' && isSystemReady) {
                     if (this.value.length === 1) {
                         const nextInput = document.querySelectorAll('.otp-input')[index + 1];
                         if (nextInput) {
@@ -600,19 +683,6 @@
                     }
                 }
             });
-        });
-
-        // Auto-focus phone input on page load
-        document.getElementById('phone').focus();
-
-        // Check if user is already logged in
-        window.addEventListener('load', async () => {
-            if (window.authManager && window.authManager.isAuthenticated()) {
-                showMessage('You are already logged in. Redirecting...', 'success');
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 1000);
-            }
         });
     </script>
 </body>
