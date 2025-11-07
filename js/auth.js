@@ -1,5 +1,5 @@
-﻿// auth.js - Authentication and User Management for Transparent Transactions
-// Updated to integrate with IndexedDB for persistent user data storage
+// auth.js - Authentication and User Management for Transparent Transactions
+// Updated to display OTP on screen for testing (instead of SMS)
 
 class AuthManager {
     constructor() {
@@ -86,10 +86,10 @@ class AuthManager {
         return Math.floor(100000 + Math.random() * 900000).toString();
     }
 
-    // Send OTP to phone number (simulated - integrate with SMS service in production)
+    // Display OTP on screen for testing (instead of sending SMS)
     async sendOTP(phoneNumber) {
         return new Promise((resolve, reject) => {
-            console.log(`📱 Sending OTP to ${phoneNumber}...`);
+            console.log(`📱 Generating OTP for ${phoneNumber}...`);
 
             // Validate phone number first
             const validation = this.validatePhoneNumber(phoneNumber);
@@ -122,25 +122,132 @@ class AuthManager {
                         });
                     });
                     
-                    // In development, log the OTP to console
-                    console.log(`🔐 OTP for ${phoneNumber}: ${otp} (Expires in ${this.getOtpExpiryMinutes()} minutes)`);
+                    // Display OTP on screen for user to see
+                    this.displayOTPOnScreen(phoneNumber, otp);
                     
                     resolve({
                         success: true,
-                        message: 'OTP sent successfully',
+                        message: 'OTP generated successfully',
                         expiryMinutes: this.getOtpExpiryMinutes(),
-                        otp: otp // Only for development/demo
+                        otp: otp // For reference
                     });
                     
                 } catch (error) {
                     reject({
                         success: false,
-                        message: 'Failed to send OTP',
+                        message: 'Failed to generate OTP',
                         error: error.message
                     });
                 }
-            }, 1500);
+            }, 1000);
         });
+    }
+
+    // Display OTP on screen in a user-friendly way
+    displayOTPOnScreen(phoneNumber, otp) {
+        // Remove any existing OTP display
+        const existingDisplay = document.getElementById('otp-display-container');
+        if (existingDisplay) {
+            existingDisplay.remove();
+        }
+
+        // Create OTP display container
+        const otpContainer = document.createElement('div');
+        otpContainer.id = 'otp-display-container';
+        otpContainer.innerHTML = `
+            <div class="otp-display">
+                <div class="otp-header">
+                    <h3>📱 OTP for Testing</h3>
+                    <button class="close-otp" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+                </div>
+                <div class="otp-content">
+                    <p>Phone: <strong>${phoneNumber}</strong></p>
+                    <div class="otp-code">
+                        <span class="otp-digits">${otp}</span>
+                    </div>
+                    <p class="otp-instruction">Enter this OTP in the verification field</p>
+                    <p class="otp-expiry">Expires in ${this.getOtpExpiryMinutes()} minutes</p>
+                </div>
+            </div>
+        `;
+
+        // Add styles
+        const styles = `
+            <style>
+                #otp-display-container {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 10000;
+                    background: white;
+                    border: 2px solid #2E8B57;
+                    border-radius: 10px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    max-width: 300px;
+                    font-family: Arial, sans-serif;
+                }
+                .otp-display {
+                    padding: 15px;
+                }
+                .otp-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 10px;
+                    border-bottom: 1px solid #eee;
+                    padding-bottom: 10px;
+                }
+                .otp-header h3 {
+                    margin: 0;
+                    color: #2E8B57;
+                    font-size: 16px;
+                }
+                .close-otp {
+                    background: none;
+                    border: none;
+                    font-size: 20px;
+                    cursor: pointer;
+                    color: #666;
+                }
+                .otp-content {
+                    text-align: center;
+                }
+                .otp-code {
+                    margin: 15px 0;
+                    padding: 10px;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border: 2px dashed #2E8B57;
+                }
+                .otp-digits {
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #2E8B57;
+                    letter-spacing: 2px;
+                }
+                .otp-instruction {
+                    font-size: 14px;
+                    color: #666;
+                    margin: 10px 0;
+                }
+                .otp-expiry {
+                    font-size: 12px;
+                    color: #ff6b35;
+                    font-weight: bold;
+                }
+            </style>
+        `;
+
+        // Add to document
+        document.body.appendChild(otpContainer);
+        
+        // Auto-remove after 5 minutes
+        setTimeout(() => {
+            const container = document.getElementById('otp-display-container');
+            if (container) {
+                container.remove();
+            }
+        }, 5 * 60 * 1000);
     }
 
     // Verify OTP against stored value
@@ -203,6 +310,12 @@ class AuthManager {
                     // Clear OTP attempts counter
                     this.otpAttempts = 0;
                     
+                    // Remove OTP display
+                    const otpDisplay = document.getElementById('otp-display-container');
+                    if (otpDisplay) {
+                        otpDisplay.remove();
+                    }
+                    
                     resolve({
                         success: true,
                         message: 'OTP verified successfully'
@@ -225,6 +338,12 @@ class AuthManager {
                         await window.databaseManager.executeTransaction('settings', 'readwrite', (store) => {
                             return store.delete(`otp_${phoneNumber}`);
                         });
+                        
+                        // Remove OTP display
+                        const otpDisplay = document.getElementById('otp-display-container');
+                        if (otpDisplay) {
+                            otpDisplay.remove();
+                        }
                         
                         reject({
                             success: false,
