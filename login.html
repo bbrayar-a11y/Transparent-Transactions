@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -135,7 +135,7 @@
             margin-top: 10px;
         }
 
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
         }
@@ -144,11 +144,17 @@
             transform: translateY(0);
         }
 
+        .btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .btn-secondary {
             background: #6c757d;
         }
 
-        .btn-secondary:hover {
+        .btn-secondary:hover:not(:disabled) {
             box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
         }
 
@@ -168,6 +174,11 @@
 
         .resend-link:hover {
             text-decoration: underline;
+        }
+
+        .resend-link:disabled {
+            color: #cccccc;
+            cursor: not-allowed;
         }
 
         .step-indicator {
@@ -216,6 +227,42 @@
             text-decoration: underline;
         }
 
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #27ae60;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         @media (max-width: 480px) {
             .login-container {
                 border-radius: 10px;
@@ -245,14 +292,17 @@
 
         <div class="login-form">
             <div class="step-indicator">
-                <div class="step active">1</div>
+                <div class="step active" id="step1">1</div>
                 <div class="step-line"></div>
-                <div class="step">2</div>
+                <div class="step" id="step2">2</div>
             </div>
 
             <a class="back-link" onclick="goBack()">
                 ← Back to Home
             </a>
+
+            <!-- Message container for status updates -->
+            <div id="messageContainer"></div>
 
             <div class="form-group">
                 <label for="phone">Phone Number</label>
@@ -286,62 +336,119 @@
                 </div>
 
                 <div style="text-align: center;">
-                    <a class="resend-link" onclick="resendOTP()">Resend OTP</a>
+                    <a class="resend-link" id="resendLink" onclick="resendOTP()">Resend OTP</a>
                 </div>
             </div>
 
-            <button class="btn" id="submitBtn" onclick="handleSubmit()">
+            <button class="btn" id="submitBtn" onclick="sendOTP()">
                 Send OTP
             </button>
 
-            <button class="btn btn-secondary" id="verifyBtn" onclick="verifyOTP()" style="display: none;">
+            <button class="btn" id="verifyBtn" onclick="verifyOTP()" style="display: none;">
                 Verify OTP
             </button>
         </div>
     </div>
 
+    <!-- Load database and auth scripts -->
+    <script src="/js/database.js"></script>
+    <script src="/js/auth.js"></script>
+
     <script>
         // Get referral code from URL
         const urlParams = new URLSearchParams(window.location.search);
         const referralCode = urlParams.get('ref') || 'admin123';
+        let currentPhone = '';
+        let resendTimer = null;
 
         function goBack() {
             window.location.href = 'index.html';
         }
 
-        function handleSubmit() {
+        function showMessage(message, type = 'success') {
+            const container = document.getElementById('messageContainer');
+            container.innerHTML = `<div class="message ${type}">${message}</div>`;
+            
+            // Auto-hide success messages after 3 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    container.innerHTML = '';
+                }, 3000);
+            }
+        }
+
+        function setLoading(button, isLoading) {
+            if (isLoading) {
+                button.disabled = true;
+                button.innerHTML = `<span class="loading"></span>Processing...`;
+            } else {
+                button.disabled = false;
+                button.innerHTML = button === document.getElementById('submitBtn') ? 'Send OTP' : 'Verify OTP';
+            }
+        }
+
+        async function sendOTP() {
             const phoneInput = document.getElementById('phone');
             const phone = phoneInput.value.trim();
+            const submitBtn = document.getElementById('submitBtn');
             
             if (!phone || phone.length !== 10) {
-                alert('Please enter a valid 10-digit phone number');
+                showMessage('Please enter a valid 10-digit phone number', 'error');
                 phoneInput.focus();
                 return;
             }
 
-            // Show OTP section
-            document.getElementById('otpContainer').style.display = 'block';
-            document.getElementById('submitBtn').style.display = 'none';
-            document.getElementById('verifyBtn').style.display = 'block';
-            
-            // Update step indicator
-            document.querySelectorAll('.step')[1].classList.add('active');
-            
-            // Start OTP timer
-            startTimer();
-            
-            // Focus first OTP input
-            document.querySelector('.otp-input').focus();
-            
-            // In a real app, you would send OTP to the phone here
-            console.log('OTP sent to:', phone);
+            // Validate Indian mobile number format
+            if (!/^[6-9]\d{9}$/.test(phone)) {
+                showMessage('Please enter a valid Indian mobile number starting with 6,7,8, or 9', 'error');
+                phoneInput.focus();
+                return;
+            }
+
+            setLoading(submitBtn, true);
+            currentPhone = phone;
+
+            try {
+                const result = await window.authManager.sendOTP(phone);
+                
+                if (result.success) {
+                    // Show OTP section
+                    document.getElementById('otpContainer').style.display = 'block';
+                    document.getElementById('submitBtn').style.display = 'none';
+                    document.getElementById('verifyBtn').style.display = 'block';
+                    
+                    // Update step indicator
+                    document.getElementById('step1').classList.remove('active');
+                    document.getElementById('step2').classList.add('active');
+                    
+                    // Start OTP timer
+                    startTimer();
+                    
+                    // Focus first OTP input
+                    document.querySelector('.otp-input').focus();
+                    
+                    showMessage('OTP sent successfully! Check the OTP display on screen.');
+                } else {
+                    showMessage(result.error || 'Failed to send OTP', 'error');
+                }
+            } catch (error) {
+                showMessage('Error sending OTP: ' + (error.message || 'Unknown error'), 'error');
+            } finally {
+                setLoading(submitBtn, false);
+            }
         }
 
         function moveToNext(input, nextIndex) {
             const value = input.value;
             
+            // Only allow numbers
+            if (value && !/^\d$/.test(value)) {
+                input.value = '';
+                return;
+            }
+            
             if (value && nextIndex <= 6) {
-                const nextInput = document.querySelectorAll('.otp-input')[nextIndex - 1];
+                const nextInput = document.querySelectorAll('.otp-input')[nextIndex];
                 if (nextInput) nextInput.focus();
             }
             
@@ -358,17 +465,22 @@
             let timeLeft = 59;
             const countdownElement = document.getElementById('countdown');
             const timerElement = document.getElementById('timer');
-            const resendLink = document.querySelector('.resend-link');
+            const resendLink = document.getElementById('resendLink');
             
             resendLink.style.pointerEvents = 'none';
             resendLink.style.opacity = '0.5';
             
-            const timer = setInterval(() => {
+            // Clear existing timer
+            if (resendTimer) {
+                clearInterval(resendTimer);
+            }
+            
+            resendTimer = setInterval(() => {
                 countdownElement.textContent = timeLeft;
                 timeLeft--;
                 
                 if (timeLeft < 0) {
-                    clearInterval(timer);
+                    clearInterval(resendTimer);
                     timerElement.style.display = 'none';
                     resendLink.style.pointerEvents = 'auto';
                     resendLink.style.opacity = '1';
@@ -376,23 +488,39 @@
             }, 1000);
         }
 
-        function resendOTP() {
-            // Reset and show timer again
-            document.getElementById('timer').style.display = 'block';
-            startTimer();
-            
-            // Clear OTP inputs
-            document.querySelectorAll('.otp-input').forEach(input => {
-                input.value = '';
-            });
-            
-            // Focus first OTP input
-            document.querySelector('.otp-input').focus();
-            
-            console.log('OTP resent');
+        async function resendOTP() {
+            const submitBtn = document.getElementById('submitBtn');
+            setLoading(submitBtn, true);
+
+            try {
+                const result = await window.authManager.sendOTP(currentPhone);
+                
+                if (result.success) {
+                    // Reset and show timer again
+                    document.getElementById('timer').style.display = 'block';
+                    startTimer();
+                    
+                    // Clear OTP inputs
+                    document.querySelectorAll('.otp-input').forEach(input => {
+                        input.value = '';
+                    });
+                    
+                    // Focus first OTP input
+                    document.querySelector('.otp-input').focus();
+                    
+                    showMessage('OTP resent successfully!');
+                } else {
+                    showMessage(result.error || 'Failed to resend OTP', 'error');
+                }
+            } catch (error) {
+                showMessage('Error resending OTP: ' + (error.message || 'Unknown error'), 'error');
+            } finally {
+                setLoading(submitBtn, false);
+            }
         }
 
-        function verifyOTP() {
+        async function verifyOTP() {
+            const verifyBtn = document.getElementById('verifyBtn');
             const otpInputs = document.querySelectorAll('.otp-input');
             let otp = '';
             
@@ -401,31 +529,91 @@
             });
             
             if (otp.length !== 6) {
-                alert('Please enter the complete 6-digit OTP');
+                showMessage('Please enter the complete 6-digit OTP', 'error');
                 return;
             }
 
-            // For demo purposes, any 6-digit OTP is accepted
-            // In production, you would verify with your OTP service
-            
-            // Store phone number and referral code for the next step
-            const phone = document.getElementById('phone').value;
-            localStorage.setItem('userPhone', phone);
-            localStorage.setItem('referralCode', referralCode);
-            
-            // Redirect to profile setup
-            window.location.href = `profile-setup.html?ref=${referralCode}`;
+            setLoading(verifyBtn, true);
+
+            try {
+                const result = await window.authManager.verifyOTP(currentPhone, otp);
+                
+                if (result.success) {
+                    // Check if user exists or needs to create profile
+                    const existingUser = await window.databaseManager.getUser(currentPhone);
+                    
+                    if (existingUser) {
+                        // Login existing user
+                        const loginResult = await window.authManager.createUserSession(currentPhone);
+                        
+                        if (loginResult.success) {
+                            showMessage('Login successful! Redirecting...', 'success');
+                            setTimeout(() => {
+                                window.location.href = 'dashboard.html';
+                            }, 1000);
+                        } else {
+                            showMessage(loginResult.error || 'Login failed', 'error');
+                        }
+                    } else {
+                        // New user - redirect to profile setup
+                        localStorage.setItem('pendingPhone', currentPhone);
+                        localStorage.setItem('referralCode', referralCode);
+                        
+                        showMessage('OTP verified! Please complete your profile.', 'success');
+                        setTimeout(() => {
+                            window.location.href = `profile-setup.html?ref=${referralCode}`;
+                        }, 1500);
+                    }
+                } else {
+                    showMessage(result.error || 'Invalid OTP', 'error');
+                    // Clear OTP inputs on error
+                    document.querySelectorAll('.otp-input').forEach(input => {
+                        input.value = '';
+                    });
+                    document.querySelector('.otp-input').focus();
+                }
+            } catch (error) {
+                showMessage('Error verifying OTP: ' + (error.message || 'Unknown error'), 'error');
+            } finally {
+                setLoading(verifyBtn, false);
+            }
         }
 
-        // Allow Enter key to submit
+        // Allow Enter key to submit phone number
         document.getElementById('phone').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                handleSubmit();
+                sendOTP();
             }
+        });
+
+        // Allow Enter key in OTP inputs
+        document.querySelectorAll('.otp-input').forEach((input, index) => {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    if (this.value.length === 1) {
+                        const nextInput = document.querySelectorAll('.otp-input')[index + 1];
+                        if (nextInput) {
+                            nextInput.focus();
+                        } else {
+                            verifyOTP();
+                        }
+                    }
+                }
+            });
         });
 
         // Auto-focus phone input on page load
         document.getElementById('phone').focus();
+
+        // Check if user is already logged in
+        window.addEventListener('load', async () => {
+            if (window.authManager && window.authManager.isAuthenticated()) {
+                showMessage('You are already logged in. Redirecting...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            }
+        });
     </script>
 </body>
 </html>
