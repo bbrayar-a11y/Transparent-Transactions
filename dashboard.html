@@ -1,0 +1,611 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Transparent Transactions</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f8f9fa;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, #27ae60, #219652);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .welcome-section {
+            margin-bottom: 20px;
+        }
+
+        .welcome-section h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .welcome-section p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .referral-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 400px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .referral-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .referral-code {
+            background: #f8f9fa;
+            border: 2px dashed #27ae60;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .code-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #27ae60;
+            letter-spacing: 2px;
+            margin: 10px 0;
+        }
+
+        .referral-link {
+            background: #e8f5e8;
+            border: 1px solid #27ae60;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 15px 0;
+            word-break: break-all;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #27ae60, #219652);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px 0;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+        }
+
+        .dashboard-nav {
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .nav-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-card:hover {
+            border-color: #27ae60;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .nav-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #27ae60;
+        }
+
+        .nav-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .nav-desc {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .stats-section {
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #27ae60;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .trust-score {
+            background: linear-gradient(135deg, #27ae60, #219652);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px auto;
+            max-width: 400px;
+        }
+
+        .trust-score .score {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .trust-score .label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .commission-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .commission-info h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .commission-steps {
+            font-size: 12px;
+            color: #856404;
+            text-align: left;
+            margin: 10px 0;
+        }
+
+        .commission-steps div {
+            margin: 5px 0;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 480px) {
+            .dashboard-header {
+                padding: 15px;
+            }
+            
+            .nav-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .referral-card {
+                margin: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="welcome-section">
+            <h1 id="welcomeName">Welcome!</h1>
+            <p>Start building your financial trust network</p>
+        </div>
+
+        <div class="trust-score">
+            <div class="label">Your Trust Score</div>
+            <div class="score" id="trustScore">--</div>
+            <div class="label" id="trustScoreDetails">Loading...</div>
+        </div>
+    </div>
+
+    <div id="errorContainer" style="display: none;"></div>
+
+    <div class="referral-card">
+        <div class="referral-title">Your Personal Referral Code</div>
+        <div class="referral-code">
+            <div class="code-display" id="referralCodeDisplay">Loading...</div>
+            <div style="font-size: 12px; color: #6c757d;">Share this code with friends</div>
+        </div>
+        
+        <div class="referral-link" id="referralLink">
+            Loading your referral link...
+        </div>
+
+        <button class="btn" onclick="copyReferralLink()" id="copyBtn">
+            📋 Copy Referral Link
+        </button>
+        <button class="btn btn-secondary" onclick="shareReferral()" id="shareBtn">
+            📤 Share via Message
+        </button>
+    </div>
+
+    <div class="commission-info">
+        <h3>🎯 Earn Commission on 4 Levels</h3>
+        <div class="commission-steps">
+            <div>• <strong>Level 1:</strong> ₹1.60 when your friend pays ₹10</div>
+            <div>• <strong>Level 2:</strong> ₹0.80 when their friend pays ₹10</div>
+            <div>• <strong>Level 3:</strong> ₹0.40 when friend's friend pays ₹10</div>
+            <div>• <strong>Level 4:</strong> ₹0.20 when friend's friend's friend pays ₹10</div>
+        </div>
+    </div>
+
+    <div class="dashboard-nav">
+        <div class="nav-grid">
+            <div class="nav-card" onclick="navigateTo('contacts')">
+                <div class="nav-icon">👥</div>
+                <div class="nav-title">My Contacts</div>
+                <div class="nav-desc">Add & manage people you trust</div>
+            </div>
+
+            <div class="nav-card" onclick="navigateTo('transactions')">
+                <div class="nav-icon">💳</div>
+                <div class="nav-title">Transactions</div>
+                <div class="nav-desc">Record loans & payments</div>
+            </div>
+
+            <div class="nav-card" onclick="navigateTo('reports')">
+                <div class="nav-icon">📊</div>
+                <div class="nav-title">Trust Report</div>
+                <div class="nav-desc">Get your official score (₹10)</div>
+            </div>
+
+            <div class="nav-card" onclick="navigateTo('profile')">
+                <div class="nav-icon">👤</div>
+                <div class="nav-title">My Profile</div>
+                <div class="nav-desc">View & edit your details</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="contactsCount">0</div>
+                <div class="stat-label">Contacts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="transactionsCount">0</div>
+                <div class="stat-label">Transactions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pendingCount">0</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="commissionEarned">₹0</div>
+                <div class="stat-label">Earned</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentUser = null;
+        let userProfile = null;
+        let userStats = {
+            contacts: 0,
+            transactions: 0,
+            pending: 0,
+            commission: 0
+        };
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Initializing dashboard...');
+            
+            try {
+                // Check if user is authenticated
+                if (window.authManager && window.authManager.isAuthenticated()) {
+                    currentUser = window.authManager.getCurrentUser();
+                    await loadDashboardData();
+                } else {
+                    // Redirect to login if not authenticated
+                    console.log('❌ User not authenticated, redirecting to login');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+            } catch (error) {
+                console.error('💥 Dashboard initialization failed:', error);
+                showError('Failed to load dashboard. Please try refreshing the page.');
+            }
+        });
+
+        // Load all dashboard data from IndexedDB
+        async function loadDashboardData() {
+            console.log('📥 Loading dashboard data...');
+            
+            try {
+                // Show loading state
+                document.body.classList.add('loading');
+                
+                // Check if database is ready
+                if (!window.databaseManager || !window.databaseManager.db) {
+                    throw new Error('Database not ready. Please wait...');
+                }
+
+                // Load user profile from IndexedDB
+                userProfile = await window.databaseManager.getUser(currentUser.phone);
+                if (!userProfile) {
+                    throw new Error('User profile not found. Please complete profile setup.');
+                }
+
+                // Load user contacts from IndexedDB
+                const contacts = await window.databaseManager.getContacts(currentUser.phone);
+                userStats.contacts = contacts.length;
+
+                // Load user transactions from IndexedDB
+                const transactions = await window.databaseManager.getUserTransactions(currentUser.phone);
+                userStats.transactions = transactions.length;
+                userStats.pending = transactions.filter(t => t.status === 'pending').length;
+
+                // Load trust score from IndexedDB
+                const trustScore = await window.databaseManager.getTrustScore(currentUser.phone);
+
+                // Load commission data
+                if (window.referralManager && userProfile.personalReferralCode) {
+                    const referralStats = window.referralManager.getReferralStats(userProfile.personalReferralCode);
+                    userStats.commission = referralStats.totalEarned;
+                }
+
+                // Update UI with loaded data
+                updateDashboardUI(trustScore);
+                
+                console.log('✅ Dashboard data loaded successfully');
+                
+            } catch (error) {
+                console.error('❌ Error loading dashboard data:', error);
+                showError('Error loading data: ' + error.message);
+            } finally {
+                // Hide loading state
+                document.body.classList.remove('loading');
+            }
+        }
+
+        // Update dashboard UI with loaded data
+        function updateDashboardUI(trustScore) {
+            // Update welcome message
+            const welcomeName = document.getElementById('welcomeName');
+            if (userProfile && userProfile.fullName) {
+                welcomeName.textContent = `Welcome, ${userProfile.fullName}!`;
+            }
+
+            // Update trust score
+            const trustScoreElement = document.getElementById('trustScore');
+            const trustScoreDetails = document.getElementById('trustScoreDetails');
+            
+            if (trustScore) {
+                trustScoreElement.textContent = trustScore.score;
+                trustScoreDetails.textContent = `Based on ${trustScore.transactionCount || 0} transactions`;
+            } else {
+                trustScoreElement.textContent = '85';
+                trustScoreDetails.textContent = 'New user - initial score';
+            }
+
+            // Update referral code
+            const referralCodeDisplay = document.getElementById('referralCodeDisplay');
+            const referralLink = document.getElementById('referralLink');
+            
+            if (userProfile && userProfile.personalReferralCode) {
+                referralCodeDisplay.textContent = userProfile.personalReferralCode;
+                const baseUrl = window.location.origin + window.location.pathname.replace('dashboard.html', 'index.html');
+                const fullLink = `${baseUrl}?ref=${userProfile.personalReferralCode}`;
+                referralLink.textContent = fullLink;
+                referralLink.setAttribute('data-link', fullLink);
+            }
+
+            // Update statistics
+            updateStatsCards();
+        }
+
+        // Update statistics cards
+        function updateStatsCards() {
+            document.getElementById('contactsCount').textContent = userStats.contacts;
+            document.getElementById('transactionsCount').textContent = userStats.transactions;
+            document.getElementById('pendingCount').textContent = userStats.pending;
+            document.getElementById('commissionEarned').textContent = `₹${userStats.commission.toFixed(2)}`;
+        }
+
+        // Copy referral link to clipboard
+        async function copyReferralLink() {
+            const linkElement = document.getElementById('referralLink');
+            const link = linkElement.getAttribute('data-link');
+            
+            if (!link) {
+                showError('Referral link not available yet');
+                return;
+            }
+
+            try {
+                const copyBtn = document.getElementById('copyBtn');
+                const originalText = copyBtn.textContent;
+                
+                await navigator.clipboard.writeText(link);
+                
+                copyBtn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+                
+            } catch (error) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = link;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                const copyBtn = document.getElementById('copyBtn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            }
+        }
+
+        // Share referral link
+        function shareReferral() {
+            const linkElement = document.getElementById('referralLink');
+            const link = linkElement.getAttribute('data-link');
+            
+            if (!link) {
+                showError('Referral link not available yet');
+                return;
+            }
+
+            const message = `Join me on Transparent Transactions to build financial trust! Use my link: ${link}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Transparent Transactions',
+                    text: message,
+                    url: link
+                }).catch(error => {
+                    console.log('Share cancelled:', error);
+                });
+            } else {
+                // Fallback - open in messaging app
+                const smsLink = `sms:?body=${encodeURIComponent(message)}`;
+                window.location.href = smsLink;
+            }
+        }
+
+        // Navigate to different sections
+        function navigateTo(section) {
+            console.log('Navigating to:', section);
+            
+            // For now, show alerts since other pages aren't built yet
+            const messages = {
+                'contacts': 'Contacts section will be available soon!',
+                'transactions': 'Transactions section will be available soon!',
+                'reports': 'Trust Report section will be available soon! (₹10 payment required)',
+                'profile': 'Profile section will be available soon!'
+            };
+            
+            if (messages[section]) {
+                alert(messages[section]);
+            }
+            
+            // In the future, these will redirect to actual pages:
+            // window.location.href = `${section}.html`;
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            errorContainer.innerHTML = `
+                <div class="error-message">
+                    <strong>Error:</strong> ${message}
+                    <br><br>
+                    <button onclick="location.reload()" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Retry
+                    </button>
+                </div>
+            `;
+            errorContainer.style.display = 'block';
+        }
+
+        // Refresh dashboard data
+        async function refreshDashboard() {
+            console.log('🔄 Refreshing dashboard...');
+            await loadDashboardData();
+        }
+
+        // Make refresh function available globally
+        window.refreshDashboard = refreshDashboard;
+    </script>
+</body>
+</html>

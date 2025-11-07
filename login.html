@@ -1,1 +1,431 @@
-This is a test page
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Transparent Transactions</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 450px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #27ae60, #219652);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .login-form {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .country-code {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-right: none;
+            padding: 12px 15px;
+            border-radius: 8px 0 0 8px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 0 8px 8px 0;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #27ae60;
+            box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
+        }
+
+        .otp-container {
+            display: none;
+        }
+
+        .otp-inputs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .otp-input {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .otp-input:focus {
+            border-color: #27ae60;
+            background: white;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #27ae60, #219652);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+        }
+
+        .timer {
+            text-align: center;
+            margin: 15px 0;
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .resend-link {
+            color: #27ae60;
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .resend-link:hover {
+            text-decoration: underline;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .step {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin: 0 10px;
+            color: #6c757d;
+        }
+
+        .step.active {
+            background: #27ae60;
+            color: white;
+        }
+
+        .step-line {
+            width: 40px;
+            height: 2px;
+            background: #e9ecef;
+            margin: 0 5px;
+            align-self: center;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            color: #27ae60;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                border-radius: 10px;
+            }
+            
+            .login-form {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 25px 20px;
+            }
+            
+            .otp-input {
+                width: 45px;
+                height: 45px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="header">
+            <h1>Welcome Back</h1>
+            <p>Enter your phone number to continue</p>
+        </div>
+
+        <div class="login-form">
+            <div class="step-indicator">
+                <div class="step active">1</div>
+                <div class="step-line"></div>
+                <div class="step">2</div>
+            </div>
+
+            <a class="back-link" onclick="goBack()">
+                ← Back to Home
+            </a>
+
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <div class="input-group">
+                    <div class="country-code">+91</div>
+                    <input 
+                        type="tel" 
+                        id="phone" 
+                        placeholder="Enter your 10-digit mobile number" 
+                        maxlength="10"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                    >
+                </div>
+            </div>
+
+            <div class="otp-container" id="otpContainer">
+                <div class="form-group">
+                    <label for="otp">Enter OTP</label>
+                    <div class="otp-inputs">
+                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 1)">
+                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 2)">
+                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 3)">
+                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 4)">
+                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 5)">
+                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 6)">
+                    </div>
+                </div>
+
+                <div class="timer" id="timer">
+                    Resend OTP in <span id="countdown">59</span> seconds
+                </div>
+
+                <div style="text-align: center;">
+                    <a class="resend-link" onclick="resendOTP()">Resend OTP</a>
+                </div>
+            </div>
+
+            <button class="btn" id="submitBtn" onclick="handleSubmit()">
+                Send OTP
+            </button>
+
+            <button class="btn btn-secondary" id="verifyBtn" onclick="verifyOTP()" style="display: none;">
+                Verify OTP
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Get referral code from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const referralCode = urlParams.get('ref') || 'admin123';
+
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        function handleSubmit() {
+            const phoneInput = document.getElementById('phone');
+            const phone = phoneInput.value.trim();
+            
+            if (!phone || phone.length !== 10) {
+                alert('Please enter a valid 10-digit phone number');
+                phoneInput.focus();
+                return;
+            }
+
+            // Show OTP section
+            document.getElementById('otpContainer').style.display = 'block';
+            document.getElementById('submitBtn').style.display = 'none';
+            document.getElementById('verifyBtn').style.display = 'block';
+            
+            // Update step indicator
+            document.querySelectorAll('.step')[1].classList.add('active');
+            
+            // Start OTP timer
+            startTimer();
+            
+            // Focus first OTP input
+            document.querySelector('.otp-input').focus();
+            
+            // In a real app, you would send OTP to the phone here
+            console.log('OTP sent to:', phone);
+        }
+
+        function moveToNext(input, nextIndex) {
+            const value = input.value;
+            
+            if (value && nextIndex <= 6) {
+                const nextInput = document.querySelectorAll('.otp-input')[nextIndex - 1];
+                if (nextInput) nextInput.focus();
+            }
+            
+            // Auto-verify if all fields are filled
+            const allInputs = document.querySelectorAll('.otp-input');
+            const allFilled = Array.from(allInputs).every(input => input.value.length === 1);
+            
+            if (allFilled) {
+                verifyOTP();
+            }
+        }
+
+        function startTimer() {
+            let timeLeft = 59;
+            const countdownElement = document.getElementById('countdown');
+            const timerElement = document.getElementById('timer');
+            const resendLink = document.querySelector('.resend-link');
+            
+            resendLink.style.pointerEvents = 'none';
+            resendLink.style.opacity = '0.5';
+            
+            const timer = setInterval(() => {
+                countdownElement.textContent = timeLeft;
+                timeLeft--;
+                
+                if (timeLeft < 0) {
+                    clearInterval(timer);
+                    timerElement.style.display = 'none';
+                    resendLink.style.pointerEvents = 'auto';
+                    resendLink.style.opacity = '1';
+                }
+            }, 1000);
+        }
+
+        function resendOTP() {
+            // Reset and show timer again
+            document.getElementById('timer').style.display = 'block';
+            startTimer();
+            
+            // Clear OTP inputs
+            document.querySelectorAll('.otp-input').forEach(input => {
+                input.value = '';
+            });
+            
+            // Focus first OTP input
+            document.querySelector('.otp-input').focus();
+            
+            console.log('OTP resent');
+        }
+
+        function verifyOTP() {
+            const otpInputs = document.querySelectorAll('.otp-input');
+            let otp = '';
+            
+            otpInputs.forEach(input => {
+                otp += input.value;
+            });
+            
+            if (otp.length !== 6) {
+                alert('Please enter the complete 6-digit OTP');
+                return;
+            }
+
+            // For demo purposes, any 6-digit OTP is accepted
+            // In production, you would verify with your OTP service
+            
+            // Store phone number and referral code for the next step
+            const phone = document.getElementById('phone').value;
+            localStorage.setItem('userPhone', phone);
+            localStorage.setItem('referralCode', referralCode);
+            
+            // Redirect to profile setup
+            window.location.href = `profile-setup.html?ref=${referralCode}`;
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('phone').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                handleSubmit();
+            }
+        });
+
+        // Auto-focus phone input on page load
+        document.getElementById('phone').focus();
+    </script>
+</body>
+</html>

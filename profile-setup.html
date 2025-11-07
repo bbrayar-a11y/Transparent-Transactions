@@ -1,0 +1,422 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Profile - Transparent Transactions</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .profile-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 450px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #27ae60, #219652);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .profile-form {
+            padding: 30px;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .step {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin: 0 10px;
+            color: #6c757d;
+        }
+
+        .step.active {
+            background: #27ae60;
+            color: white;
+        }
+
+        .step-line {
+            width: 40px;
+            height: 2px;
+            background: #e9ecef;
+            margin: 0 5px;
+            align-self: center;
+        }
+
+        .step.completed {
+            background: #27ae60;
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #27ae60;
+            box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #27ae60, #219652);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            color: #27ae60;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .info-text {
+            background: #e8f5e8;
+            border: 1px solid #27ae60;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+
+        .info-text strong {
+            color: #27ae60;
+        }
+
+        .phone-display {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px 15px;
+            text-align: center;
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        @media (max-width: 480px) {
+            .profile-container {
+                border-radius: 10px;
+            }
+            
+            .profile-form {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 25px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="profile-container">
+        <div class="header">
+            <h1>Complete Your Profile</h1>
+            <p>Help us personalize your experience</p>
+        </div>
+
+        <div class="profile-form">
+            <div class="step-indicator">
+                <div class="step completed">1</div>
+                <div class="step-line"></div>
+                <div class="step completed">2</div>
+                <div class="step-line"></div>
+                <div class="step active">3</div>
+            </div>
+
+            <a class="back-link" onclick="goBack()">
+                ← Back to Login
+            </a>
+
+            <div class="info-text">
+                <strong>Why we need this:</strong> Your PIN code helps connect you with relevant local contacts and make your trust report more accurate for your area.
+            </div>
+
+            <div class="phone-display" id="phoneDisplay">
+                <!-- Phone number will be displayed here -->
+            </div>
+
+            <div class="form-group">
+                <label for="fullName">Full Name *</label>
+                <input 
+                    type="text" 
+                    id="fullName" 
+                    placeholder="Enter your full name" 
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="pinCode">PIN Code *</label>
+                <input 
+                    type="text" 
+                    id="pinCode" 
+                    placeholder="Enter your 6-digit PIN code" 
+                    maxlength="6"
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                    required
+                >
+                <small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
+                    Your area PIN code helps us connect you with local contacts
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="villageTown">Village/Town (Optional)</label>
+                <input 
+                    type="text" 
+                    id="villageTown" 
+                    placeholder="Enter your village or town name"
+                >
+            </div>
+
+            <button class="btn" id="submitBtn" onclick="completeProfile()">
+                Complete Setup & Get Started
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Get referral code from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const referralCode = urlParams.get('ref') || 'admin123';
+
+        // Get phone number from localStorage (from previous login step)
+        const userPhone = localStorage.getItem('userPhone');
+
+        function goBack() {
+            window.location.href = 'login.html';
+        }
+
+        function displayUserPhone() {
+            const phoneDisplay = document.getElementById('phoneDisplay');
+            if (userPhone) {
+                phoneDisplay.textContent = `Phone: +91 ${userPhone}`;
+            } else {
+                phoneDisplay.textContent = 'Phone: Not available';
+                alert('Phone number not found. Please start from login.');
+                window.location.href = 'login.html';
+            }
+        }
+
+        async function completeProfile() {
+            const fullName = document.getElementById('fullName').value.trim();
+            const pinCode = document.getElementById('pinCode').value.trim();
+            const villageTown = document.getElementById('villageTown').value.trim();
+
+            // Validation
+            if (!fullName) {
+                alert('Please enter your full name');
+                document.getElementById('fullName').focus();
+                return;
+            }
+
+            if (!pinCode || pinCode.length !== 6) {
+                alert('Please enter a valid 6-digit PIN code');
+                document.getElementById('pinCode').focus();
+                return;
+            }
+
+            // Show loading state
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.textContent = 'Saving...';
+            submitBtn.disabled = true;
+            document.body.classList.add('loading');
+
+            try {
+                // Check if database is ready
+                if (!window.databaseManager || !window.databaseManager.db) {
+                    throw new Error('Database not ready. Please wait a moment and try again.');
+                }
+
+                // Check if referral manager is ready
+                if (!window.referralManager) {
+                    throw new Error('System not ready. Please refresh the page.');
+                }
+
+                // Generate personal referral code
+                const personalReferralCode = window.referralManager.generateReferralCode();
+                
+                // Create user profile object
+                const userProfile = {
+                    phone: userPhone,
+                    fullName: fullName,
+                    pinCode: pinCode,
+                    villageTown: villageTown,
+                    referralCode: referralCode,
+                    personalReferralCode: personalReferralCode,
+                    joinedDate: new Date().toISOString(),
+                    lastUpdated: new Date().toISOString()
+                };
+
+                // Save user profile to IndexedDB
+                await window.databaseManager.saveUser(userProfile);
+                console.log('✅ User profile saved to database:', userPhone);
+
+                // Set user's referral code in referral manager
+                window.referralManager.setUserReferralCode(personalReferralCode);
+
+                // Process referral registration if applicable
+                if (referralCode && referralCode !== 'admin123') {
+                    await window.referralManager.processReferralRegistration(userPhone, referralCode);
+                    console.log('✅ Referral registration processed');
+                }
+
+                // Create initial trust score
+                const initialTrustScore = {
+                    phone: userPhone,
+                    score: 85, // Default starting score for new users
+                    lastUpdated: new Date().toISOString(),
+                    transactionCount: 0,
+                    settlementRate: 1.0,
+                    reason: 'New user - initial score'
+                };
+
+                await window.databaseManager.saveTrustScore(userPhone, initialTrustScore);
+                console.log('✅ Initial trust score created');
+
+                // Create user session
+                if (window.authManager) {
+                    await window.authManager.createUserSession(userPhone, userProfile);
+                }
+
+                // Store basic info in localStorage for quick access (optional)
+                localStorage.setItem('userProfile', JSON.stringify(userProfile));
+                localStorage.setItem('personalReferralCode', personalReferralCode);
+
+                console.log('🎉 Profile setup completed successfully');
+
+                // Redirect to dashboard
+                window.location.href = `dashboard.html?ref=${referralCode}`;
+
+            } catch (error) {
+                console.error('❌ Error completing profile:', error);
+                
+                // Restore button state
+                submitBtn.textContent = 'Complete Setup & Get Started';
+                submitBtn.disabled = false;
+                document.body.classList.remove('loading');
+                
+                alert('Failed to save profile: ' + error.message + '\nPlease try again.');
+            }
+        }
+
+        // Allow Enter key to submit form
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                completeProfile();
+            }
+        });
+
+        // Initialize page when loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            displayUserPhone();
+            document.getElementById('fullName').focus();
+            
+            // Check if database manager is available
+            if (!window.databaseManager) {
+                console.error('❌ Database manager not found');
+                alert('System not properly loaded. Please refresh the page.');
+            }
+        });
+    </script>
+</body>
+</html>
