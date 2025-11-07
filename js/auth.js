@@ -1,5 +1,5 @@
 // auth.js - Authentication and User Management for Transparent Transactions
-// Updated to display OTP on screen for testing (instead of SMS)
+// Updated with database readiness handling and OTP display
 
 class AuthManager {
     constructor() {
@@ -7,6 +7,7 @@ class AuthManager {
         this.otpAttempts = 0;
         this.maxOtpAttempts = 3;
         this.otpExpiryTime = 2 * 60 * 1000; // 2 minutes in milliseconds
+        this.isDatabaseReady = false;
         this.init();
     }
 
@@ -15,10 +16,8 @@ class AuthManager {
         console.log('🔐 Auth Manager initializing...');
         
         try {
-            // Wait for database to be ready
-            if (window.databaseManager) {
-                await window.databaseManager.init();
-            }
+            // Wait for database to be ready with retry mechanism
+            await this.waitForDatabase();
             
             this.loadCurrentUser();
             this.setupEventListeners();
@@ -26,11 +25,86 @@ class AuthManager {
             
         } catch (error) {
             console.error('❌ Auth Manager initialization failed:', error);
+            this.showDatabaseError();
         }
+    }
+
+    // Wait for database to be ready with retry mechanism
+    async waitForDatabase(maxRetries = 10, retryDelay = 500) {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            if (window.databaseManager && await this.checkDatabaseReady()) {
+                this.isDatabaseReady = true;
+                console.log('✅ Database connection established');
+                return;
+            }
+            
+            console.log(`⏳ Waiting for database... (attempt ${attempt}/${maxRetries})`);
+            
+            if (attempt === maxRetries) {
+                throw new Error('Database not available after maximum retries');
+            }
+            
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
+    }
+
+    // Check if database is ready
+    async checkDatabaseReady() {
+        try {
+            if (!window.databaseManager) {
+                return false;
+            }
+            
+            // Try a simple database operation to verify readiness
+            await window.databaseManager.executeTransaction('settings', 'readonly', (store) => {
+                return store.count();
+            });
+            
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    // Show database error to user
+    showDatabaseError() {
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            z-index: 10000;
+            font-family: Arial, sans-serif;
+        `;
+        errorDiv.innerHTML = `
+            <strong>⚠️ Database Connection Issue</strong>
+            <p>Please refresh the page or check your browser storage settings.</p>
+            <button onclick="this.parentElement.remove()" style="
+                background: white;
+                color: #ff6b6b;
+                border: none;
+                padding: 5px 10px;
+                border-radius: 3px;
+                cursor: pointer;
+                margin-left: 10px;
+            ">Dismiss</button>
+        `;
+        document.body.appendChild(errorDiv);
     }
 
     // Load user session from persistent storage
     async loadCurrentUser() {
+        if (!this.isDatabaseReady) {
+            console.warn('⚠️ Database not ready, skipping user session load');
+            return;
+        }
+
         try {
             // First, try to get from localStorage (for quick access)
             const userData = localStorage.getItem('currentUser');
@@ -88,6 +162,14 @@ class AuthManager {
 
     // Display OTP on screen for testing (instead of sending SMS)
     async sendOTP(phoneNumber) {
+        // Check if database is ready
+        if (!this.isDatabaseReady) {
+            throw {
+                success: false,
+                message: 'Database not ready. Please try again in a moment.'
+            };
+        }
+
         return new Promise((resolve, reject) => {
             console.log(`📱 Generating OTP for ${phoneNumber}...`);
 
@@ -252,6 +334,14 @@ class AuthManager {
 
     // Verify OTP against stored value
     async verifyOTP(phoneNumber, enteredOTP) {
+        // Check if database is ready
+        if (!this.isDatabaseReady) {
+            throw {
+                success: false,
+                message: 'Database not ready. Please try again in a moment.'
+            };
+        }
+
         return new Promise(async (resolve, reject) => {
             try {
                 // Get OTP data from database
@@ -366,8 +456,21 @@ class AuthManager {
         });
     }
 
+    // [Rest of the methods remain the same as previous version...]
+    // createUserSession, recordLoginActivity, generateSessionId, isAuthenticated, 
+    // getCurrentUser, updateUserActivity, logout, recordLogoutActivity, clearUserSession,
+    // clearAllAuthData, triggerAuthStateChange, handleAuthStateChange, updateAuthUI,
+    // validatePhoneNumber, getOtpExpiryMinutes, hasPendingOTP, getUserLoginHistory, validateSession
+
     // Create new user session after successful authentication
     async createUserSession(phoneNumber, userData = {}) {
+        if (!this.isDatabaseReady) {
+            throw {
+                success: false,
+                message: 'Database not ready. Please try again.'
+            };
+        }
+
         return new Promise(async (resolve, reject) => {
             try {
                 // Get or create user profile in database
@@ -424,6 +527,8 @@ class AuthManager {
 
     // Record login activity in database
     async recordLoginActivity(phoneNumber) {
+        if (!this.isDatabaseReady) return;
+        
         try {
             const activity = {
                 phone: phoneNumber,
@@ -473,7 +578,7 @@ class AuthManager {
         
         try {
             // Record logout activity
-            if (this.currentUser) {
+            if (this.currentUser && this.isDatabaseReady) {
                 await this.recordLogoutActivity(userPhone);
             }
             
@@ -493,6 +598,8 @@ class AuthManager {
 
     // Record logout activity
     async recordLogoutActivity(phoneNumber) {
+        if (!this.isDatabaseReady) return;
+        
         try {
             const activity = {
                 phone: phoneNumber,
@@ -523,6 +630,11 @@ class AuthManager {
 
     // Clear all authentication data (for testing/debugging)
     async clearAllAuthData() {
+        if (!this.isDatabaseReady) {
+            console.warn('⚠️ Database not ready, skipping auth data clear');
+            return;
+        }
+
         try {
             // Clear all OTP and session data from database
             const settings = await window.databaseManager.executeTransaction('settings', 'readonly', (store) => {
@@ -626,6 +738,8 @@ class AuthManager {
 
     // Check if OTP exists and is valid for phone number
     async hasPendingOTP(phoneNumber) {
+        if (!this.isDatabaseReady) return false;
+        
         try {
             const otpData = await window.databaseManager.executeTransaction('settings', 'readonly', (store) => {
                 return store.get(`otp_${phoneNumber}`);
@@ -644,6 +758,8 @@ class AuthManager {
 
     // Get user login history
     async getUserLoginHistory(phoneNumber, limit = 10) {
+        if (!this.isDatabaseReady) return [];
+        
         try {
             const allSettings = await window.databaseManager.executeTransaction('settings', 'readonly', (store) => {
                 return store.getAll();
@@ -681,6 +797,10 @@ class AuthManager {
 
         // Verify user still exists in database
         try {
+            if (!this.isDatabaseReady) {
+                return { valid: false, reason: 'Database not ready' };
+            }
+
             const dbUser = await window.databaseManager.getUser(this.currentUser.phone);
             if (!dbUser) {
                 await this.logout();
