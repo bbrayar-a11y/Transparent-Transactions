@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -131,7 +131,7 @@
             margin-top: 10px;
         }
 
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
         }
@@ -141,7 +141,7 @@
         }
 
         .btn:disabled {
-            background: #6c757d;
+            background: #cccccc;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
@@ -191,6 +191,42 @@
             pointer-events: none;
         }
 
+        .init-message {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #27ae60;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         @media (max-width: 480px) {
             .profile-container {
                 border-radius: 10px;
@@ -226,53 +262,70 @@
                 ← Back to Login
             </a>
 
-            <div class="info-text">
-                <strong>Why we need this:</strong> Your PIN code helps connect you with relevant local contacts and make your trust report more accurate for your area.
+            <!-- Initialization message -->
+            <div class="init-message" id="initMessage">
+                Initializing system... Please wait
             </div>
 
-            <div class="phone-display" id="phoneDisplay">
-                <!-- Phone number will be displayed here -->
+            <!-- Main form (hidden until initialized) -->
+            <div id="mainForm" style="display: none;">
+                <div class="info-text">
+                    <strong>Why we need this:</strong> Your PIN code helps connect you with relevant local contacts and make your trust report more accurate for your area.
+                </div>
+
+                <div class="phone-display" id="phoneDisplay">
+                    <!-- Phone number will be displayed here -->
+                </div>
+
+                <div class="form-group">
+                    <label for="fullName">Full Name *</label>
+                    <input 
+                        type="text" 
+                        id="fullName" 
+                        placeholder="Enter your full name" 
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="pinCode">PIN Code *</label>
+                    <input 
+                        type="text" 
+                        id="pinCode" 
+                        placeholder="Enter your 6-digit PIN code" 
+                        maxlength="6"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                        required
+                    >
+                    <small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
+                        Your area PIN code helps us connect you with local contacts
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="villageTown">Village/Town (Optional)</label>
+                    <input 
+                        type="text" 
+                        id="villageTown" 
+                        placeholder="Enter your village or town name"
+                    >
+                </div>
+
+                <button class="btn" id="submitBtn" onclick="completeProfile()">
+                    Complete Setup & Get Started
+                </button>
             </div>
 
-            <div class="form-group">
-                <label for="fullName">Full Name *</label>
-                <input 
-                    type="text" 
-                    id="fullName" 
-                    placeholder="Enter your full name" 
-                    required
-                >
-            </div>
-
-            <div class="form-group">
-                <label for="pinCode">PIN Code *</label>
-                <input 
-                    type="text" 
-                    id="pinCode" 
-                    placeholder="Enter your 6-digit PIN code" 
-                    maxlength="6"
-                    oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                    required
-                >
-                <small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
-                    Your area PIN code helps us connect you with local contacts
-                </small>
-            </div>
-
-            <div class="form-group">
-                <label for="villageTown">Village/Town (Optional)</label>
-                <input 
-                    type="text" 
-                    id="villageTown" 
-                    placeholder="Enter your village or town name"
-                >
-            </div>
-
-            <button class="btn" id="submitBtn" onclick="completeProfile()">
-                Complete Setup & Get Started
-            </button>
+            <!-- Message container -->
+            <div id="messageContainer"></div>
         </div>
     </div>
+
+    <!-- Load required scripts -->
+    <script src="/js/database.js"></script>
+    <script src="/js/auth.js"></script>
+    <!-- Load referral manager if exists -->
+    <script src="/js/referral.js"></script>
 
     <script>
         // Get referral code from URL
@@ -280,10 +333,33 @@
         const referralCode = urlParams.get('ref') || 'admin123';
 
         // Get phone number from localStorage (from previous login step)
-        const userPhone = localStorage.getItem('userPhone');
+        const userPhone = localStorage.getItem('userPhone') || localStorage.getItem('pendingPhone');
+        let isSystemReady = false;
 
         function goBack() {
             window.location.href = 'login.html';
+        }
+
+        function showMessage(message, type = 'error') {
+            const container = document.getElementById('messageContainer');
+            container.innerHTML = `<div class="message ${type}">${message}</div>`;
+            
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        function setLoading(isLoading) {
+            const submitBtn = document.getElementById('submitBtn');
+            if (isLoading) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<span class="loading-spinner"></span>Saving...`;
+                document.body.classList.add('loading');
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Complete Setup & Get Started';
+                document.body.classList.remove('loading');
+            }
         }
 
         function displayUserPhone() {
@@ -292,48 +368,84 @@
                 phoneDisplay.textContent = `Phone: +91 ${userPhone}`;
             } else {
                 phoneDisplay.textContent = 'Phone: Not available';
-                alert('Phone number not found. Please start from login.');
-                window.location.href = 'login.html';
+                showMessage('Phone number not found. Please start from login.');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
             }
         }
 
+        // Wait for system to be ready
+        async function waitForSystemReady() {
+            const maxAttempts = 30;
+            const attemptDelay = 500;
+            
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                // Check if database is ready
+                const dbReady = window.databaseManager && window.databaseManager.db;
+                
+                console.log(`Profile setup system check attempt ${attempt}: DB=${dbReady}`);
+                
+                if (dbReady) {
+                    isSystemReady = true;
+                    document.getElementById('initMessage').style.display = 'none';
+                    document.getElementById('mainForm').style.display = 'block';
+                    document.getElementById('fullName').focus();
+                    console.log('✅ Profile setup system ready!');
+                    return true;
+                }
+                
+                // Update init message
+                document.getElementById('initMessage').innerHTML = 
+                    `Initializing system... (${attempt}/${maxAttempts})`;
+                
+                if (attempt === maxAttempts) {
+                    document.getElementById('initMessage').innerHTML = 
+                        'System initialization failed. Please refresh the page.';
+                    showMessage('Database not ready. Please refresh the page and try again.');
+                    return false;
+                }
+                
+                // Wait before next attempt
+                await new Promise(resolve => setTimeout(resolve, attemptDelay));
+            }
+        }
+
+        // Simple referral code generator (fallback if referral.js not available)
+        function generateSimpleReferralCode() {
+            return 'ref_' + Math.random().toString(36).substr(2, 8).toUpperCase();
+        }
+
         async function completeProfile() {
+            if (!isSystemReady) {
+                showMessage('System not ready yet. Please wait.');
+                return;
+            }
+
             const fullName = document.getElementById('fullName').value.trim();
             const pinCode = document.getElementById('pinCode').value.trim();
             const villageTown = document.getElementById('villageTown').value.trim();
 
             // Validation
             if (!fullName) {
-                alert('Please enter your full name');
+                showMessage('Please enter your full name');
                 document.getElementById('fullName').focus();
                 return;
             }
 
             if (!pinCode || pinCode.length !== 6) {
-                alert('Please enter a valid 6-digit PIN code');
+                showMessage('Please enter a valid 6-digit PIN code');
                 document.getElementById('pinCode').focus();
                 return;
             }
 
-            // Show loading state
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.textContent = 'Saving...';
-            submitBtn.disabled = true;
-            document.body.classList.add('loading');
+            setLoading(true);
 
             try {
-                // Check if database is ready
-                if (!window.databaseManager || !window.databaseManager.db) {
-                    throw new Error('Database not ready. Please wait a moment and try again.');
-                }
-
-                // Check if referral manager is ready
-                if (!window.referralManager) {
-                    throw new Error('System not ready. Please refresh the page.');
-                }
-
                 // Generate personal referral code
-                const personalReferralCode = window.referralManager.generateReferralCode();
+                const personalReferralCode = window.referralManager ? 
+                    window.referralManager.generateReferralCode() : 
+                    generateSimpleReferralCode();
                 
                 // Create user profile object
                 const userProfile = {
@@ -351,11 +463,13 @@
                 await window.databaseManager.saveUser(userProfile);
                 console.log('✅ User profile saved to database:', userPhone);
 
-                // Set user's referral code in referral manager
-                window.referralManager.setUserReferralCode(personalReferralCode);
+                // Set user's referral code if referral manager exists
+                if (window.referralManager && window.referralManager.setUserReferralCode) {
+                    window.referralManager.setUserReferralCode(personalReferralCode);
+                }
 
                 // Process referral registration if applicable
-                if (referralCode && referralCode !== 'admin123') {
+                if (referralCode && referralCode !== 'admin123' && window.referralManager && window.referralManager.processReferralRegistration) {
                     await window.referralManager.processReferralRegistration(userPhone, referralCode);
                     console.log('✅ Referral registration processed');
                 }
@@ -378,43 +492,42 @@
                     await window.authManager.createUserSession(userPhone, userProfile);
                 }
 
-                // Store basic info in localStorage for quick access (optional)
+                // Store basic info in localStorage for quick access
                 localStorage.setItem('userProfile', JSON.stringify(userProfile));
                 localStorage.setItem('personalReferralCode', personalReferralCode);
+                localStorage.removeItem('pendingPhone'); // Clean up
 
                 console.log('🎉 Profile setup completed successfully');
 
-                // Redirect to dashboard
-                window.location.href = `dashboard.html?ref=${referralCode}`;
+                // Show success message and redirect
+                showMessage('Profile saved successfully! Redirecting...', 'success');
+                setTimeout(() => {
+                    window.location.href = `dashboard.html?ref=${referralCode}`;
+                }, 1500);
 
             } catch (error) {
                 console.error('❌ Error completing profile:', error);
-                
-                // Restore button state
-                submitBtn.textContent = 'Complete Setup & Get Started';
-                submitBtn.disabled = false;
-                document.body.classList.remove('loading');
-                
-                alert('Failed to save profile: ' + error.message + '\nPlease try again.');
+                showMessage('Failed to save profile: ' + error.message);
+            } finally {
+                setLoading(false);
             }
         }
 
-        // Allow Enter key to submit form
-        document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                completeProfile();
-            }
+        // Initialize the system when page loads
+        window.addEventListener('load', async () => {
+            console.log('🚀 Starting profile setup system initialization...');
+            
+            // First display the phone number
+            displayUserPhone();
+            
+            // Then wait for system to be ready
+            await waitForSystemReady();
         });
 
-        // Initialize page when loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            displayUserPhone();
-            document.getElementById('fullName').focus();
-            
-            // Check if database manager is available
-            if (!window.databaseManager) {
-                console.error('❌ Database manager not found');
-                alert('System not properly loaded. Please refresh the page.');
+        // Allow Enter key to submit form
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && isSystemReady) {
+                completeProfile();
             }
         });
     </script>
