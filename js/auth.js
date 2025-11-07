@@ -1,561 +1,590 @@
-// auth.js - Phone Number Authentication and User Management (WITH SMS RESTORED)
+﻿// auth.js - Authentication and User Management for Transparent Transactions
+// Updated to integrate with IndexedDB for persistent user data storage
+
 class AuthManager {
     constructor() {
         this.currentUser = null;
-        this.isInitialized = false;
-        this.otpTimer = null;
-        this.pendingOTP = null;
-        this.pendingPhone = null;
-        console.log('🔐 Auth Manager created');
+        this.otpAttempts = 0;
+        this.maxOtpAttempts = 3;
+        this.otpExpiryTime = 2 * 60 * 1000; // 2 minutes in milliseconds
         this.init();
     }
 
+    // Initialize authentication system
     async init() {
-        if (this.isInitialized) return;
+        console.log('🔐 Auth Manager initializing...');
         
         try {
-            console.log('🔄 Initializing Auth Manager...');
-            
             // Wait for database to be ready
-            if (!window.transparentDB) {
-                console.log('⏳ Waiting for database...');
-                await new Promise(resolve => {
-                    const checkDB = () => {
-                        if (window.transparentDB && window.transparentDB.db) {
-                            console.log('✅ Database ready for auth');
-                            resolve();
-                        } else {
-                            setTimeout(checkDB, 100);
-                        }
-                    };
-                    checkDB();
-                });
+            if (window.databaseManager) {
+                await window.databaseManager.init();
             }
-
-            // Check if returning from SMS app
-            this.checkReturnFromSMS();
-
-            // Check for existing session
-            await this.checkExistingSession();
-            this.isInitialized = true;
-            console.log('✅ Auth manager initialized successfully');
-
+            
+            this.loadCurrentUser();
+            this.setupEventListeners();
+            console.log('✅ Auth Manager initialized successfully');
+            
         } catch (error) {
-            console.error('❌ Auth initialization failed:', error);
+            console.error('❌ Auth Manager initialization failed:', error);
         }
     }
 
-    // Check for returning from SMS app
-    checkReturnFromSMS() {
+    // Load user session from persistent storage
+    async loadCurrentUser() {
         try {
-            const savedOtp = sessionStorage.getItem('tt_otp_data');
-            if (savedOtp) {
-                const otpData = JSON.parse(savedOtp);
-                this.pendingOTP = otpData.otp;
-                this.pendingPhone = otpData.phone;
+            // First, try to get from localStorage (for quick access)
+            const userData = localStorage.getItem('currentUser');
+            
+            if (userData) {
+                this.currentUser = JSON.parse(userData);
                 
-                // If OTP section is hidden but we have OTP data, show it
-                const otpSection = document.getElementById('otpSection');
-                if (otpSection && otpSection.classList.contains('hidden')) {
-                    this.showOTPSection();
-                    this.showAuthStatus('Returned from SMS - enter the OTP you sent.', 'info');
+                // Verify user still exists in database
+                if (this.currentUser && this.currentUser.phone) {
+                    const dbUser = await window.databaseManager.getUser(this.currentUser.phone);
+                    
+                    if (dbUser) {
+                        // Update session with latest profile data
+                        this.currentUser.profile = dbUser;
+                        console.log('👤 User session loaded:', this.currentUser.phone);
+                    } else {
+                        // User not found in database, clear session
+                        console.warn('⚠️ User not found in database, clearing session');
+                        this.clearUserSession();
+                    }
                 }
-                console.log('📱 Detected return from SMS app');
             }
-        } catch (e) {
-            console.warn('Could not restore OTP from sessionStorage', e);
-        }
-    }
-
-    // Initialize event listeners for auth UI
-    initAuthEvents() {
-        console.log('🔌 Initializing auth event listeners...');
-        
-        const sendOtpBtn = document.getElementById('sendOtpBtn');
-        const verifyOtpBtn = document.getElementById('verifyOtpBtn');
-        const resendOtpBtn = document.getElementById('resendOtpBtn');
-        const phoneInput = document.getElementById('phoneInput');
-        const otpInput = document.getElementById('otpInput');
-
-        if (sendOtpBtn) {
-            sendOtpBtn.addEventListener('click', () => this.sendOTP());
-            console.log('✅ Send OTP button listener added');
-        }
-
-        if (verifyOtpBtn) {
-            verifyOtpBtn.addEventListener('click', () => this.verifyOTP());
-            console.log('✅ Verify OTP button listener added');
-        }
-
-        if (resendOtpBtn) {
-            resendOtpBtn.addEventListener('click', () => this.resendOTP());
-            console.log('✅ Resend OTP button listener added');
-        }
-
-        // Enter key support
-        if (phoneInput) {
-            phoneInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') this.sendOTP();
-            });
-        }
-
-        if (otpInput) {
-            otpInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') this.verifyOTP();
-            });
-        }
-
-        console.log('🎯 All auth event listeners initialized');
-    }
-
-    // Send OTP to phone number - WITH SMS FUNCTIONALITY
-    async sendOTP() {
-        console.log('📤 Starting OTP send process...');
-        
-        try {
-            const phoneInput = document.getElementById('phoneInput');
-            const phone = phoneInput.value.trim();
-
-            // Validate phone number
-            if (!this.validatePhoneNumber(phone)) {
-                this.showAuthStatus('Please enter a valid 10-digit phone number', 'error');
-                return;
-            }
-
-            // Show loading state
-            this.showAuthStatus('Sending OTP...', 'loading');
-            document.getElementById('sendOtpBtn').disabled = true;
-
-            // Generate OTP
-            const otp = this.generateOTP();
-            const fullPhone = '+91' + phone;
-
-            // Store OTP data in memory
-            this.pendingOTP = otp;
-            this.pendingPhone = fullPhone;
-            this.otpTimestamp = Date.now();
-
-            // Also store in sessionStorage as backup
-            sessionStorage.setItem('tt_otp_data', JSON.stringify({
-                phone: fullPhone,
-                otp: otp,
-                timestamp: this.otpTimestamp
-            }));
-
-            console.log(`✅ OTP ${otp} generated for ${fullPhone}`);
             
-            // Show OTP input section
-            this.showOTPSection();
-            this.startOTPTimer();
-            
-            // Show status
-            this.showAuthStatus('Opening SMS app... Please send the message to complete OTP verification.', 'success');
-            
-            // ✅ RESTORED SMS FUNCTIONALITY
-            const message = `Your OTP for Transparent Transactions is ${otp}. Do not share. Valid for 10 minutes.`;
-            const smsUrl = `sms:${fullPhone}?body=${encodeURIComponent(message)}`;
-            
-            console.log('📱 Opening SMS app...');
-            
-            // Open SMS app after a short delay
-            setTimeout(() => {
-                window.location.href = smsUrl;
-            }, 1000);
-
         } catch (error) {
-            console.error('❌ Send OTP failed:', error);
-            this.showAuthStatus('Failed to send OTP. Please try again.', 'error');
-            document.getElementById('sendOtpBtn').disabled = false;
+            console.error('❌ Error loading user session:', error);
+            this.currentUser = null;
         }
     }
 
-    // Verify entered OTP
-    async verifyOTP() {
-        console.log('🔍 Starting OTP verification...');
-        
-        try {
-            const otpInput = document.getElementById('otpInput');
-            const enteredOtp = otpInput.value.trim();
+    // Setup global authentication event listeners
+    setupEventListeners() {
+        // Listen for authentication state changes from other components
+        document.addEventListener('authStateChange', (event) => {
+            this.handleAuthStateChange(event.detail);
+        });
 
-            if (!enteredOtp || enteredOtp.length !== 6) {
-                this.showAuthStatus('Please enter 6-digit OTP', 'error');
-                return;
+        // Listen for storage changes (multiple tabs support)
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'currentUser') {
+                this.loadCurrentUser();
+                this.updateAuthUI();
             }
+        });
 
-            this.showAuthStatus('Verifying OTP...', 'loading');
-            document.getElementById('verifyOtpBtn').disabled = true;
-
-            // Check OTP from memory first
-            let validOTP = this.pendingOTP;
-            let validPhone = this.pendingPhone;
-            let timestamp = this.otpTimestamp;
-
-            // Fallback to sessionStorage
-            if (!validOTP) {
-                const otpData = JSON.parse(sessionStorage.getItem('tt_otp_data') || '{}');
-                validOTP = otpData.otp;
-                validPhone = otpData.phone;
-                timestamp = otpData.timestamp;
-            }
-
-            // Check if OTP exists and not expired (10 minutes)
-            if (!validOTP || !validPhone || (Date.now() - timestamp) > 10 * 60 * 1000) {
-                this.showAuthStatus('OTP expired. Please request a new one.', 'error');
-                this.hideOTPSection();
-                return;
-            }
-
-            console.log(`🔐 Verifying OTP: Entered=${enteredOtp}, Expected=${validOTP}`);
-
-            // Verify OTP
-            if (enteredOtp === validOTP) {
-                console.log('✅ OTP verified successfully');
-                await this.handleSuccessfulAuth(validPhone);
-            } else {
-                console.log('❌ OTP mismatch');
-                this.showAuthStatus('Invalid OTP. Please try again.', 'error');
-                document.getElementById('verifyOtpBtn').disabled = false;
-            }
-
-        } catch (error) {
-            console.error('❌ Verify OTP failed:', error);
-            this.showAuthStatus('Verification failed. Please try again.', 'error');
-            document.getElementById('verifyOtpBtn').disabled = false;
-        }
+        // Update user activity on user interactions
+        document.addEventListener('click', () => {
+            this.updateUserActivity();
+        });
     }
 
-    // Handle successful authentication
-async handleSuccessfulAuth(phone) {
-    console.log('🎉 Starting successful authentication for:', phone);
-    
-    try {
-        // ✅ FIX: Clear the "Verifying OTP" message immediately
-        document.getElementById('authStatus').classList.add('hidden');
-        
-        // Clear OTP data
-        this.pendingOTP = null;
-        this.pendingPhone = null;
-        sessionStorage.removeItem('tt_otp_data');
-        
-        // Stop OTP timer
-        this.stopOTPTimer();
-
-        // Create or get user
-        console.log('👤 Creating/updating user in database...');
-        const user = await this.createOrUpdateUser(phone);
-        
-        // Set current user
-        this.currentUser = user;
-        console.log('✅ User set:', user.phone);
-        
-        // Save session
-        this.saveSession(user);
-        console.log('💾 Session saved to localStorage');
-        
-        // Update UI
-        console.log('🖥️ Showing app screen...');
-        await uiManager.showAppScreen(user);
-        
-        this.showAuthStatus('Successfully signed in!', 'success');
-        console.log('🎊 Authentication completed successfully!');
-
-    } catch (error) {
-        console.error('❌ Authentication failed:', error);
-        this.showAuthStatus('Authentication failed. Please try again.', 'error');
-        this.hideOTPSection();
-    }
-}
-
-    // Create or update user in database
-    async createOrUpdateUser(phone) {
-        const user = {
-            id: phone,
-            phone: phone,
-            name: `User ${phone.slice(-4)}`,
-            avatar: '',
-            createdAt: new Date().toISOString(),
-            lastLogin: new Date().toISOString()
-        };
-
-        try {
-            // Try to get existing user
-            const existingUser = await transparentDB.getUser(phone);
-            
-            if (existingUser) {
-                // Update existing user
-                user.name = existingUser.name;
-                user.avatar = existingUser.avatar;
-                user.createdAt = existingUser.createdAt;
-                await transparentDB.executeTransaction('users', 'readwrite', (store) => {
-                    return store.put(user);
-                });
-                console.log('✅ User updated:', user.phone);
-            } else {
-                // Create new user
-                await transparentDB.addUser(user);
-                console.log('✅ New user created:', user.phone);
-            }
-
-            return user;
-        } catch (error) {
-            console.error('❌ Error saving user:', error);
-            throw new Error('Failed to save user data');
-        }
-    }
-
-    // Resend OTP
-    async resendOTP() {
-        if (this.pendingPhone) {
-            const phone = this.pendingPhone.replace('+91', '');
-            document.getElementById('phoneInput').value = phone;
-            await this.sendOTP();
-        }
-    }
-
-    // Generate 6-digit OTP
+    // Generate a random 6-digit OTP
     generateOTP() {
         return Math.floor(100000 + Math.random() * 900000).toString();
     }
 
-    // Validate phone number
-    validatePhoneNumber(phone) {
-        return /^\d{10}$/.test(phone);
-    }
+    // Send OTP to phone number (simulated - integrate with SMS service in production)
+    async sendOTP(phoneNumber) {
+        return new Promise((resolve, reject) => {
+            console.log(`📱 Sending OTP to ${phoneNumber}...`);
 
-    // Show OTP input section
-    showOTPSection() {
-        document.getElementById('otpSection').classList.remove('hidden');
-        document.getElementById('otpInput').focus();
-        console.log('📭 OTP input section shown');
-    }
-
-    // Hide OTP input section
-    hideOTPSection() {
-        document.getElementById('otpSection').classList.add('hidden');
-        document.getElementById('sendOtpBtn').disabled = false;
-    }
-
-    // Start OTP expiry timer
-    startOTPTimer() {
-        this.stopOTPTimer();
-        
-        let timeLeft = 60;
-        const timerElement = document.getElementById('otpTimer');
-        const countElement = document.getElementById('timerCount');
-        const resendBtn = document.getElementById('resendOtpBtn');
-        
-        timerElement.classList.remove('hidden');
-        resendBtn.disabled = true;
-        
-        this.otpTimer = setInterval(() => {
-            timeLeft--;
-            countElement.textContent = timeLeft;
-            
-            if (timeLeft <= 0) {
-                this.stopOTPTimer();
-                timerElement.classList.add('hidden');
-                resendBtn.disabled = false;
+            // Validate phone number first
+            const validation = this.validatePhoneNumber(phoneNumber);
+            if (!validation.valid) {
+                reject({
+                    success: false,
+                    message: validation.message
+                });
+                return;
             }
-        }, 1000);
-        
-        console.log('⏰ OTP timer started (60 seconds)');
-    }
 
-    // Stop OTP timer
-    stopOTPTimer() {
-        if (this.otpTimer) {
-            clearInterval(this.otpTimer);
-            this.otpTimer = null;
-        }
-    }
+            // Simulate API call delay
+            setTimeout(async () => {
+                try {
+                    // Generate and store OTP
+                    const otp = this.generateOTP();
+                    const otpData = {
+                        code: otp,
+                        phone: phoneNumber,
+                        timestamp: Date.now(),
+                        verified: false,
+                        attempts: 0
+                    };
 
-    // Show authentication status messages
-    showAuthStatus(message, type = 'info') {
-        const statusElement = document.getElementById('authStatus');
-        if (!statusElement) return;
-
-        statusElement.textContent = message;
-        statusElement.className = `auth-status ${type}`;
-        statusElement.classList.remove('hidden');
-
-        if (type === 'success') {
-            setTimeout(() => {
-                statusElement.classList.add('hidden');
-            }, 5000);
-        }
-    }
-
-    // Check for existing session
-    async checkExistingSession() {
-        try {
-            const sessionData = localStorage.getItem('tt_user_session');
-            if (sessionData) {
-                const session = JSON.parse(sessionData);
-                
-                // Check if session is still valid (30 days)
-                const sessionAge = Date.now() - new Date(session.lastActive).getTime();
-                const maxSessionAge = 30 * 24 * 60 * 60 * 1000;
-                
-                if (sessionAge < maxSessionAge) {
-                    const user = await transparentDB.getUser(session.userId);
-                    if (user) {
-                        this.currentUser = user;
-                        this.updateSessionActivity();
-                        console.log('✅ Existing session found:', user.phone);
-                        return user;
-                    }
-                } else {
-                    console.log('📅 Session expired, clearing...');
-                    this.clearSession();
+                    // Store OTP data in database
+                    await window.databaseManager.executeTransaction('settings', 'readwrite', (store) => {
+                        return store.put({
+                            phone: `otp_${phoneNumber}`,
+                            ...otpData
+                        });
+                    });
+                    
+                    // In development, log the OTP to console
+                    console.log(`🔐 OTP for ${phoneNumber}: ${otp} (Expires in ${this.getOtpExpiryMinutes()} minutes)`);
+                    
+                    resolve({
+                        success: true,
+                        message: 'OTP sent successfully',
+                        expiryMinutes: this.getOtpExpiryMinutes(),
+                        otp: otp // Only for development/demo
+                    });
+                    
+                } catch (error) {
+                    reject({
+                        success: false,
+                        message: 'Failed to send OTP',
+                        error: error.message
+                    });
                 }
+            }, 1500);
+        });
+    }
+
+    // Verify OTP against stored value
+    async verifyOTP(phoneNumber, enteredOTP) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // Get OTP data from database
+                const otpData = await window.databaseManager.executeTransaction('settings', 'readonly', (store) => {
+                    return store.get(`otp_${phoneNumber}`);
+                });
+                
+                // Check if OTP exists
+                if (!otpData || !otpData.code) {
+                    reject({
+                        success: false,
+                        message: 'OTP not found. Please request a new OTP.'
+                    });
+                    return;
+                }
+
+                // Check if OTP is expired
+                const currentTime = Date.now();
+                const otpAge = currentTime - otpData.timestamp;
+                
+                if (otpAge > this.otpExpiryTime) {
+                    // Remove expired OTP
+                    await window.databaseManager.executeTransaction('settings', 'readwrite', (store) => {
+                        return store.delete(`otp_${phoneNumber}`);
+                    });
+                    
+                    reject({
+                        success: false,
+                        message: 'OTP has expired. Please request a new OTP.'
+                    });
+                    return;
+                }
+
+                // Check attempt limits
+                if (otpData.attempts >= this.maxOtpAttempts) {
+                    reject({
+                        success: false,
+                        message: 'Too many failed attempts. Please request a new OTP.'
+                    });
+                    return;
+                }
+
+                // Check if OTP matches
+                if (otpData.code === enteredOTP) {
+                    // OTP verified successfully
+                    await window.databaseManager.executeTransaction('settings', 'readwrite', (store) => {
+                        return store.put({
+                            phone: `otp_${phoneNumber}`,
+                            ...otpData,
+                            verified: true,
+                            verifiedAt: currentTime,
+                            attempts: otpData.attempts + 1
+                        });
+                    });
+                    
+                    // Clear OTP attempts counter
+                    this.otpAttempts = 0;
+                    
+                    resolve({
+                        success: true,
+                        message: 'OTP verified successfully'
+                    });
+                    
+                } else {
+                    // Invalid OTP - increment attempts
+                    await window.databaseManager.executeTransaction('settings', 'readwrite', (store) => {
+                        return store.put({
+                            phone: `otp_${phoneNumber}`,
+                            ...otpData,
+                            attempts: (otpData.attempts || 0) + 1
+                        });
+                    });
+                    
+                    const attemptsLeft = this.maxOtpAttempts - (otpData.attempts + 1);
+                    
+                    if (attemptsLeft <= 0) {
+                        // Too many failed attempts - clear OTP
+                        await window.databaseManager.executeTransaction('settings', 'readwrite', (store) => {
+                            return store.delete(`otp_${phoneNumber}`);
+                        });
+                        
+                        reject({
+                            success: false,
+                            message: 'Too many failed attempts. Please request a new OTP.'
+                        });
+                    } else {
+                        reject({
+                            success: false,
+                            message: `Invalid OTP. ${attemptsLeft} attempts left.`
+                        });
+                    }
+                }
+            } catch (error) {
+                reject({
+                    success: false,
+                    message: 'Error verifying OTP',
+                    error: error.message
+                });
             }
+        });
+    }
+
+    // Create new user session after successful authentication
+    async createUserSession(phoneNumber, userData = {}) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // Get or create user profile in database
+                let userProfile = await window.databaseManager.getUser(phoneNumber);
+                
+                if (!userProfile) {
+                    // Create basic user profile if doesn't exist
+                    userProfile = {
+                        phone: phoneNumber,
+                        isActive: true,
+                        createdAt: new Date().toISOString(),
+                        ...userData
+                    };
+                    
+                    await window.databaseManager.saveUser(userProfile);
+                    console.log('✅ New user profile created:', phoneNumber);
+                }
+
+                const userSession = {
+                    phone: phoneNumber,
+                    isAuthenticated: true,
+                    loginTime: new Date().toISOString(),
+                    lastActive: new Date().toISOString(),
+                    sessionId: this.generateSessionId(),
+                    profile: userProfile
+                };
+
+                // Store session in localStorage for quick access
+                localStorage.setItem('currentUser', JSON.stringify(userSession));
+                this.currentUser = userSession;
+
+                // Record login activity in database
+                await this.recordLoginActivity(phoneNumber);
+
+                // Trigger auth state change event
+                this.triggerAuthStateChange('login', userSession);
+
+                console.log('✅ User session created:', phoneNumber);
+                
+                resolve({
+                    success: true,
+                    user: userSession
+                });
+                
+            } catch (error) {
+                reject({
+                    success: false,
+                    message: 'Failed to create user session',
+                    error: error.message
+                });
+            }
+        });
+    }
+
+    // Record login activity in database
+    async recordLoginActivity(phoneNumber) {
+        try {
+            const activity = {
+                phone: phoneNumber,
+                type: 'login',
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent
+            };
+
+            await window.databaseManager.executeTransaction('settings', 'readwrite', (store) => {
+                return store.put({
+                    phone: `activity_${phoneNumber}_${Date.now()}`,
+                    ...activity
+                });
+            });
+            
         } catch (error) {
-            console.error('❌ Session check failed:', error);
-            this.clearSession();
-        }
-        return null;
-    }
-
-    // Save user session
-    saveSession(user) {
-        const session = {
-            userId: user.id,
-            lastActive: new Date().toISOString(),
-            userPhone: user.phone
-        };
-        localStorage.setItem('tt_user_session', JSON.stringify(session));
-    }
-
-    // Update session activity timestamp
-    updateSessionActivity() {
-        const sessionData = localStorage.getItem('tt_user_session');
-        if (sessionData) {
-            const session = JSON.parse(sessionData);
-            session.lastActive = new Date().toISOString();
-            localStorage.setItem('tt_user_session', JSON.stringify(session));
+            console.error('❌ Error recording login activity:', error);
         }
     }
 
-    // Clear session data
-    clearSession() {
-        localStorage.removeItem('tt_user_session');
-        sessionStorage.removeItem('tt_otp_data');
-        this.pendingOTP = null;
-        this.pendingPhone = null;
-        this.currentUser = null;
-        this.stopOTPTimer();
-        console.log('🧹 All sessions cleared');
-    }
-
-    // Get current user
-    async getCurrentUser() {
-        if (this.currentUser) {
-            this.updateSessionActivity();
-            return this.currentUser;
-        }
-        
-        const user = await this.checkExistingSession();
-        return user;
+    // Generate unique session ID
+    generateSessionId() {
+        return 'session_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
     }
 
     // Check if user is authenticated
     isAuthenticated() {
-        return this.currentUser !== null;
+        return this.currentUser && this.currentUser.isAuthenticated === true;
     }
 
-    // Logout user
+    // Get current user data
+    getCurrentUser() {
+        return this.currentUser;
+    }
+
+    // Update user activity timestamp
+    updateUserActivity() {
+        if (this.currentUser) {
+            this.currentUser.lastActive = new Date().toISOString();
+            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+        }
+    }
+
+    // Logout user and clear session
     async logout() {
+        const userPhone = this.currentUser ? this.currentUser.phone : 'Unknown';
+        
         try {
-            console.log('🚪 Logging out user...');
-            this.clearSession();
-            await uiManager.showLoginScreen();
-            uiManager.showStatus('Successfully signed out', 'success');
-            console.log('✅ User logged out successfully');
+            // Record logout activity
+            if (this.currentUser) {
+                await this.recordLogoutActivity(userPhone);
+            }
             
         } catch (error) {
-            console.error('❌ Logout error:', error);
-            this.clearSession();
-            window.location.reload();
+            console.error('❌ Error recording logout activity:', error);
+        } finally {
+            // Clear session data
+            this.clearUserSession();
+            console.log('👋 User logged out:', userPhone);
+        }
+        
+        return {
+            success: true,
+            message: 'Logged out successfully'
+        };
+    }
+
+    // Record logout activity
+    async recordLogoutActivity(phoneNumber) {
+        try {
+            const activity = {
+                phone: phoneNumber,
+                type: 'logout',
+                timestamp: new Date().toISOString()
+            };
+
+            await window.databaseManager.executeTransaction('settings', 'readwrite', (store) => {
+                return store.put({
+                    phone: `activity_${phoneNumber}_${Date.now()}`,
+                    ...activity
+                });
+            });
+            
+        } catch (error) {
+            console.error('❌ Error recording logout activity:', error);
+        }
+    }
+
+    // Clear user session completely
+    clearUserSession() {
+        localStorage.removeItem('currentUser');
+        this.currentUser = null;
+
+        // Trigger auth state change event
+        this.triggerAuthStateChange('logout', null);
+    }
+
+    // Clear all authentication data (for testing/debugging)
+    async clearAllAuthData() {
+        try {
+            // Clear all OTP and session data from database
+            const settings = await window.databaseManager.executeTransaction('settings', 'readonly', (store) => {
+                return store.getAll();
+            });
+
+            for (const setting of settings) {
+                if (setting.phone.startsWith('otp_') || setting.phone.startsWith('activity_')) {
+                    await window.databaseManager.executeTransaction('settings', 'readwrite', (store) => {
+                        return store.delete(setting.phone);
+                    });
+                }
+            }
+            
+        } catch (error) {
+            console.error('❌ Error clearing auth data from database:', error);
+        } finally {
+            // Clear localStorage
+            localStorage.removeItem('currentUser');
+            this.currentUser = null;
+            this.otpAttempts = 0;
+            
+            console.log('🧹 All auth data cleared');
+        }
+    }
+
+    // Trigger authentication state change events
+    triggerAuthStateChange(action, userData) {
+        const event = new CustomEvent('authStateChange', {
+            detail: {
+                action: action,
+                user: userData,
+                timestamp: new Date().toISOString()
+            }
+        });
+        document.dispatchEvent(event);
+    }
+
+    // Handle authentication state changes from other components
+    handleAuthStateChange(detail) {
+        console.log(`🔄 Auth state changed: ${detail.action}`, detail.user);
+        
+        // Update UI based on auth state
+        this.updateAuthUI();
+    }
+
+    // Update UI elements based on authentication state
+    updateAuthUI() {
+        const authElements = document.querySelectorAll('[data-auth-state]');
+        
+        authElements.forEach(element => {
+            const requiredState = element.getAttribute('data-auth-state');
+            const isVisible = this.isAuthenticated() ? 
+                (requiredState === 'authenticated') : 
+                (requiredState === 'unauthenticated');
+            
+            element.style.display = isVisible ? '' : 'none';
+        });
+
+        // Update user-specific content if authenticated
+        if (this.isAuthenticated() && this.currentUser.profile) {
+            const userElements = document.querySelectorAll('[data-user]');
+            userElements.forEach(element => {
+                const userField = element.getAttribute('data-user');
+                if (this.currentUser.profile[userField]) {
+                    element.textContent = this.currentUser.profile[userField];
+                }
+            });
+        }
+    }
+
+    // Validate phone number format (Indian mobile numbers)
+    validatePhoneNumber(phone) {
+        const cleaned = phone.replace(/\D/g, '');
+        
+        if (cleaned.length !== 10) {
+            return {
+                valid: false,
+                message: 'Phone number must be 10 digits'
+            };
+        }
+
+        // Indian mobile numbers start with 6,7,8,9
+        if (!/^[6-9]\d{9}$/.test(cleaned)) {
+            return {
+                valid: false,
+                message: 'Please enter a valid Indian mobile number'
+            };
+        }
+
+        return {
+            valid: true,
+            cleaned: cleaned
+        };
+    }
+
+    // Get OTP expiry time in minutes
+    getOtpExpiryMinutes() {
+        return Math.floor(this.otpExpiryTime / (60 * 1000));
+    }
+
+    // Check if OTP exists and is valid for phone number
+    async hasPendingOTP(phoneNumber) {
+        try {
+            const otpData = await window.databaseManager.executeTransaction('settings', 'readonly', (store) => {
+                return store.get(`otp_${phoneNumber}`);
+            });
+            
+            if (!otpData) return false;
+
+            const currentTime = Date.now();
+            return (currentTime - otpData.timestamp) <= this.otpExpiryTime;
+            
+        } catch (error) {
+            console.error('❌ Error checking OTP status:', error);
+            return false;
+        }
+    }
+
+    // Get user login history
+    async getUserLoginHistory(phoneNumber, limit = 10) {
+        try {
+            const allSettings = await window.databaseManager.executeTransaction('settings', 'readonly', (store) => {
+                return store.getAll();
+            });
+
+            const loginActivities = allSettings.filter(setting => 
+                setting.phone.startsWith(`activity_${phoneNumber}_`) && 
+                setting.type === 'login'
+            ).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+             .slice(0, limit);
+
+            return loginActivities;
+            
+        } catch (error) {
+            console.error('❌ Error getting login history:', error);
+            return [];
+        }
+    }
+
+    // Validate session and refresh if needed
+    async validateSession() {
+        if (!this.currentUser) {
+            return { valid: false, reason: 'No active session' };
+        }
+
+        // Check if session is older than 24 hours
+        const sessionAge = Date.now() - new Date(this.currentUser.loginTime).getTime();
+        const maxSessionAge = 24 * 60 * 60 * 1000; // 24 hours
+
+        if (sessionAge > maxSessionAge) {
+            console.log('🕒 Session expired, logging out...');
+            await this.logout();
+            return { valid: false, reason: 'Session expired' };
+        }
+
+        // Verify user still exists in database
+        try {
+            const dbUser = await window.databaseManager.getUser(this.currentUser.phone);
+            if (!dbUser) {
+                await this.logout();
+                return { valid: false, reason: 'User not found in database' };
+            }
+
+            // Update session with latest profile data
+            this.currentUser.profile = dbUser;
+            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+
+            return { valid: true, user: this.currentUser };
+            
+        } catch (error) {
+            console.error('❌ Error validating session:', error);
+            return { valid: false, reason: 'Validation error' };
         }
     }
 }
 
-// Initialize auth manager when script loads
-const authManager = new AuthManager();
+// Create and initialize global auth manager instance
+window.authManager = new AuthManager();
 
-// Export to global scope
-window.authManager = authManager;
-
-// Global auth functions
-window.logout = () => {
-    authManager.logout();
-};
-
-window.showProfile = async () => {
-    if (authManager.currentUser) {
-        const stats = await authManager.getUserStats();
-        const message = `Profile Information:\n\nPhone: ${authManager.currentUser.phone}\nMember Since: ${new Date(authManager.currentUser.createdAt).toLocaleDateString()}\nTotal Transactions: ${stats?.totalTransactions || 0}\nActive Contacts: ${stats?.activeContacts || 0}`;
-        alert(message);
-    }
-};
-
-window.showSettings = () => {
-    alert('Settings will be available in a future update');
-};
-
-window.exportData = async () => {
-    if (!authManager.currentUser) return;
-    
-    try {
-        const transactions = await transparentDB.getLedgerEntries(authManager.currentUser.phone);
-        const contacts = await transparentDB.getContacts(authManager.currentUser.phone);
-        const pending = await transparentDB.getPendingTransactions(authManager.currentUser.phone);
-        
-        const exportData = {
-            user: authManager.currentUser,
-            exportDate: new Date().toISOString(),
-            transactions: transactions,
-            contacts: contacts,
-            pendingTransactions: pending
-        };
-
-        const dataStr = JSON.stringify(exportData, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        
-        const url = URL.createObjectURL(dataBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `transparent-transactions-${authManager.currentUser.phone}-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        uiManager.showStatus('Data exported successfully', 'success');
-    } catch (error) {
-        console.error('Export failed:', error);
-        uiManager.showError('Failed to export data');
-    }
-};
-
-// Initialize auth events when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        authManager.initAuthEvents();
-    }, 500);
-});
-
-// Session maintenance
-setInterval(() => {
-    if (authManager.currentUser) {
-        authManager.validateSession?.().catch(console.error);
-    }
-}, 60 * 60 * 1000);
-
-// Update session activity on user interaction
-document.addEventListener('click', () => {
-    if (authManager.currentUser) {
-        authManager.updateSessionActivity();
-    }
-});
-
+// Export for module use (if needed)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = AuthManager;
+}
