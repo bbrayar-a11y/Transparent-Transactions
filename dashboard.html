@@ -4,738 +4,246 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Transparent Transactions</title>
-    
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#27ae60">
-    <meta name="description" content="Dashboard - Track Loans, Build Trust">
-    <link rel="icon" href="icons/icon-192.png">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: #f8f9fa;
-            color: #2c3e50;
-            line-height: 1.6;
-        }
-
-        .dashboard-header {
-            background: linear-gradient(135deg, #27ae60, #219652);
-            color: white;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .welcome-section {
-            margin-bottom: 20px;
-        }
-
-        .welcome-section h1 {
-            font-size: 24px;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-
-        .welcome-section p {
-            opacity: 0.9;
-            font-size: 14px;
-        }
-
-        .referral-card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            padding: 20px;
-            margin: 20px auto;
-            max-width: 400px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        .referral-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #2c3e50;
-            text-align: center;
-        }
-
-        .referral-code {
-            background: #f8f9fa;
-            border: 2px dashed #27ae60;
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        .code-display {
-            font-size: 24px;
-            font-weight: bold;
-            color: #27ae60;
-            letter-spacing: 2px;
-            margin: 10px 0;
-        }
-
-        .referral-link {
-            background: #e8f5e8;
-            border: 1px solid #27ae60;
-            border-radius: 6px;
-            padding: 12px;
-            margin: 15px 0;
-            word-break: break-all;
-            font-size: 14px;
-            color: #2c3e50;
-        }
-
-        .password-display {
-            background: #fff3cd;
-            border: 1px dashed #e74c3c;
-            border-radius: 6px;
-            padding: 12px;
-            margin: 10px 0;
-            font-size: 16px;
-            font-weight: bold;
-            color: #e74c3c;
-            text-align: center;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #27ae60, #219652);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 5px 0;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-        }
-
-        .btn-secondary:hover {
-            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
-        }
-
-        .btn-warning {
-            background: #e74c3c;
-        }
-
-        .btn-warning:hover {
-            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
-        }
-
-        .dashboard-nav {
-            background: white;
-            padding: 20px;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .nav-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        .nav-card {
-            background: white;
-            border: 2px solid #e9ecef;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .nav-card:hover {
-            border-color: #27ae60;
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .nav-icon {
-            font-size: 24px;
-            margin-bottom: 10px;
-            color: #27ae60;
-        }
-
-        .nav-title {
-            font-weight: 600;
-            margin-bottom: 5px;
-            color: #2c3e50;
-        }
-
-        .nav-desc {
-            font-size: 12px;
-            color: #6c757d;
-        }
-
-        .stats-section {
-            padding: 20px;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .stat-number {
-            font-size: 24px;
-            font-weight: bold;
-            color: #27ae60;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            color: #6c757d;
-            font-weight: 500;
-        }
-
-        .trust-score {
-            background: linear-gradient(135deg, #27ae60, #219652);
-            color: white;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            margin: 20px auto;
-            max-width: 400px;
-        }
-
-        .trust-score .score {
-            font-size: 48px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-
-        .trust-score .label {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        .commission-info {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px;
-            text-align: center;
-        }
-
-        .commission-info h3 {
-            color: #856404;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-
-        .commission-steps {
-            font-size: 12px;
-            color: #856404;
-            text-align: left;
-            margin: 10px 0;
-        }
-
-        .commission-steps div {
-            margin: 5px 0;
-        }
-
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            margin: 20px;
-            border-radius: 8px;
-            text-align: center;
-            border: 1px solid #f5c6cb;
-        }
-
-        .init-message {
-            text-align: center;
-            padding: 40px 20px;
-            color: #666;
-            font-size: 16px;
-        }
-
-        .copy-btn {
-            background: #3498db;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            margin: 5px;
-        }
-
-        .copy-btn:hover {
-            background: #2980b9;
-        }
-
-        @media (max-width: 480px) {
-            .dashboard-header {
-                padding: 15px;
-            }
-            
-            .nav-grid {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .referral-card {
-                margin: 15px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard.css">
 </head>
 <body>
-    <!-- Initialization Message -->
-    <div class="init-message" id="initMessage">
-        Loading your dashboard... Please wait
-    </div>
-
-    <!-- Main Dashboard Content (hidden until initialized) -->
-    <div id="dashboardContent" style="display: none;">
-        <div class="dashboard-header">
-            <div class="welcome-section">
-                <h1 id="welcomeName">Welcome!</h1>
-                <p>Start building your financial trust network</p>
-            </div>
-
-            <div class="trust-score">
-                <div class="label">Your Trust Score</div>
-                <div class="score" id="trustScore">--</div>
-                <div class="label" id="trustScoreDetails">Loading...</div>
-            </div>
-        </div>
-
-        <div id="errorContainer" style="display: none;"></div>
-
-        <!-- Referral Card with Password -->
-        <div class="referral-card">
-            <div class="referral-title">Share with Friends & Family</div>
-            <div class="referral-code">
-                <div class="code-display" id="referralCodeDisplay">Loading...</div>
-                <div style="font-size: 12px; color: #6c757d;">Your personal referral code</div>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Transparent Transactions</h2>
+                <p>User Dashboard</p>
             </div>
             
-            <div class="referral-link" id="referralLink">
-                Loading your referral link...
+            <nav class="sidebar-nav">
+                <a href="#overview" class="nav-item active" onclick="showSection('overview')">
+                    📊 Overview
+                </a>
+                <a href="#transactions" class="nav-item" onclick="showSection('transactions')">
+                    💰 Transactions
+                </a>
+                <a href="#referrals" class="nav-item" onclick="showSection('referrals')">
+                    👥 Referrals
+                </a>
+                <a href="#profile" class="nav-item" onclick="showSection('profile')">
+                    👤 Profile
+                </a>
+                <a href="#settings" class="nav-item" onclick="showSection('settings')">
+                    ⚙️ Settings
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <button onclick="logout()" class="btn btn-logout">🚪 Logout</button>
             </div>
+        </aside>
 
-            <div class="password-display" id="passwordDisplay">
-                Password: Loading...
-            </div>
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="dashboard-header">
+                <h1>Welcome, <span id="userName">User</span>!</h1>
+                <div class="header-actions">
+                    <span id="currentDate"></span>
+                    <button onclick="refreshData()" class="btn btn-secondary">🔄 Refresh</button>
+                </div>
+            </header>
 
-            <button class="btn" onclick="copyReferralLink()" id="copyBtn">
-                📋 Copy Link & Password
-            </button>
-            <button class="btn btn-secondary" onclick="shareReferral()" id="shareBtn">
-                📤 Share via Message
-            </button>
-            <button class="btn btn-warning" onclick="updatePassword()" id="updatePasswordBtn">
-                🔑 Change Password
-            </button>
-        </div>
-
-        <div class="commission-info">
-            <h3>🎯 Earn Commission on 4 Levels</h3>
-            <div class="commission-steps">
-                <div>• <strong>Level 1:</strong> ₹1.60 when your friend pays ₹10</div>
-                <div>• <strong>Level 2:</strong> ₹0.80 when their friend pays ₹10</div>
-                <div>• <strong>Level 3:</strong> ₹0.40 when friend's friend pays ₹10</div>
-                <div>• <strong>Level 4:</strong> ₹0.20 when friend's friend's friend pays ₹10</div>
-            </div>
-        </div>
-
-        <div class="dashboard-nav">
-            <div class="nav-grid">
-                <div class="nav-card" onclick="navigateTo('contacts')">
-                    <div class="nav-icon">👥</div>
-                    <div class="nav-title">My Contacts</div>
-                    <div class="nav-desc">Add & manage people you trust</div>
+            <!-- Overview Section -->
+            <section id="overview" class="dashboard-section active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Account Balance</h3>
+                        <p class="stat-amount">$<span id="accountBalance">0.00</span></p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Transactions</h3>
+                        <p class="stat-amount"><span id="totalTransactions">0</span></p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Referral Earnings</h3>
+                        <p class="stat-amount">$<span id="referralEarnings">0.00</span></p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Active Referrals</h3>
+                        <p class="stat-amount"><span id="activeReferrals">0</span></p>
+                    </div>
                 </div>
 
-                <div class="nav-card" onclick="navigateTo('transactions')">
-                    <div class="nav-icon">💳</div>
-                    <div class="nav-title">Transactions</div>
-                    <div class="nav-desc">Record loans & payments</div>
+                <div class="recent-activity">
+                    <h3>Recent Activity</h3>
+                    <div id="recentActivityList" class="activity-list">
+                        <!-- Activity items will be populated here -->
+                    </div>
                 </div>
+            </section>
 
-                <div class="nav-card" onclick="navigateTo('reports')">
-                    <div class="nav-icon">📊</div>
-                    <div class="nav-title">Trust Report</div>
-                    <div class="nav-desc">Get your official score (₹10)</div>
+            <!-- Transactions Section -->
+            <section id="transactions" class="dashboard-section">
+                <h2>Transaction History</h2>
+                <div class="transactions-controls">
+                    <button onclick="addTransaction()" class="btn btn-primary">+ Add Transaction</button>
+                    <input type="text" id="transactionSearch" placeholder="Search transactions..." class="form-input">
                 </div>
+                <div id="transactionsList" class="transactions-list">
+                    <!-- Transactions will be populated here -->
+                </div>
+            </section>
 
-                <div class="nav-card" onclick="navigateTo('profile')">
-                    <div class="nav-icon">👤</div>
-                    <div class="nav-title">My Profile</div>
-                    <div class="nav-desc">View & edit your details</div>
+            <!-- Referrals Section -->
+            <section id="referrals" class="dashboard-section">
+                <h2>Referral Program</h2>
+                <div class="referral-info">
+                    <div class="referral-stats">
+                        <h3>Your Referral Code</h3>
+                        <div class="referral-code">
+                            <code id="userReferralCode">TT-XXXXXX</code>
+                            <button onclick="copyReferralCode()" class="btn btn-secondary">Copy</button>
+                        </div>
+                        <p>Share this code with friends to earn referral bonuses!</p>
+                    </div>
+                    
+                    <div class="referral-stats">
+                        <h3>Referral Performance</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h4>Total Referrals</h4>
+                                <p id="totalReferrals">0</p>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Active Referrals</h4>
+                                <p id="dashboardActiveReferrals">0</p>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Total Earnings</h4>
+                                <p>$<span id="totalReferralEarnings">0.00</span></p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </section>
 
-        <div class="stats-section">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-number" id="contactsCount">0</div>
-                    <div class="stat-label">Contacts</div>
+            <!-- Profile Section -->
+            <section id="profile" class="dashboard-section">
+                <h2>Your Profile</h2>
+                <div class="profile-info">
+                    <div class="profile-details">
+                        <h3>Personal Information</h3>
+                        <div id="profileDetails">
+                            <!-- Profile details will be populated here -->
+                        </div>
+                    </div>
+                    <div class="profile-actions">
+                        <button onclick="editProfile()" class="btn btn-primary">Edit Profile</button>
+                        <button onclick="changePassword()" class="btn btn-secondary">Change Password</button>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="transactionsCount">0</div>
-                    <div class="stat-label">Transactions</div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="settings" class="dashboard-section">
+                <h2>Settings</h2>
+                <div class="settings-options">
+                    <div class="setting-item">
+                        <h3>Notifications</h3>
+                        <label>
+                            <input type="checkbox" id="emailNotifications" checked>
+                            Email Notifications
+                        </label>
+                        <label>
+                            <input type="checkbox" id="smsNotifications">
+                            SMS Notifications
+                        </label>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h3>Security</h3>
+                        <button onclick="enable2FA()" class="btn btn-secondary">Enable Two-Factor Authentication</button>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <h3>Privacy</h3>
+                        <button onclick="downloadData()" class="btn btn-secondary">Download My Data</button>
+                        <button onclick="deleteAccount()" class="btn btn-danger">Delete Account</button>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="pendingCount">0</div>
-                    <div class="stat-label">Pending</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="commissionEarned">₹0</div>
-                    <div class="stat-label">Earned</div>
-                </div>
-            </div>
-        </div>
+            </section>
+        </main>
     </div>
 
-    <!-- Load required scripts with corrected paths -->
     <script src="js/database.js"></script>
     <script src="js/auth.js"></script>
-
+    <script src="js/dashboard.js"></script>
     <script>
-        // Global variables
-        let currentUser = null;
-        let userProfile = null;
-        let userStats = {
-            contacts: 0,
-            transactions: 0,
-            pending: 0,
-            commission: 0
-        };
-
-        // Initialize dashboard when page loads
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🚀 Initializing dashboard...');
-            await waitForSystemReady();
+        // Set current date
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
         });
 
-        // Wait for system to be ready
-        async function waitForSystemReady() {
-            const maxAttempts = 30;
-            const attemptDelay = 500;
+        // Load user data
+        function loadUserData() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
             
-            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-                const dbReady = window.databaseManager && window.databaseManager.db;
-                const authReady = window.authManager;
-                
-                if (dbReady && authReady) {
-                    // System ready, check authentication
-                    if (window.authManager.isAuthenticated()) {
-                        currentUser = window.authManager.getCurrentUser();
-                        document.getElementById('initMessage').style.display = 'none';
-                        document.getElementById('dashboardContent').style.display = 'block';
-                        await loadDashboardData();
-                        return true;
-                    } else {
-                        // Not authenticated, redirect to login
-                        console.log('❌ User not authenticated, redirecting to login');
-                        window.location.href = 'login.html';
-                        return false;
-                    }
-                }
-                
-                document.getElementById('initMessage').innerHTML = 
-                    `Initializing system... (${attempt}/${maxAttempts})`;
-                
-                if (attempt === maxAttempts) {
-                    document.getElementById('initMessage').innerHTML = 
-                        'System initialization failed. Please refresh the page.';
-                    return false;
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, attemptDelay));
-            }
-        }
-
-        // Load all dashboard data from IndexedDB
-        async function loadDashboardData() {
-            console.log('📥 Loading dashboard data...');
-            
-            try {
-                // Show loading state
-                document.body.classList.add('loading');
-                
-                // Check if database is ready
-                if (!window.databaseManager || !window.databaseManager.db) {
-                    throw new Error('Database not ready. Please wait...');
-                }
-
-                // Load user profile from IndexedDB
-                userProfile = await window.databaseManager.getUser(currentUser.phone);
-                if (!userProfile) {
-                    throw new Error('User profile not found. Please complete profile setup.');
-                }
-
-                // Load user contacts from IndexedDB
-                const contacts = await window.databaseManager.getContacts(currentUser.phone);
-                userStats.contacts = contacts.length;
-
-                // Load user transactions from IndexedDB
-                const transactions = await window.databaseManager.getUserTransactions(currentUser.phone);
-                userStats.transactions = transactions.length;
-                userStats.pending = transactions.filter(t => t.status === 'pending').length;
-
-                // Load trust score from IndexedDB
-                const trustScore = await window.databaseManager.getTrustScore(currentUser.phone);
-
-                // Update UI with loaded data
-                updateDashboardUI(trustScore);
-                
-                console.log('✅ Dashboard data loaded successfully');
-                
-            } catch (error) {
-                console.error('❌ Error loading dashboard data:', error);
-                showError('Error loading data: ' + error.message);
-            } finally {
-                // Hide loading state
-                document.body.classList.remove('loading');
-            }
-        }
-
-        // Update dashboard UI with loaded data
-        function updateDashboardUI(trustScore) {
-            // Update welcome message
-            const welcomeName = document.getElementById('welcomeName');
-            if (userProfile && userProfile.fullName) {
-                welcomeName.textContent = `Welcome, ${userProfile.fullName}!`;
-            }
-
-            // Update trust score
-            const trustScoreElement = document.getElementById('trustScore');
-            const trustScoreDetails = document.getElementById('trustScoreDetails');
-            
-            if (trustScore) {
-                trustScoreElement.textContent = trustScore.score;
-                trustScoreDetails.textContent = `Based on ${trustScore.transactionCount || 0} transactions`;
-            } else {
-                trustScoreElement.textContent = '85';
-                trustScoreDetails.textContent = 'New user - initial score';
-            }
-
-            // Update referral code and password
-            const referralCodeDisplay = document.getElementById('referralCodeDisplay');
-            const referralLink = document.getElementById('referralLink');
-            const passwordDisplay = document.getElementById('passwordDisplay');
-            
-            if (userProfile && userProfile.personalReferralCode) {
-                referralCodeDisplay.textContent = userProfile.personalReferralCode;
-                const baseUrl = window.location.origin + window.location.pathname.replace('dashboard.html', 'index.html');
-                const fullLink = `${baseUrl}?ref=${userProfile.personalReferralCode}`;
-                referralLink.textContent = fullLink;
-                referralLink.setAttribute('data-link', fullLink);
-                
-                // Display user's referral password
-                const userPassword = userProfile.referralPassword || 'Not set';
-                passwordDisplay.textContent = `Password: ${userPassword}`;
-                passwordDisplay.setAttribute('data-password', userPassword);
-            }
-
-            // Update statistics
-            updateStatsCards();
-        }
-
-        // Update statistics cards
-        function updateStatsCards() {
-            document.getElementById('contactsCount').textContent = userStats.contacts;
-            document.getElementById('transactionsCount').textContent = userStats.transactions;
-            document.getElementById('pendingCount').textContent = userStats.pending;
-            document.getElementById('commissionEarned').textContent = `₹${userStats.commission.toFixed(2)}`;
-        }
-
-        // Copy referral link and password to clipboard
-        async function copyReferralLink() {
-            const linkElement = document.getElementById('referralLink');
-            const passwordElement = document.getElementById('passwordDisplay');
-            const link = linkElement.getAttribute('data-link');
-            const password = passwordElement.getAttribute('data-password');
-            
-            if (!link || !password) {
-                showError('Referral information not available yet');
+            if (!currentUser.fullName) {
+                window.location.href = 'https://bbrayar-a11y.github.io/Transparent-Transactions/login.html';
                 return;
             }
-
-            const textToCopy = `${link}\nPassword: ${password}\n\nShare this with friends to join your network!`;
-
-            try {
-                const copyBtn = document.getElementById('copyBtn');
-                const originalText = copyBtn.textContent;
-                
-                await navigator.clipboard.writeText(textToCopy);
-                
-                copyBtn.textContent = '✅ Copied!';
-                setTimeout(() => {
-                    copyBtn.textContent = originalText;
-                }, 2000);
-                
-            } catch (error) {
-                // Fallback for older browsers
-                const textArea = document.createElement('textarea');
-                textArea.value = textToCopy;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                
-                const copyBtn = document.getElementById('copyBtn');
-                const originalText = copyBtn.textContent;
-                copyBtn.textContent = '✅ Copied!';
-                setTimeout(() => {
-                    copyBtn.textContent = originalText;
-                }, 2000);
-            }
-        }
-
-        // Share referral link
-        function shareReferral() {
-            const linkElement = document.getElementById('referralLink');
-            const passwordElement = document.getElementById('passwordDisplay');
-            const link = linkElement.getAttribute('data-link');
-            const password = passwordElement.getAttribute('data-password');
             
-            if (!link || !password) {
-                showError('Referral information not available yet');
-                return;
-            }
-
-            const message = `Join me on Transparent Transactions to build financial trust! 
+            document.getElementById('userName').textContent = currentUser.fullName;
+            document.getElementById('userReferralCode').textContent = `TT-${currentUser.email.substring(0, 6).toUpperCase()}`;
             
-Use my referral link: ${link}
-Password: ${password}
-
-Share this with trusted friends and family!`;
-            
-            if (navigator.share) {
-                navigator.share({
-                    title: 'Transparent Transactions - Join My Trust Network',
-                    text: message,
-                    url: link
-                }).catch(error => {
-                    console.log('Share cancelled:', error);
-                });
-            } else {
-                // Fallback - open in messaging app
-                const smsLink = `sms:?body=${encodeURIComponent(message)}`;
-                window.location.href = smsLink;
-            }
-        }
-
-        // Update user's referral password
-        async function updatePassword() {
-            const newPassword = prompt('Enter new password for your referrals (min 4 characters):');
-            
-            if (newPassword && newPassword.length >= 4) {
-                try {
-                    // Update in user profile
-                    userProfile.referralPassword = newPassword;
-                    userProfile.lastUpdated = new Date().toISOString();
-                    
-                    // Save to database
-                    await window.databaseManager.saveUser(userProfile);
-                    
-                    // Update UI
-                    document.getElementById('passwordDisplay').textContent = `Password: ${newPassword}`;
-                    document.getElementById('passwordDisplay').setAttribute('data-password', newPassword);
-                    
-                    alert('Password updated successfully!');
-                    
-                } catch (error) {
-                    showError('Failed to update password: ' + error.message);
-                }
-            } else if (newPassword) {
-                alert('Password must be at least 4 characters long.');
-            }
-        }
-
-        // Navigate to different sections
-        function navigateTo(section) {
-            console.log('Navigating to:', section);
-            
-            // For now, show alerts since other pages aren't built yet
-            const messages = {
-                'contacts': 'Contacts section will be available soon!',
-                'transactions': 'Transactions section will be available soon!',
-                'reports': 'Trust Report section will be available soon! (₹10 payment required)',
-                'profile': 'Profile section will be available soon!'
-            };
-            
-            if (messages[section]) {
-                alert(messages[section]);
-            }
-        }
-
-        // Show error message
-        function showError(message) {
-            const errorContainer = document.getElementById('errorContainer');
-            errorContainer.innerHTML = `
-                <div class="error-message">
-                    <strong>Error:</strong> ${message}
-                    <br><br>
-                    <button onclick="location.reload()" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        Retry
-                    </button>
-                </div>
+            // Load profile details
+            const profileDetails = document.getElementById('profileDetails');
+            profileDetails.innerHTML = `
+                <p><strong>Name:</strong> ${currentUser.fullName}</p>
+                <p><strong>Email:</strong> ${currentUser.email}</p>
+                <p><strong>Phone:</strong> ${currentUser.phone || 'Not provided'}</p>
+                <p><strong>Address:</strong> ${currentUser.address || 'Not provided'}</p>
+                <p><strong>Occupation:</strong> ${currentUser.occupation || 'Not provided'}</p>
+                <p><strong>Member since:</strong> ${new Date(currentUser.registrationDate).toLocaleDateString()}</p>
             `;
-            errorContainer.style.display = 'block';
         }
 
-        // Refresh dashboard data
-        async function refreshDashboard() {
-            console.log('🔄 Refreshing dashboard...');
-            await loadDashboardData();
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.dashboard-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Add active class to clicked nav item
+            event.target.classList.add('active');
         }
 
-        // Make functions available globally
-        window.refreshDashboard = refreshDashboard;
-        window.copyReferralLink = copyReferralLink;
-        window.shareReferral = shareReferral;
-        window.updatePassword = updatePassword;
-        window.navigateTo = navigateTo;
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'https://bbrayar-a11y.github.io/Transparent-Transactions/';
+        }
+
+        function copyReferralCode() {
+            const referralCode = document.getElementById('userReferralCode').textContent;
+            navigator.clipboard.writeText(referralCode).then(() => {
+                alert('Referral code copied to clipboard!');
+            });
+        }
+
+        function refreshData() {
+            loadUserData();
+            // Add additional data refresh logic here
+        }
+
+        // Initialize dashboard
+        window.addEventListener('DOMContentLoaded', loadUserData);
     </script>
 </body>
 </html>
