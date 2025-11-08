@@ -3,203 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transparent Transactions</title>
-    
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#27ae60">
-    <meta name="description" content="Track Loans. Build Trust. A simple, private way to record transactions with friends and family in your community.">
-    
-    <!-- Icons for PWA -->
-    <link rel="icon" href="icons/icon-192.png">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="manifest" href="manifest.json">
-    
-    <style>
-        /* Basic styling for rural India context - simple and functional */
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
-            background-color: #f5f5f5;
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .container {
-            max-width: 400px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 10px;
-            font-size: 24px;
-        }
-        p {
-            color: #7f8c8d;
-            margin-bottom: 30px;
-            line-height: 1.5;
-        }
-        .btn {
-            background-color: #27ae60;
-            color: white;
-            padding: 15px 30px;
-            border: none;
-            border-radius: 5px;
-            font-size: 18px;
-            cursor: pointer;
-            width: 100%;
-            transition: background-color 0.3s ease;
-        }
-        .btn:hover {
-            background-color: #219652;
-        }
-        
-        /* App Preview Image */
-        .app-preview {
-            max-width: 300px;
-            margin: 0 auto 20px auto;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        
-        /* Referral Section */
-        .referral-section {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #e9ecef;
-        }
-        
-        .referral-section h3 {
-            margin: 0 0 10px 0;
-            color: #2c3e50;
-            font-size: 16px;
-        }
-        
-        .referral-link {
-            background: white;
-            border: 1px dashed #27ae60;
-            border-radius: 5px;
-            padding: 10px;
-            margin: 10px 0;
-            word-break: break-all;
-            font-size: 14px;
-            color: #495057;
-        }
-        
-        .password-display {
-            background: white;
-            border: 1px dashed #e74c3c;
-            border-radius: 5px;
-            padding: 10px;
-            margin: 10px 0;
-            font-size: 16px;
-            font-weight: bold;
-            color: #e74c3c;
-        }
-        
-        .copy-btn {
-            background: #3498db;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            margin: 5px;
-        }
-        
-        .copy-btn:hover {
-            background: #2980b9;
-        }
-    </style>
+    <title>Transparent Transactions - Secure Financial Platform</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
     <div class="container">
-        <!-- App Preview Image -->
-        <img src="icons/app-preview.png" alt="App Preview" class="app-preview">
-        
-        <!-- Main heading as per our strategy -->
-        <h1>Track Loans. Build Trust.</h1>
-        
-        <!-- Description we agreed upon -->
-        <p>A simple, private way to record transactions with friends and family in your community.</p>
-        
-        <!-- Main Get Started Button -->
-        <button class="btn" onclick="startOnboarding()">
-            Get Started
-        </button>
-        
-        <!-- Admin Referral Section -->
-        <div class="referral-section" id="adminSection">
-            <h3>Share with Friends & Family</h3>
-            <div class="referral-link" id="referralLink">
-                https://yourapp.com?ref=admin123
+        <header>
+            <h1>Transparent Transactions</h1>
+            <p class="tagline">Secure, Transparent Financial Management</p>
+        </header>
+
+        <main>
+            <div class="hero-section">
+                <h2>Welcome to Your Financial Future</h2>
+                <p>Join thousands of users who trust us with their financial transactions</p>
+                
+                <div class="cta-buttons">
+                    <a href="login.html" class="btn btn-primary">Get Started</a>
+                    <a href="#features" class="btn btn-secondary">Learn More</a>
+                </div>
             </div>
-            <div class="password-display" id="passwordDisplay">
-                Password: trust2024
-            </div>
-            <button class="copy-btn" onclick="copyReferralLink()">
-                Copy Link & Password
-            </button>
-            <button class="copy-btn" onclick="updateAdminPassword()">
-                Change Password
-            </button>
-        </div>
+
+            <!-- Admin Referral Section -->
+            <section class="referral-section" id="admin-referral">
+                <h3>Admin Access</h3>
+                <div class="referral-form">
+                    <input 
+                        type="password" 
+                        id="adminPassword" 
+                        placeholder="Enter admin password" 
+                        class="form-input"
+                    >
+                    <button onclick="verifyAdmin()" class="btn btn-primary">Access Admin Panel</button>
+                </div>
+                <div id="adminMessage" class="message"></div>
+            </section>
+
+            <section id="features" class="features-section">
+                <h3>Why Choose Us?</h3>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <h4>🔒 Secure</h4>
+                        <p>Bank-level security for all your transactions</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📊 Transparent</h4>
+                        <p>Clear, understandable fee structures</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>⚡ Fast</h4>
+                        <p>Quick processing times for all transactions</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 Transparent Transactions. All rights reserved.</p>
+        </footer>
     </div>
 
+    <script src="js/database.js"></script>
+    <script src="js/auth.js"></script>
     <script>
-        function startOnboarding() {
-            // Get referral code from URL or default to admin
-            const urlParams = new URLSearchParams(window.location.search);
-            let referralCode = urlParams.get('ref');
+        function verifyAdmin() {
+            const password = document.getElementById('adminPassword').value;
+            const message = document.getElementById('adminMessage');
             
-            if (!referralCode) {
-                referralCode = 'admin123'; // Default as per our agreement
-            }
-
-            // Redirect to login page with the referral code
-            window.location.href = `login.html?ref=${referralCode}`;
-        }
-        
-        function copyReferralLink() {
-            const link = document.getElementById('referralLink').textContent;
-            const password = document.getElementById('passwordDisplay').textContent;
-            const textToCopy = `${link}\n${password}`;
-            
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                alert('Referral link and password copied! Share this with friends.');
-            }).catch(() => {
-                alert('Copy failed. Please manually copy the link and password.');
-            });
-        }
-        
-        function updateAdminPassword() {
-            const newPassword = prompt('Enter new password for referrals:');
-            if (newPassword && newPassword.length >= 4) {
-                document.getElementById('passwordDisplay').textContent = `Password: ${newPassword}`;
-                // In a real app, you would save this to the database
-                localStorage.setItem('adminPassword', newPassword);
-                alert('Password updated successfully!');
-            } else if (newPassword) {
-                alert('Password must be at least 4 characters long.');
+            if (password === 'admin2024') {
+                message.textContent = 'Admin access granted! Redirecting...';
+                message.className = 'message success';
+                setTimeout(() => {
+                    window.location.href = 'https://bbrayar-a11y.github.io/Transparent-Transactions/admin.html';
+                }, 1000);
+            } else {
+                message.textContent = 'Invalid admin password';
+                message.className = 'message error';
             }
         }
-        
-        // Load admin password from storage or set default
-        window.addEventListener('load', () => {
-            const savedPassword = localStorage.getItem('adminPassword');
-            if (savedPassword) {
-                document.getElementById('passwordDisplay').textContent = `Password: ${savedPassword}`;
-            }
-        });
     </script>
 </body>
 </html>
