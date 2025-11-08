@@ -3,752 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Transparent Transactions</title>
-    
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#27ae60">
-    <meta name="description" content="Login to Transparent Transactions - Track Loans, Build Trust">
-    <link rel="icon" href="icons/icon-192.png">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .login-container {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 450px;
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #27ae60, #219652);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 24px;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        .login-form {
-            padding: 30px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #2c3e50;
-            font-size: 14px;
-        }
-
-        .input-group {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .country-code {
-            background: #f8f9fa;
-            border: 2px solid #e9ecef;
-            border-right: none;
-            padding: 12px 15px;
-            border-radius: 8px 0 0 8px;
-            font-weight: 500;
-            color: #495057;
-        }
-
-        input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e9ecef;
-            border-radius: 0 8px 8px 0;
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: #27ae60;
-            box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
-        }
-
-        /* Step containers */
-        .step-container {
-            display: none;
-        }
-
-        .step-container.active {
-            display: block;
-        }
-
-        .otp-inputs {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-
-        .otp-input {
-            width: 50px;
-            height: 50px;
-            text-align: center;
-            font-size: 20px;
-            font-weight: bold;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            background: #f8f9fa;
-        }
-
-        .otp-input:focus {
-            border-color: #27ae60;
-            background: white;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #27ae60, #219652);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
-        }
-
-        .btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn:disabled {
-            background: #cccccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
-        }
-
-        .timer {
-            text-align: center;
-            margin: 15px 0;
-            font-size: 14px;
-            color: #6c757d;
-        }
-
-        .resend-link {
-            color: #27ae60;
-            text-decoration: none;
-            font-weight: 500;
-            cursor: pointer;
-        }
-
-        .resend-link:hover {
-            text-decoration: underline;
-        }
-
-        .step-indicator {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 25px;
-            align-items: center;
-        }
-
-        .step {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            background: #e9ecef;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin: 0 5px;
-            color: #6c757d;
-            font-size: 14px;
-        }
-
-        .step.active {
-            background: #27ae60;
-            color: white;
-        }
-
-        .step-line {
-            width: 30px;
-            height: 2px;
-            background: #e9ecef;
-            margin: 0 5px;
-        }
-
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            color: #27ae60;
-            text-decoration: none;
-            font-weight: 500;
-            margin-bottom: 20px;
-            cursor: pointer;
-        }
-
-        .back-link:hover {
-            text-decoration: underline;
-        }
-
-        .message {
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            font-weight: 500;
-        }
-
-        .message.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #27ae60;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .init-message {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-
-        .referral-info {
-            background: #e8f5e8;
-            border: 1px solid #27ae60;
-            border-radius: 8px;
-            padding: 12px 15px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            color: #2c3e50;
-        }
-
-        .referral-info strong {
-            color: #27ae60;
-        }
-
-        @media (max-width: 480px) {
-            .login-container {
-                border-radius: 10px;
-            }
-            
-            .login-form {
-                padding: 20px;
-            }
-            
-            .header {
-                padding: 25px 20px;
-            }
-            
-            .otp-input {
-                width: 40px;
-                height: 40px;
-                font-size: 18px;
-            }
-            
-            .step {
-                width: 30px;
-                height: 30px;
-                font-size: 12px;
-            }
-            
-            .step-line {
-                width: 20px;
-            }
-        }
-    </style>
+    <title>Register - Transparent Transactions</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
-    <div class="login-container">
-        <div class="header">
-            <h1>Welcome to Trust Network</h1>
-            <p>Join through referral to get started</p>
-        </div>
+    <div class="container">
+        <header>
+            <h1>Transparent Transactions</h1>
+            <p class="tagline">Create Your Account</p>
+        </header>
 
-        <div class="login-form">
-            <!-- Step Indicator -->
-            <div class="step-indicator">
-                <div class="step active" id="stepIndicator1">1</div>
-                <div class="step-line"></div>
-                <div class="step" id="stepIndicator2">2</div>
-                <div class="step-line"></div>
-                <div class="step" id="stepIndicator3">3</div>
-                <div class="step-line"></div>
-                <div class="step" id="stepIndicator4">4</div>
-            </div>
-
-            <a class="back-link" onclick="goBack()">
-                ← Back to Home
-            </a>
-
-            <!-- Initialization Message -->
-            <div class="init-message" id="initMessage">
-                Initializing system... Please wait
-            </div>
-
-            <!-- Message Container -->
-            <div id="messageContainer"></div>
-
-            <!-- Step 1: Referral Code (Auto-filled from URL) -->
-            <div class="step-container active" id="step1">
-                <div class="referral-info">
-                    <strong>Referral Network:</strong> You're joining through an invitation
-                </div>
-                <div class="form-group">
-                    <label for="referralCode">Referral Code</label>
-                    <input 
-                        type="text" 
-                        id="referralCode" 
-                        placeholder="Referral code will auto-fill"
-                        readonly
-                        style="background: #f8f9fa;"
-                    >
-                </div>
-                <button class="btn" onclick="showStep(2)">
-                    Continue to Phone Verification
-                </button>
-            </div>
-
-            <!-- Step 2: Phone Number & OTP -->
-            <div class="step-container" id="step2">
-                <div class="form-group">
-                    <label for="phone">Phone Number</label>
-                    <div class="input-group">
-                        <div class="country-code">+91</div>
+        <main>
+            <div class="auth-container">
+                <!-- OTP Entry Section -->
+                <section id="otpSection" class="auth-section active">
+                    <h3>Enter Referral Code</h3>
+                    <p>Please enter the OTP code provided by your referrer</p>
+                    
+                    <div class="form-group">
                         <input 
-                            type="tel" 
-                            id="phone" 
-                            placeholder="Enter your 10-digit mobile number" 
-                            maxlength="10"
-                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                            type="text" 
+                            id="otpInput" 
+                            placeholder="Enter 6-digit OTP" 
+                            maxlength="6"
+                            class="form-input"
                         >
                     </div>
-                </div>
-                <button class="btn" id="sendOtpBtn" onclick="sendOTP()">
-                    Send OTP
-                </button>
-            </div>
+                    
+                    <button onclick="verifyOTP()" class="btn btn-primary">Verify OTP</button>
+                    <div id="otpMessage" class="message"></div>
+                </section>
 
-            <!-- Step 3: OTP Verification -->
-            <div class="step-container" id="step3">
-                <div class="form-group">
-                    <label for="otp">Enter OTP</label>
-                    <div class="otp-inputs">
-                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 1)">
-                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 2)">
-                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 3)">
-                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 4)">
-                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 5)">
-                        <input type="text" class="otp-input" maxlength="1" oninput="moveToNext(this, 6)">
+                <!-- Password Gate Section -->
+                <section id="passwordSection" class="auth-section">
+                    <h3>Security Verification</h3>
+                    <p>Enter the security password to continue registration</p>
+                    
+                    <div class="form-group">
+                        <input 
+                            type="password" 
+                            id="securityPassword" 
+                            placeholder="Enter security password" 
+                            class="form-input"
+                        >
                     </div>
-                </div>
+                    
+                    <button onclick="verifySecurityPassword()" class="btn btn-primary">Continue</button>
+                    <div id="passwordMessage" class="message"></div>
+                </section>
 
-                <div class="timer" id="timer">
-                    Resend OTP in <span id="countdown">59</span> seconds
-                </div>
+                <!-- Registration Form Section -->
+                <section id="registrationSection" class="auth-section">
+                    <h3>Complete Registration</h3>
+                    
+                    <div class="form-group">
+                        <input 
+                            type="text" 
+                            id="fullName" 
+                            placeholder="Full Name" 
+                            class="form-input"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <input 
+                            type="email" 
+                            id="email" 
+                            placeholder="Email Address" 
+                            class="form-input"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <input 
+                            type="password" 
+                            id="userPassword" 
+                            placeholder="Create Password" 
+                            class="form-input"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <input 
+                            type="password" 
+                            id="confirmPassword" 
+                            placeholder="Confirm Password" 
+                            class="form-input"
+                        >
+                    </div>
+                    
+                    <button onclick="completeRegistration()" class="btn btn-primary">Create Account</button>
+                    <div id="registrationMessage" class="message"></div>
+                </section>
 
-                <div style="text-align: center; margin-bottom: 15px;">
-                    <a class="resend-link" id="resendLink" onclick="resendOTP()">Resend OTP</a>
+                <div class="auth-links">
+                    <p>Already have an account? <a href="https://bbrayar-a11y.github.io/Transparent-Transactions/login.html">Sign In</a></p>
+                    <p><a href="https://bbrayar-a11y.github.io/Transparent-Transactions/">← Back to Home</a></p>
                 </div>
-
-                <button class="btn" id="verifyOtpBtn" onclick="verifyOTP()">
-                    Verify OTP
-                </button>
-                <button class="btn btn-secondary" onclick="showStep(2)">
-                    Change Phone Number
-                </button>
             </div>
-
-            <!-- Step 4: Referral Password Verification -->
-            <div class="step-container" id="step4">
-                <div class="referral-info">
-                    <strong>Access Verification:</strong> Ask your referrer for the access password
-                </div>
-                <div class="form-group">
-                    <label for="referralPassword">Enter Access Password</label>
-                    <input 
-                        type="password" 
-                        id="referralPassword" 
-                        placeholder="Enter password provided by your referrer"
-                        required
-                    >
-                </div>
-                <button class="btn" id="verifyPasswordBtn" onclick="verifyReferralPassword()">
-                    Verify Password & Complete
-                </button>
-                <button class="btn btn-secondary" onclick="showStep(3)">
-                    Back to OTP
-                </button>
-            </div>
-        </div>
+        </main>
     </div>
 
-    <!-- Load database and auth scripts with corrected paths -->
     <script src="js/database.js"></script>
     <script src="js/auth.js"></script>
-
     <script>
-        // Global variables
-        const urlParams = new URLSearchParams(window.location.search);
-        const referralCode = urlParams.get('ref') || 'admin123';
-        let currentPhone = '';
-        let resendTimer = null;
-        let isSystemReady = false;
-        let currentStep = 1;
-
-        // Initialize the system
-        window.addEventListener('load', async () => {
-            console.log('🚀 Starting system initialization...');
+        function verifyOTP() {
+            const otp = document.getElementById('otpInput').value;
+            const message = document.getElementById('otpMessage');
             
-            // Auto-fill referral code from URL
-            document.getElementById('referralCode').value = referralCode;
-            
-            await waitForSystemReady();
-            
-            // Check if user is already logged in
-            if (isSystemReady && window.authManager && window.authManager.isAuthenticated()) {
-                showMessage('You are already logged in. Redirecting...', 'success');
+            if (otp.length === 6 && /^\d+$/.test(otp)) {
+                message.textContent = 'OTP verified successfully!';
+                message.className = 'message success';
+                
+                // Store OTP in session for verification
+                sessionStorage.setItem('referralOTP', otp);
+                
+                // Show password section
                 setTimeout(() => {
-                    window.location.href = 'dashboard.html';
+                    document.getElementById('otpSection').classList.remove('active');
+                    document.getElementById('passwordSection').classList.add('active');
                 }, 1000);
-            }
-        });
-
-        function goBack() {
-            window.location.href = 'index.html';
-        }
-
-        function showMessage(message, type = 'error') {
-            const container = document.getElementById('messageContainer');
-            container.innerHTML = `<div class="message ${type}">${message}</div>`;
-            
-            if (type === 'success') {
-                setTimeout(() => container.innerHTML = '', 3000);
-            }
-        }
-
-        function setLoading(buttonId, isLoading) {
-            const button = document.getElementById(buttonId);
-            const originalText = button.innerHTML;
-            
-            if (isLoading) {
-                button.disabled = true;
-                button.innerHTML = `<span class="loading"></span>Processing...`;
             } else {
-                button.disabled = false;
-                button.innerHTML = originalText.replace('<span class="loading"></span>Processing...', originalText);
+                message.textContent = 'Please enter a valid 6-digit OTP';
+                message.className = 'message error';
             }
         }
 
-        function showStep(stepNumber) {
-            // Hide all steps
-            document.querySelectorAll('.step-container').forEach(step => {
-                step.classList.remove('active');
-            });
+        function verifySecurityPassword() {
+            const password = document.getElementById('securityPassword').value;
+            const message = document.getElementById('passwordMessage');
             
-            // Show selected step
-            document.getElementById(`step${stepNumber}`).classList.add('active');
-            
-            // Update step indicators
-            document.querySelectorAll('.step').forEach((step, index) => {
-                if (index + 1 <= stepNumber) {
-                    step.classList.add('active');
-                } else {
-                    step.classList.remove('active');
-                }
-            });
-            
-            currentStep = stepNumber;
-        }
-
-        async function waitForSystemReady() {
-            const maxAttempts = 30;
-            const attemptDelay = 500;
-            
-            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-                const dbReady = window.databaseManager && window.databaseManager.db;
-                const authReady = window.authManager && window.authManager.isDatabaseReady;
+            if (password === 'secureaccess2024') {
+                message.textContent = 'Security verified!';
+                message.className = 'message success';
                 
-                if (dbReady && authReady) {
-                    isSystemReady = true;
-                    document.getElementById('initMessage').style.display = 'none';
-                    console.log('✅ System ready!');
-                    return true;
-                }
-                
-                document.getElementById('initMessage').innerHTML = 
-                    `Initializing system... (${attempt}/${maxAttempts})`;
-                
-                if (attempt === maxAttempts) {
-                    document.getElementById('initMessage').innerHTML = 
-                        'System initialization failed. Please refresh the page.';
-                    return false;
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, attemptDelay));
-            }
-        }
-
-        async function sendOTP() {
-            if (!isSystemReady) {
-                showMessage('System not ready yet. Please wait.');
-                return;
-            }
-
-            const phone = document.getElementById('phone').value.trim();
-            
-            if (!phone || phone.length !== 10 || !/^[6-9]\d{9}$/.test(phone)) {
-                showMessage('Please enter a valid 10-digit Indian mobile number');
-                return;
-            }
-
-            setLoading('sendOtpBtn', true);
-            currentPhone = phone;
-
-            try {
-                const result = await window.authManager.sendOTP(phone);
-                
-                if (result.success) {
-                    showStep(3);
-                    startTimer();
-                    document.querySelector('.otp-input').focus();
-                    showMessage('OTP sent successfully! Check the OTP display.', 'success');
-                } else {
-                    showMessage(result.error || 'Failed to send OTP');
-                }
-            } catch (error) {
-                showMessage('Error sending OTP: ' + error.message);
-            } finally {
-                setLoading('sendOtpBtn', false);
-            }
-        }
-
-        function moveToNext(input, nextIndex) {
-            const value = input.value;
-            
-            if (value && !/^\d$/.test(value)) {
-                input.value = '';
-                return;
-            }
-            
-            if (value && nextIndex <= 6) {
-                const nextInput = document.querySelectorAll('.otp-input')[nextIndex];
-                if (nextInput) nextInput.focus();
-            }
-            
-            // Auto-verify if all fields are filled
-            const allFilled = Array.from(document.querySelectorAll('.otp-input'))
-                .every(input => input.value.length === 1);
-            
-            if (allFilled) {
-                verifyOTP();
-            }
-        }
-
-        function startTimer() {
-            let timeLeft = 59;
-            const countdownElement = document.getElementById('countdown');
-            const timerElement = document.getElementById('timer');
-            const resendLink = document.getElementById('resendLink');
-            
-            resendLink.style.pointerEvents = 'none';
-            resendLink.style.opacity = '0.5';
-            
-            if (resendTimer) clearInterval(resendTimer);
-            
-            resendTimer = setInterval(() => {
-                countdownElement.textContent = timeLeft;
-                timeLeft--;
-                
-                if (timeLeft < 0) {
-                    clearInterval(resendTimer);
-                    timerElement.style.display = 'none';
-                    resendLink.style.pointerEvents = 'auto';
-                    resendLink.style.opacity = '1';
-                }
-            }, 1000);
-        }
-
-        async function resendOTP() {
-            if (!isSystemReady) return;
-
-            try {
-                const result = await window.authManager.sendOTP(currentPhone);
-                
-                if (result.success) {
-                    document.getElementById('timer').style.display = 'block';
-                    startTimer();
-                    document.querySelectorAll('.otp-input').forEach(input => input.value = '');
-                    document.querySelector('.otp-input').focus();
-                    showMessage('OTP resent successfully!', 'success');
-                } else {
-                    showMessage(result.error || 'Failed to resend OTP');
-                }
-            } catch (error) {
-                showMessage('Error resending OTP: ' + error.message);
-            }
-        }
-
-        async function verifyOTP() {
-            if (!isSystemReady) return;
-
-            const otp = Array.from(document.querySelectorAll('.otp-input'))
-                .map(input => input.value).join('');
-            
-            if (otp.length !== 6) {
-                showMessage('Please enter the complete 6-digit OTP');
-                return;
-            }
-
-            setLoading('verifyOtpBtn', true);
-
-            try {
-                const result = await window.authManager.verifyOTP(currentPhone, otp);
-                
-                if (result.success) {
-                    showMessage('OTP verified successfully!', 'success');
-                    
-                    // Check if user exists
-                    const existingUser = await window.databaseManager.getUser(currentPhone);
-                    
-                    if (existingUser) {
-                        // Existing user - login
-                        const loginResult = await window.authManager.createUserSession(currentPhone);
-                        if (loginResult.success) {
-                            setTimeout(() => window.location.href = 'dashboard.html', 1000);
-                        } else {
-                            showMessage(loginResult.error || 'Login failed');
-                        }
-                    } else {
-                        // New user - proceed to password verification
-                        showStep(4);
-                    }
-                } else {
-                    showMessage(result.error || 'Invalid OTP');
-                    document.querySelectorAll('.otp-input').forEach(input => input.value = '');
-                    document.querySelector('.otp-input').focus();
-                }
-            } catch (error) {
-                showMessage('Error verifying OTP: ' + error.message);
-            } finally {
-                setLoading('verifyOtpBtn', false);
-            }
-        }
-
-        async function verifyReferralPassword() {
-            if (!isSystemReady) return;
-
-            const password = document.getElementById('referralPassword').value.trim();
-            
-            if (!password) {
-                showMessage('Please enter the access password');
-                return;
-            }
-
-            setLoading('verifyPasswordBtn', true);
-
-            try {
-                // Store data for profile setup
-                localStorage.setItem('pendingPhone', currentPhone);
-                localStorage.setItem('referralCode', referralCode);
-                localStorage.setItem('referralPassword', password);
-                
-                // Redirect to profile setup
+                // Show registration section
                 setTimeout(() => {
-                    window.location.href = `profile-setup.html?ref=${referralCode}`;
+                    document.getElementById('passwordSection').classList.remove('active');
+                    document.getElementById('registrationSection').classList.add('active');
                 }, 1000);
-                
-            } catch (error) {
-                showMessage('Error: ' + error.message);
-            } finally {
-                setLoading('verifyPasswordBtn', false);
+            } else {
+                message.textContent = 'Invalid security password';
+                message.className = 'message error';
             }
         }
 
-        // Enter key support
-        document.getElementById('phone').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && isSystemReady) sendOTP();
-        });
-
-        document.getElementById('referralPassword').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && isSystemReady) verifyReferralPassword();
-        });
-
-        document.querySelectorAll('.otp-input').forEach((input, index) => {
-            input.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter' && isSystemReady) {
-                    if (input.value.length === 1) {
-                        const nextInput = document.querySelectorAll('.otp-input')[index + 1];
-                        if (nextInput) nextInput.focus();
-                        else verifyOTP();
-                    }
-                }
-            });
-        });
+        function completeRegistration() {
+            const fullName = document.getElementById('fullName').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('userPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const message = document.getElementById('registrationMessage');
+            
+            if (!fullName || !email || !password) {
+                message.textContent = 'Please fill in all fields';
+                message.className = 'message error';
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                message.textContent = 'Passwords do not match';
+                message.className = 'message error';
+                return;
+            }
+            
+            if (password.length < 6) {
+                message.textContent = 'Password must be at least 6 characters';
+                message.className = 'message error';
+                return;
+            }
+            
+            // Registration successful
+            message.textContent = 'Registration successful! Redirecting...';
+            message.className = 'message success';
+            
+            // Store user data
+            const userData = {
+                fullName,
+                email,
+                password: btoa(password), // Simple encoding for demo
+                referralOTP: sessionStorage.getItem('referralOTP'),
+                registrationDate: new Date().toISOString()
+            };
+            
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+            
+            setTimeout(() => {
+                window.location.href = 'https://bbrayar-a11y.github.io/Transparent-Transactions/profile-setup.html';
+            }, 2000);
+        }
     </script>
 </body>
 </html>
