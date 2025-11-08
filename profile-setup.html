@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Complete Profile - Transparent Transactions</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#27ae60">
+    <meta name="description" content="Complete your profile to join the trust network">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    
     <style>
         * {
             margin: 0;
@@ -56,19 +63,21 @@
             display: flex;
             justify-content: center;
             margin-bottom: 25px;
+            align-items: center;
         }
 
         .step {
-            width: 30px;
-            height: 30px;
+            width: 35px;
+            height: 35px;
             border-radius: 50%;
             background: #e9ecef;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            margin: 0 10px;
+            margin: 0 5px;
             color: #6c757d;
+            font-size: 14px;
         }
 
         .step.active {
@@ -77,11 +86,10 @@
         }
 
         .step-line {
-            width: 40px;
+            width: 30px;
             height: 2px;
             background: #e9ecef;
             margin: 0 5px;
-            align-self: center;
         }
 
         .step.completed {
@@ -186,9 +194,55 @@
             margin-bottom: 20px;
         }
 
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
+        .referral-section {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .referral-section h3 {
+            margin: 0 0 10px 0;
+            color: #856404;
+            font-size: 16px;
+        }
+
+        .referral-link {
+            background: white;
+            border: 1px dashed #27ae60;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            word-break: break-all;
+            font-size: 14px;
+            color: #495057;
+        }
+
+        .password-display {
+            background: white;
+            border: 1px dashed #e74c3c;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 16px;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+
+        .copy-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        .copy-btn:hover {
+            background: #2980b9;
         }
 
         .init-message {
@@ -203,6 +257,12 @@
             margin-bottom: 20px;
             text-align: center;
             font-weight: 500;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
         }
 
         .message.error {
@@ -239,6 +299,16 @@
             .header {
                 padding: 25px 20px;
             }
+            
+            .step {
+                width: 30px;
+                height: 30px;
+                font-size: 12px;
+            }
+            
+            .step-line {
+                width: 20px;
+            }
         }
     </style>
 </head>
@@ -246,7 +316,7 @@
     <div class="profile-container">
         <div class="header">
             <h1>Complete Your Profile</h1>
-            <p>Help us personalize your experience</p>
+            <p>Join the trust network and start sharing</p>
         </div>
 
         <div class="profile-form">
@@ -255,7 +325,9 @@
                 <div class="step-line"></div>
                 <div class="step completed">2</div>
                 <div class="step-line"></div>
-                <div class="step active">3</div>
+                <div class="step completed">3</div>
+                <div class="step-line"></div>
+                <div class="step active">4</div>
             </div>
 
             <a class="back-link" onclick="goBack()">
@@ -270,7 +342,7 @@
             <!-- Main form (hidden until initialized) -->
             <div id="mainForm" style="display: none;">
                 <div class="info-text">
-                    <strong>Why we need this:</strong> Your PIN code helps connect you with relevant local contacts and make your trust report more accurate for your area.
+                    <strong>Welcome!</strong> Complete your profile to start building your trust network and share with friends.
                 </div>
 
                 <div class="phone-display" id="phoneDisplay">
@@ -298,7 +370,7 @@
                         required
                     >
                     <small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
-                        Your area PIN code helps us connect you with local contacts
+                        Your area PIN code helps connect you with local contacts
                     </small>
                 </div>
 
@@ -311,6 +383,33 @@
                     >
                 </div>
 
+                <div class="form-group">
+                    <label for="referralPassword">Set Your Referral Password *</label>
+                    <input 
+                        type="password" 
+                        id="referralPassword" 
+                        placeholder="Create password for your referrals"
+                        required
+                    >
+                    <small style="color: #6c757d; font-size: 12px; margin-top: 5px; display: block;">
+                        Friends will need this password to join through your referral
+                    </small>
+                </div>
+
+                <!-- Referral Sharing Section -->
+                <div class="referral-section" id="referralSection" style="display: none;">
+                    <h3>Your Referral Link & Password</h3>
+                    <div class="referral-link" id="personalReferralLink">
+                        Loading...
+                    </div>
+                    <div class="password-display" id="personalPasswordDisplay">
+                        Password: 
+                    </div>
+                    <button class="copy-btn" onclick="copyPersonalReferral()">
+                        Copy Link & Password
+                    </button>
+                </div>
+
                 <button class="btn" id="submitBtn" onclick="completeProfile()">
                     Complete Setup & Get Started
                 </button>
@@ -321,20 +420,18 @@
         </div>
     </div>
 
-    <!-- Load required scripts -->
-    <script src="/js/database.js"></script>
-    <script src="/js/auth.js"></script>
-    <!-- Load referral manager if exists -->
-    <script src="/js/referral.js"></script>
+    <!-- Load required scripts with corrected paths -->
+    <script src="js/database.js"></script>
+    <script src="js/auth.js"></script>
 
     <script>
-        // Get referral code from URL
+        // Get data from URL and localStorage
         const urlParams = new URLSearchParams(window.location.search);
         const referralCode = urlParams.get('ref') || 'admin123';
-
-        // Get phone number from localStorage (from previous login step)
-        const userPhone = localStorage.getItem('userPhone') || localStorage.getItem('pendingPhone');
+        const userPhone = localStorage.getItem('pendingPhone');
+        const referralPassword = localStorage.getItem('referralPassword');
         let isSystemReady = false;
+        let personalReferralCode = '';
 
         function goBack() {
             window.location.href = 'login.html';
@@ -344,21 +441,19 @@
             const container = document.getElementById('messageContainer');
             container.innerHTML = `<div class="message ${type}">${message}</div>`;
             
-            setTimeout(() => {
-                container.innerHTML = '';
-            }, 5000);
+            if (type === 'success') {
+                setTimeout(() => container.innerHTML = '', 5000);
+            }
         }
 
         function setLoading(isLoading) {
             const submitBtn = document.getElementById('submitBtn');
             if (isLoading) {
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = `<span class="loading-spinner"></span>Saving...`;
-                document.body.classList.add('loading');
+                submitBtn.innerHTML = `<span class="loading-spinner"></span>Creating Account...`;
             } else {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Complete Setup & Get Started';
-                document.body.classList.remove('loading');
             }
         }
 
@@ -369,10 +464,18 @@
             } else {
                 phoneDisplay.textContent = 'Phone: Not available';
                 showMessage('Phone number not found. Please start from login.');
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 2000);
+                setTimeout(() => window.location.href = 'login.html', 2000);
             }
+        }
+
+        // Generate unique referral code
+        function generateReferralCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 8; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
         }
 
         // Wait for system to be ready
@@ -381,12 +484,10 @@
             const attemptDelay = 500;
             
             for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-                // Check if database is ready
                 const dbReady = window.databaseManager && window.databaseManager.db;
+                const authReady = window.authManager;
                 
-                console.log(`Profile setup system check attempt ${attempt}: DB=${dbReady}`);
-                
-                if (dbReady) {
+                if (dbReady && authReady) {
                     isSystemReady = true;
                     document.getElementById('initMessage').style.display = 'none';
                     document.getElementById('mainForm').style.display = 'block';
@@ -395,25 +496,18 @@
                     return true;
                 }
                 
-                // Update init message
                 document.getElementById('initMessage').innerHTML = 
                     `Initializing system... (${attempt}/${maxAttempts})`;
                 
                 if (attempt === maxAttempts) {
                     document.getElementById('initMessage').innerHTML = 
-                        'System initialization failed. Please refresh the page.';
-                    showMessage('Database not ready. Please refresh the page and try again.');
+                        'System initialization failed. Please refresh.';
+                    showMessage('Database not ready. Please refresh.');
                     return false;
                 }
                 
-                // Wait before next attempt
                 await new Promise(resolve => setTimeout(resolve, attemptDelay));
             }
-        }
-
-        // Simple referral code generator (fallback if referral.js not available)
-        function generateSimpleReferralCode() {
-            return 'ref_' + Math.random().toString(36).substr(2, 8).toUpperCase();
         }
 
         async function completeProfile() {
@@ -425,6 +519,7 @@
             const fullName = document.getElementById('fullName').value.trim();
             const pinCode = document.getElementById('pinCode').value.trim();
             const villageTown = document.getElementById('villageTown').value.trim();
+            const userReferralPassword = document.getElementById('referralPassword').value.trim();
 
             // Validation
             if (!fullName) {
@@ -439,13 +534,17 @@
                 return;
             }
 
+            if (!userReferralPassword) {
+                showMessage('Please set a referral password for your friends');
+                document.getElementById('referralPassword').focus();
+                return;
+            }
+
             setLoading(true);
 
             try {
                 // Generate personal referral code
-                const personalReferralCode = window.referralManager ? 
-                    window.referralManager.generateReferralCode() : 
-                    generateSimpleReferralCode();
+                personalReferralCode = generateReferralCode();
                 
                 // Create user profile object
                 const userProfile = {
@@ -453,31 +552,21 @@
                     fullName: fullName,
                     pinCode: pinCode,
                     villageTown: villageTown,
-                    referralCode: referralCode,
+                    referralCode: referralCode, // Who referred them
                     personalReferralCode: personalReferralCode,
+                    referralPassword: userReferralPassword, // Their own password for referrals
                     joinedDate: new Date().toISOString(),
                     lastUpdated: new Date().toISOString()
                 };
 
-                // Save user profile to IndexedDB
+                // Save user profile to database
                 await window.databaseManager.saveUser(userProfile);
-                console.log('✅ User profile saved to database:', userPhone);
-
-                // Set user's referral code if referral manager exists
-                if (window.referralManager && window.referralManager.setUserReferralCode) {
-                    window.referralManager.setUserReferralCode(personalReferralCode);
-                }
-
-                // Process referral registration if applicable
-                if (referralCode && referralCode !== 'admin123' && window.referralManager && window.referralManager.processReferralRegistration) {
-                    await window.referralManager.processReferralRegistration(userPhone, referralCode);
-                    console.log('✅ Referral registration processed');
-                }
+                console.log('✅ User profile saved:', userPhone);
 
                 // Create initial trust score
                 const initialTrustScore = {
                     phone: userPhone,
-                    score: 85, // Default starting score for new users
+                    score: 85,
                     lastUpdated: new Date().toISOString(),
                     transactionCount: 0,
                     settlementRate: 1.0,
@@ -485,25 +574,28 @@
                 };
 
                 await window.databaseManager.saveTrustScore(userPhone, initialTrustScore);
-                console.log('✅ Initial trust score created');
 
                 // Create user session
-                if (window.authManager) {
-                    await window.authManager.createUserSession(userPhone, userProfile);
-                }
+                await window.authManager.createUserSession(userPhone, userProfile);
 
-                // Store basic info in localStorage for quick access
+                // Store in localStorage
                 localStorage.setItem('userProfile', JSON.stringify(userProfile));
                 localStorage.setItem('personalReferralCode', personalReferralCode);
-                localStorage.removeItem('pendingPhone'); // Clean up
+                localStorage.setItem('userReferralPassword', userReferralPassword);
 
-                console.log('🎉 Profile setup completed successfully');
+                // Show success and referral section
+                showMessage('Profile completed successfully! Your referral link is ready.', 'success');
+                
+                // Update referral section
+                const baseUrl = window.location.origin + window.location.pathname.replace('profile-setup.html', '');
+                document.getElementById('personalReferralLink').textContent = `${baseUrl}?ref=${personalReferralCode}`;
+                document.getElementById('personalPasswordDisplay').textContent = `Password: ${userReferralPassword}`;
+                document.getElementById('referralSection').style.display = 'block';
+                
+                // Scroll to referral section
+                document.getElementById('referralSection').scrollIntoView({ behavior: 'smooth' });
 
-                // Show success message and redirect
-                showMessage('Profile saved successfully! Redirecting...', 'success');
-                setTimeout(() => {
-                    window.location.href = `dashboard.html?ref=${referralCode}`;
-                }, 1500);
+                console.log('🎉 Profile setup completed');
 
             } catch (error) {
                 console.error('❌ Error completing profile:', error);
@@ -513,19 +605,41 @@
             }
         }
 
-        // Initialize the system when page loads
+        function copyPersonalReferral() {
+            const link = document.getElementById('personalReferralLink').textContent;
+            const password = document.getElementById('personalPasswordDisplay').textContent;
+            const textToCopy = `${link}\n${password}`;
+            
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                showMessage('Referral link and password copied! Share with friends.', 'success');
+            }).catch(() => {
+                showMessage('Copy failed. Please manually copy.', 'error');
+            });
+        }
+
+        // Redirect to dashboard after successful setup
+        function redirectToDashboard() {
+            setTimeout(() => {
+                window.location.href = `dashboard.html`;
+            }, 3000);
+        }
+
+        // Initialize the system
         window.addEventListener('load', async () => {
-            console.log('🚀 Starting profile setup system initialization...');
+            console.log('🚀 Starting profile setup...');
             
-            // First display the phone number
+            if (!userPhone) {
+                showMessage('No phone number found. Please start from login.');
+                setTimeout(() => window.location.href = 'login.html', 2000);
+                return;
+            }
+            
             displayUserPhone();
-            
-            // Then wait for system to be ready
             await waitForSystemReady();
         });
 
-        // Allow Enter key to submit form
-        document.addEventListener('keypress', function(e) {
+        // Enter key support
+        document.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && isSystemReady) {
                 completeProfile();
             }
