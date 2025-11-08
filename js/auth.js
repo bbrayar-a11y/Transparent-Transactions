@@ -456,12 +456,6 @@ class AuthManager {
         });
     }
 
-    // [Rest of the methods remain the same as previous version...]
-    // createUserSession, recordLoginActivity, generateSessionId, isAuthenticated, 
-    // getCurrentUser, updateUserActivity, logout, recordLogoutActivity, clearUserSession,
-    // clearAllAuthData, triggerAuthStateChange, handleAuthStateChange, updateAuthUI,
-    // validatePhoneNumber, getOtpExpiryMinutes, hasPendingOTP, getUserLoginHistory, validateSession
-
     // Create new user session after successful authentication
     async createUserSession(phoneNumber, userData = {}) {
         if (!this.isDatabaseReady) {
