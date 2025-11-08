@@ -1,9 +1,16 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Transparent Transactions</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#27ae60">
+    <meta name="description" content="Dashboard - Track Loans, Build Trust">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    
     <style>
         * {
             margin: 0;
@@ -86,6 +93,18 @@
             color: #2c3e50;
         }
 
+        .password-display {
+            background: #fff3cd;
+            border: 1px dashed #e74c3c;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 10px 0;
+            font-size: 16px;
+            font-weight: bold;
+            color: #e74c3c;
+            text-align: center;
+        }
+
         .btn {
             width: 100%;
             padding: 12px;
@@ -111,6 +130,14 @@
 
         .btn-secondary:hover {
             box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+        }
+
+        .btn-warning {
+            background: #e74c3c;
+        }
+
+        .btn-warning:hover {
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
         }
 
         .dashboard-nav {
@@ -255,6 +282,28 @@
             border: 1px solid #f5c6cb;
         }
 
+        .init-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+            font-size: 16px;
+        }
+
+        .copy-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        .copy-btn:hover {
+            background: #2980b9;
+        }
+
         @media (max-width: 480px) {
             .dashboard-header {
                 padding: 15px;
@@ -276,98 +325,118 @@
     </style>
 </head>
 <body>
-    <div class="dashboard-header">
-        <div class="welcome-section">
-            <h1 id="welcomeName">Welcome!</h1>
-            <p>Start building your financial trust network</p>
+    <!-- Initialization Message -->
+    <div class="init-message" id="initMessage">
+        Loading your dashboard... Please wait
+    </div>
+
+    <!-- Main Dashboard Content (hidden until initialized) -->
+    <div id="dashboardContent" style="display: none;">
+        <div class="dashboard-header">
+            <div class="welcome-section">
+                <h1 id="welcomeName">Welcome!</h1>
+                <p>Start building your financial trust network</p>
+            </div>
+
+            <div class="trust-score">
+                <div class="label">Your Trust Score</div>
+                <div class="score" id="trustScore">--</div>
+                <div class="label" id="trustScoreDetails">Loading...</div>
+            </div>
         </div>
 
-        <div class="trust-score">
-            <div class="label">Your Trust Score</div>
-            <div class="score" id="trustScore">--</div>
-            <div class="label" id="trustScoreDetails">Loading...</div>
+        <div id="errorContainer" style="display: none;"></div>
+
+        <!-- Referral Card with Password -->
+        <div class="referral-card">
+            <div class="referral-title">Share with Friends & Family</div>
+            <div class="referral-code">
+                <div class="code-display" id="referralCodeDisplay">Loading...</div>
+                <div style="font-size: 12px; color: #6c757d;">Your personal referral code</div>
+            </div>
+            
+            <div class="referral-link" id="referralLink">
+                Loading your referral link...
+            </div>
+
+            <div class="password-display" id="passwordDisplay">
+                Password: Loading...
+            </div>
+
+            <button class="btn" onclick="copyReferralLink()" id="copyBtn">
+                📋 Copy Link & Password
+            </button>
+            <button class="btn btn-secondary" onclick="shareReferral()" id="shareBtn">
+                📤 Share via Message
+            </button>
+            <button class="btn btn-warning" onclick="updatePassword()" id="updatePasswordBtn">
+                🔑 Change Password
+            </button>
+        </div>
+
+        <div class="commission-info">
+            <h3>🎯 Earn Commission on 4 Levels</h3>
+            <div class="commission-steps">
+                <div>• <strong>Level 1:</strong> ₹1.60 when your friend pays ₹10</div>
+                <div>• <strong>Level 2:</strong> ₹0.80 when their friend pays ₹10</div>
+                <div>• <strong>Level 3:</strong> ₹0.40 when friend's friend pays ₹10</div>
+                <div>• <strong>Level 4:</strong> ₹0.20 when friend's friend's friend pays ₹10</div>
+            </div>
+        </div>
+
+        <div class="dashboard-nav">
+            <div class="nav-grid">
+                <div class="nav-card" onclick="navigateTo('contacts')">
+                    <div class="nav-icon">👥</div>
+                    <div class="nav-title">My Contacts</div>
+                    <div class="nav-desc">Add & manage people you trust</div>
+                </div>
+
+                <div class="nav-card" onclick="navigateTo('transactions')">
+                    <div class="nav-icon">💳</div>
+                    <div class="nav-title">Transactions</div>
+                    <div class="nav-desc">Record loans & payments</div>
+                </div>
+
+                <div class="nav-card" onclick="navigateTo('reports')">
+                    <div class="nav-icon">📊</div>
+                    <div class="nav-title">Trust Report</div>
+                    <div class="nav-desc">Get your official score (₹10)</div>
+                </div>
+
+                <div class="nav-card" onclick="navigateTo('profile')">
+                    <div class="nav-icon">👤</div>
+                    <div class="nav-title">My Profile</div>
+                    <div class="nav-desc">View & edit your details</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="contactsCount">0</div>
+                    <div class="stat-label">Contacts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="transactionsCount">0</div>
+                    <div class="stat-label">Transactions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="pendingCount">0</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="commissionEarned">₹0</div>
+                    <div class="stat-label">Earned</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div id="errorContainer" style="display: none;"></div>
-
-    <div class="referral-card">
-        <div class="referral-title">Your Personal Referral Code</div>
-        <div class="referral-code">
-            <div class="code-display" id="referralCodeDisplay">Loading...</div>
-            <div style="font-size: 12px; color: #6c757d;">Share this code with friends</div>
-        </div>
-        
-        <div class="referral-link" id="referralLink">
-            Loading your referral link...
-        </div>
-
-        <button class="btn" onclick="copyReferralLink()" id="copyBtn">
-            📋 Copy Referral Link
-        </button>
-        <button class="btn btn-secondary" onclick="shareReferral()" id="shareBtn">
-            📤 Share via Message
-        </button>
-    </div>
-
-    <div class="commission-info">
-        <h3>🎯 Earn Commission on 4 Levels</h3>
-        <div class="commission-steps">
-            <div>• <strong>Level 1:</strong> ₹1.60 when your friend pays ₹10</div>
-            <div>• <strong>Level 2:</strong> ₹0.80 when their friend pays ₹10</div>
-            <div>• <strong>Level 3:</strong> ₹0.40 when friend's friend pays ₹10</div>
-            <div>• <strong>Level 4:</strong> ₹0.20 when friend's friend's friend pays ₹10</div>
-        </div>
-    </div>
-
-    <div class="dashboard-nav">
-        <div class="nav-grid">
-            <div class="nav-card" onclick="navigateTo('contacts')">
-                <div class="nav-icon">👥</div>
-                <div class="nav-title">My Contacts</div>
-                <div class="nav-desc">Add & manage people you trust</div>
-            </div>
-
-            <div class="nav-card" onclick="navigateTo('transactions')">
-                <div class="nav-icon">💳</div>
-                <div class="nav-title">Transactions</div>
-                <div class="nav-desc">Record loans & payments</div>
-            </div>
-
-            <div class="nav-card" onclick="navigateTo('reports')">
-                <div class="nav-icon">📊</div>
-                <div class="nav-title">Trust Report</div>
-                <div class="nav-desc">Get your official score (₹10)</div>
-            </div>
-
-            <div class="nav-card" onclick="navigateTo('profile')">
-                <div class="nav-icon">👤</div>
-                <div class="nav-title">My Profile</div>
-                <div class="nav-desc">View & edit your details</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="stats-section">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-number" id="contactsCount">0</div>
-                <div class="stat-label">Contacts</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="transactionsCount">0</div>
-                <div class="stat-label">Transactions</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="pendingCount">0</div>
-                <div class="stat-label">Pending</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="commissionEarned">₹0</div>
-                <div class="stat-label">Earned</div>
-            </div>
-        </div>
-    </div>
+    <!-- Load required scripts with corrected paths -->
+    <script src="js/database.js"></script>
+    <script src="js/auth.js"></script>
 
     <script>
         // Global variables
@@ -383,24 +452,46 @@
         // Initialize dashboard when page loads
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('🚀 Initializing dashboard...');
+            await waitForSystemReady();
+        });
+
+        // Wait for system to be ready
+        async function waitForSystemReady() {
+            const maxAttempts = 30;
+            const attemptDelay = 500;
             
-            try {
-                // Check if user is authenticated
-                if (window.authManager && window.authManager.isAuthenticated()) {
-                    currentUser = window.authManager.getCurrentUser();
-                    await loadDashboardData();
-                } else {
-                    // Redirect to login if not authenticated
-                    console.log('❌ User not authenticated, redirecting to login');
-                    window.location.href = 'login.html';
-                    return;
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                const dbReady = window.databaseManager && window.databaseManager.db;
+                const authReady = window.authManager;
+                
+                if (dbReady && authReady) {
+                    // System ready, check authentication
+                    if (window.authManager.isAuthenticated()) {
+                        currentUser = window.authManager.getCurrentUser();
+                        document.getElementById('initMessage').style.display = 'none';
+                        document.getElementById('dashboardContent').style.display = 'block';
+                        await loadDashboardData();
+                        return true;
+                    } else {
+                        // Not authenticated, redirect to login
+                        console.log('❌ User not authenticated, redirecting to login');
+                        window.location.href = 'login.html';
+                        return false;
+                    }
                 }
                 
-            } catch (error) {
-                console.error('💥 Dashboard initialization failed:', error);
-                showError('Failed to load dashboard. Please try refreshing the page.');
+                document.getElementById('initMessage').innerHTML = 
+                    `Initializing system... (${attempt}/${maxAttempts})`;
+                
+                if (attempt === maxAttempts) {
+                    document.getElementById('initMessage').innerHTML = 
+                        'System initialization failed. Please refresh the page.';
+                    return false;
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, attemptDelay));
             }
-        });
+        }
 
         // Load all dashboard data from IndexedDB
         async function loadDashboardData() {
@@ -432,12 +523,6 @@
 
                 // Load trust score from IndexedDB
                 const trustScore = await window.databaseManager.getTrustScore(currentUser.phone);
-
-                // Load commission data
-                if (window.referralManager && userProfile.personalReferralCode) {
-                    const referralStats = window.referralManager.getReferralStats(userProfile.personalReferralCode);
-                    userStats.commission = referralStats.totalEarned;
-                }
 
                 // Update UI with loaded data
                 updateDashboardUI(trustScore);
@@ -473,9 +558,10 @@
                 trustScoreDetails.textContent = 'New user - initial score';
             }
 
-            // Update referral code
+            // Update referral code and password
             const referralCodeDisplay = document.getElementById('referralCodeDisplay');
             const referralLink = document.getElementById('referralLink');
+            const passwordDisplay = document.getElementById('passwordDisplay');
             
             if (userProfile && userProfile.personalReferralCode) {
                 referralCodeDisplay.textContent = userProfile.personalReferralCode;
@@ -483,6 +569,11 @@
                 const fullLink = `${baseUrl}?ref=${userProfile.personalReferralCode}`;
                 referralLink.textContent = fullLink;
                 referralLink.setAttribute('data-link', fullLink);
+                
+                // Display user's referral password
+                const userPassword = userProfile.referralPassword || 'Not set';
+                passwordDisplay.textContent = `Password: ${userPassword}`;
+                passwordDisplay.setAttribute('data-password', userPassword);
             }
 
             // Update statistics
@@ -497,21 +588,25 @@
             document.getElementById('commissionEarned').textContent = `₹${userStats.commission.toFixed(2)}`;
         }
 
-        // Copy referral link to clipboard
+        // Copy referral link and password to clipboard
         async function copyReferralLink() {
             const linkElement = document.getElementById('referralLink');
+            const passwordElement = document.getElementById('passwordDisplay');
             const link = linkElement.getAttribute('data-link');
+            const password = passwordElement.getAttribute('data-password');
             
-            if (!link) {
-                showError('Referral link not available yet');
+            if (!link || !password) {
+                showError('Referral information not available yet');
                 return;
             }
+
+            const textToCopy = `${link}\nPassword: ${password}\n\nShare this with friends to join your network!`;
 
             try {
                 const copyBtn = document.getElementById('copyBtn');
                 const originalText = copyBtn.textContent;
                 
-                await navigator.clipboard.writeText(link);
+                await navigator.clipboard.writeText(textToCopy);
                 
                 copyBtn.textContent = '✅ Copied!';
                 setTimeout(() => {
@@ -521,7 +616,7 @@
             } catch (error) {
                 // Fallback for older browsers
                 const textArea = document.createElement('textarea');
-                textArea.value = link;
+                textArea.value = textToCopy;
                 document.body.appendChild(textArea);
                 textArea.select();
                 document.execCommand('copy');
@@ -539,18 +634,25 @@
         // Share referral link
         function shareReferral() {
             const linkElement = document.getElementById('referralLink');
+            const passwordElement = document.getElementById('passwordDisplay');
             const link = linkElement.getAttribute('data-link');
+            const password = passwordElement.getAttribute('data-password');
             
-            if (!link) {
-                showError('Referral link not available yet');
+            if (!link || !password) {
+                showError('Referral information not available yet');
                 return;
             }
 
-            const message = `Join me on Transparent Transactions to build financial trust! Use my link: ${link}`;
+            const message = `Join me on Transparent Transactions to build financial trust! 
+            
+Use my referral link: ${link}
+Password: ${password}
+
+Share this with trusted friends and family!`;
             
             if (navigator.share) {
                 navigator.share({
-                    title: 'Transparent Transactions',
+                    title: 'Transparent Transactions - Join My Trust Network',
                     text: message,
                     url: link
                 }).catch(error => {
@@ -560,6 +662,33 @@
                 // Fallback - open in messaging app
                 const smsLink = `sms:?body=${encodeURIComponent(message)}`;
                 window.location.href = smsLink;
+            }
+        }
+
+        // Update user's referral password
+        async function updatePassword() {
+            const newPassword = prompt('Enter new password for your referrals (min 4 characters):');
+            
+            if (newPassword && newPassword.length >= 4) {
+                try {
+                    // Update in user profile
+                    userProfile.referralPassword = newPassword;
+                    userProfile.lastUpdated = new Date().toISOString();
+                    
+                    // Save to database
+                    await window.databaseManager.saveUser(userProfile);
+                    
+                    // Update UI
+                    document.getElementById('passwordDisplay').textContent = `Password: ${newPassword}`;
+                    document.getElementById('passwordDisplay').setAttribute('data-password', newPassword);
+                    
+                    alert('Password updated successfully!');
+                    
+                } catch (error) {
+                    showError('Failed to update password: ' + error.message);
+                }
+            } else if (newPassword) {
+                alert('Password must be at least 4 characters long.');
             }
         }
 
@@ -578,9 +707,6 @@
             if (messages[section]) {
                 alert(messages[section]);
             }
-            
-            // In the future, these will redirect to actual pages:
-            // window.location.href = `${section}.html`;
         }
 
         // Show error message
@@ -604,8 +730,12 @@
             await loadDashboardData();
         }
 
-        // Make refresh function available globally
+        // Make functions available globally
         window.refreshDashboard = refreshDashboard;
+        window.copyReferralLink = copyReferralLink;
+        window.shareReferral = shareReferral;
+        window.updatePassword = updatePassword;
+        window.navigateTo = navigateTo;
     </script>
 </body>
 </html>
