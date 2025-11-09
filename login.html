@@ -15,263 +15,43 @@
 
         <main>
             <div class="auth-container">
-                <!-- Auto-Login Detection Message -->
-                <div id="autoLoginMessage" class="message info" style="display: none;">
-                    <p>🔍 Checking for automatic login...</p>
-                </div>
-
-                <!-- OTP Entry Section -->
-                <section id="otpSection" class="auth-section">
-                    <h3>Enter Referral Code</h3>
-                    <p>Please enter the OTP code provided by your referrer</p>
-                    
-                    <div class="form-group">
-                        <input 
-                            type="text" 
-                            id="otpInput" 
-                            placeholder="Enter 6-digit OTP" 
-                            maxlength="6"
-                            class="form-input"
-                        >
-                    </div>
-                    
-                    <button onclick="verifyOTP()" class="btn btn-primary">Verify OTP</button>
-                    <div id="otpMessage" class="message"></div>
-                </section>
-
-                <!-- Password Gate Section -->
-                <section id="passwordSection" class="auth-section">
-                    <h3>Security Verification</h3>
-                    <p>Enter the security password to continue registration</p>
-                    
-                    <div class="form-group">
-                        <input 
-                            type="password" 
-                            id="securityPassword" 
-                            placeholder="Enter security password" 
-                            class="form-input"
-                        >
-                    </div>
-                    
-                    <button onclick="verifySecurityPassword()" class="btn btn-primary">Continue</button>
-                    <div id="passwordMessage" class="message"></div>
-                </section>
-
                 <!-- Registration Form Section -->
-                <section id="registrationSection" class="auth-section">
+                <section id="registrationSection" class="auth-section active">
                     <h3>Complete Registration</h3>
                     
                     <div class="form-group">
-                        <input 
-                            type="text" 
-                            id="fullName" 
-                            placeholder="Full Name" 
-                            class="form-input"
-                        >
+                        <input type="text" id="fullName" placeholder="Full Name" class="form-input">
                     </div>
                     
                     <div class="form-group">
-                        <input 
-                            type="tel" 
-                            id="phoneNumber" 
-                            placeholder="Phone Number (10 digits)" 
-                            class="form-input"
-                            maxlength="10"
-                        >
+                        <input type="tel" id="phoneNumber" placeholder="Phone Number (10 digits)" class="form-input" maxlength="10">
                     </div>
                     
                     <div class="form-group">
-                        <input 
-                            type="email" 
-                            id="email" 
-                            placeholder="Email Address" 
-                            class="form-input"
-                        >
+                        <input type="email" id="email" placeholder="Email Address" class="form-input">
                     </div>
                     
                     <div class="form-group">
-                        <input 
-                            type="password" 
-                            id="userPassword" 
-                            placeholder="Create Password" 
-                            class="form-input"
-                        >
+                        <input type="password" id="userPassword" placeholder="Create Password" class="form-input">
                     </div>
                     
                     <div class="form-group">
-                        <input 
-                            type="password" 
-                            id="confirmPassword" 
-                            placeholder="Confirm Password" 
-                            class="form-input"
-                        >
+                        <input type="password" id="confirmPassword" placeholder="Confirm Password" class="form-input">
                     </div>
                     
                     <button onclick="completeRegistration()" class="btn btn-primary">Create Account</button>
                     <div id="registrationMessage" class="message"></div>
                 </section>
 
-                <!-- Quick Login Section for Returning Users -->
-                <section id="quickLoginSection" class="auth-section" style="display: none;">
-                    <h3>Welcome Back! 👋</h3>
-                    <p>We recognized your device. You can quickly access your dashboard.</p>
-                    
-                    <div class="form-group">
-                        <p><strong>Auto-login detected for:</strong></p>
-                        <p id="recognizedUserPhone" style="font-size: 1.2em; font-weight: bold; color: #007bff;"></p>
-                    </div>
-                    
-                    <button onclick="proceedWithAutoLogin()" class="btn btn-primary">
-                        🚀 Go to Dashboard
-                    </button>
-                    
-                    <button onclick="useDifferentAccount()" class="btn btn-secondary" style="margin-top: 10px;">
-                        Use Different Account
-                    </button>
-                    
-                    <div id="autoLoginMessage" class="message info"></div>
-                </section>
-
                 <div class="auth-links">
-                    <p>Already have an account? <a href="login.html">Sign In</a></p>
                     <p><a href="index.html">← Back to Home</a></p>
                 </div>
             </div>
         </main>
     </div>
 
-    <script src="js/database.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/app.js"></script>
-    
     <script>
-        // Check for automatic login when page loads
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🔍 Login page: Checking for automatic login...');
-            
-            // Show auto-login detection message
-            const autoLoginMessage = document.getElementById('autoLoginMessage');
-            autoLoginMessage.style.display = 'block';
-            
-            // Wait a moment for auth system to initialize
-            setTimeout(async () => {
-                if (window.authManager && window.authManager.isAuthenticated()) {
-                    // User is already authenticated (auto-login worked)
-                    console.log('✅ Auto-login detected, redirecting to dashboard...');
-                    await handleAutoLoginSuccess();
-                } else {
-                    // No auto-login, show normal registration flow
-                    console.log('ℹ️ No auto-login detected, showing registration form');
-                    autoLoginMessage.style.display = 'none';
-                    showRegistrationFlow();
-                }
-            }, 1000);
-        });
-
-        // Handle successful auto-login
-        async function handleAutoLoginSuccess() {
-            const currentUser = window.authManager.getCurrentUser();
-            
-            if (currentUser && currentUser.phone) {
-                // Show quick login section
-                document.getElementById('quickLoginSection').style.display = 'block';
-                document.getElementById('recognizedUserPhone').textContent = currentUser.phone;
-                
-                // Hide other sections
-                document.querySelectorAll('.auth-section').forEach(section => {
-                    if (section.id !== 'quickLoginSection') {
-                        section.style.display = 'none';
-                    }
-                });
-                
-                // Hide auto-login message
-                document.getElementById('autoLoginMessage').style.display = 'none';
-            } else {
-                // Something went wrong with auto-login, show normal flow
-                showRegistrationFlow();
-            }
-        }
-
-        // Show normal registration flow
-        function showRegistrationFlow() {
-            document.getElementById('autoLoginMessage').style.display = 'none';
-            document.getElementById('otpSection').classList.add('active');
-            document.getElementById('otpSection').style.display = 'block';
-        }
-
-        // Proceed with auto-login
-        function proceedWithAutoLogin() {
-            const autoLoginMessage = document.getElementById('autoLoginMessage');
-            autoLoginMessage.innerHTML = '<p>🔄 Redirecting to dashboard...</p>';
-            autoLoginMessage.className = 'message info';
-            
-            setTimeout(() => {
-                window.location.href = 'dashboard.html';
-            }, 1000);
-        }
-
-        // Use different account (manual registration)
-        function useDifferentAccount() {
-            document.getElementById('quickLoginSection').style.display = 'none';
-            showRegistrationFlow();
-            
-            // Clear any existing sessions if user wants different account
-            if (window.authManager) {
-                window.authManager.manualLogout();
-            }
-        }
-
-        // Enhanced OTP verification with phone number association
-        async function verifyOTP() {
-            const otp = document.getElementById('otpInput').value;
-            const message = document.getElementById('otpMessage');
-            
-            if (otp.length === 6 && /^\d+$/.test(otp)) {
-                message.textContent = 'OTP verified successfully!';
-                message.className = 'message success';
-                
-                // Store OTP in session for verification
-                sessionStorage.setItem('referralOTP', otp);
-                
-                // Show password section
-                setTimeout(() => {
-                    document.getElementById('otpSection').classList.remove('active');
-                    document.getElementById('otpSection').style.display = 'none';
-                    
-                    document.getElementById('passwordSection').classList.add('active');
-                    document.getElementById('passwordSection').style.display = 'block';
-                }, 1000);
-            } else {
-                message.textContent = 'Please enter a valid 6-digit OTP';
-                message.className = 'message error';
-            }
-        }
-
-        // Enhanced security password verification
-        async function verifySecurityPassword() {
-            const password = document.getElementById('securityPassword').value;
-            const message = document.getElementById('passwordMessage');
-            
-            if (password === 'secureaccess2024') {
-                message.textContent = 'Security verified!';
-                message.className = 'message success';
-                
-                // Show registration section
-                setTimeout(() => {
-                    document.getElementById('passwordSection').classList.remove('active');
-                    document.getElementById('passwordSection').style.display = 'none';
-                    
-                    document.getElementById('registrationSection').classList.add('active');
-                    document.getElementById('registrationSection').style.display = 'block';
-                }, 1000);
-            } else {
-                message.textContent = 'Invalid security password';
-                message.className = 'message error';
-            }
-        }
-
-        // Enhanced registration with proper user creation and device association
-        async function completeRegistration() {
+        function completeRegistration() {
             const fullName = document.getElementById('fullName').value;
             const phoneNumber = document.getElementById('phoneNumber').value;
             const email = document.getElementById('email').value;
@@ -299,130 +79,57 @@
             }
             
             // Validate phone number
-            const phoneValidation = validatePhoneNumber(phoneNumber);
-            if (!phoneValidation.valid) {
-                message.textContent = phoneValidation.message;
+            const cleaned = phoneNumber.replace(/\D/g, '');
+            if (cleaned.length !== 10 || !/^[6-9]\d{9}$/.test(cleaned)) {
+                message.textContent = 'Please enter a valid 10-digit Indian mobile number';
                 message.className = 'message error';
                 return;
             }
             
             // Show processing message
-            message.textContent = 'Creating your account and setting up automatic login...';
+            message.textContent = 'Creating your account...';
             message.className = 'message info';
             
-            try {
-                // Create user session with enhanced auth manager
-                if (window.authManager) {
-                    const userData = {
-                        fullName,
-                        email,
-                        phone: phoneValidation.cleaned,
-                        referralOTP: sessionStorage.getItem('referralOTP'),
-                        registrationDate: new Date().toISOString()
-                    };
-                    
-                    const result = await window.authManager.createUserSession(phoneValidation.cleaned, userData);
-                    
-                    if (result.success) {
-                        message.textContent = '✅ Account created successfully! Setting up automatic login...';
-                        message.className = 'message success';
-                        
-                        // Redirect to profile setup after a delay
-                        setTimeout(() => {
-                            window.location.href = 'profile-setup.html';
-                        }, 2000);
-                    } else {
-                        throw new Error(result.message || 'Failed to create user session');
-                    }
-                } else {
-                    // Fallback to old method if auth manager not available
-                    await fallbackRegistration(fullName, phoneNumber, email, password, message);
-                }
-                
-            } catch (error) {
-                console.error('❌ Registration error:', error);
-                message.textContent = 'Registration failed: ' + error.message;
-                message.className = 'message error';
-            }
-        }
-
-        // Fallback registration method (for compatibility)
-        async function fallbackRegistration(fullName, phoneNumber, email, password, message) {
+            // Create user session (simplified version)
             const userData = {
                 fullName,
                 email,
-                phone: phoneNumber,
-                password: btoa(password), // Simple encoding for demo
-                referralOTP: sessionStorage.getItem('referralOTP'),
-                registrationDate: new Date().toISOString(),
+                phone: cleaned,
+                password: btoa(password), // Simple encoding
                 isAuthenticated: true,
-                loginTime: new Date().toISOString()
+                loginTime: new Date().toISOString(),
+                lastActive: new Date().toISOString(),
+                registrationDate: new Date().toISOString(),
+                profile: {
+                    fullName,
+                    phone: cleaned,
+                    email
+                }
             };
             
             // Store in localStorage
             localStorage.setItem('currentUser', JSON.stringify(userData));
             
-            message.textContent = 'Account created successfully! Redirecting...';
+            message.textContent = '✅ Account created successfully! Redirecting...';
             message.className = 'message success';
             
+            // Redirect to dashboard
             setTimeout(() => {
-                window.location.href = 'profile-setup.html';
+                window.location.href = 'dashboard.html';
             }, 2000);
         }
 
         // Phone number validation
-        function validatePhoneNumber(phone) {
-            const cleaned = phone.replace(/\D/g, '');
-            
-            if (cleaned.length !== 10) {
-                return {
-                    valid: false,
-                    message: 'Phone number must be 10 digits'
-                };
-            }
-
-            // Indian mobile numbers start with 6,7,8,9
-            if (!/^[6-9]\d{9}$/.test(cleaned)) {
-                return {
-                    valid: false,
-                    message: 'Please enter a valid Indian mobile number'
-                };
-            }
-
-            return {
-                valid: true,
-                cleaned: cleaned
-            };
-        }
-
-        // Enhanced input handling for better UX
         document.getElementById('phoneNumber')?.addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
             if (value.length > 10) value = value.slice(0, 10);
             e.target.value = value;
         });
 
-        document.getElementById('otpInput')?.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length > 6) value = value.slice(0, 6);
-            e.target.value = value;
-        });
-
         // Enter key support
         document.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                const activeSection = document.querySelector('.auth-section.active');
-                if (activeSection) {
-                    if (activeSection.id === 'otpSection') {
-                        verifyOTP();
-                    } else if (activeSection.id === 'passwordSection') {
-                        verifySecurityPassword();
-                    } else if (activeSection.id === 'registrationSection') {
-                        completeRegistration();
-                    } else if (activeSection.id === 'quickLoginSection') {
-                        proceedWithAutoLogin();
-                    }
-                }
+                completeRegistration();
             }
         });
     </script>
