@@ -1,11 +1,13 @@
-// auth.js - DEBUG VERSION with enhanced logging
+// auth.js - Complete Authentication Manager with Enhanced Flow Handling
 class AuthManager {
     constructor() {
         this.currentUser = null;
         this.isInitialized = false;
         this.isDatabaseReady = false;
-        this.otpExpiryTime = 2 * 60 * 1000;
+        this.otpExpiryTime = 2 * 60 * 1000; // 2 minutes
         this.maxOtpAttempts = 3;
+        
+        // Initialize when class is created
         this.init();
     }
 
@@ -92,18 +94,16 @@ class AuthManager {
         });
     }
 
-    // OTP SYSTEM - WITH ENHANCED DEBUGGING
+    // OTP SYSTEM WITH ENHANCED FLOW HANDLING
     async sendOTP(phoneNumber) {
         console.log('🟡 sendOTP called with:', phoneNumber);
         
         if (!this.isInitialized) {
-            console.error('❌ Auth system not ready in sendOTP');
             throw new Error('Auth system not ready');
         }
 
         const validation = this.validatePhoneNumber(phoneNumber);
         if (!validation.valid) {
-            console.error('❌ Phone validation failed:', validation.message);
             throw new Error(validation.message);
         }
 
@@ -113,7 +113,16 @@ class AuthManager {
 
         if (existingUser) {
             console.log('✅ User exists, auto-logging in:', validation.cleaned);
-            return await this.login(validation.cleaned, existingUser);
+            const loginResult = await this.login(validation.cleaned, existingUser);
+            
+            // Return specific response for auto-login
+            return {
+                success: true,
+                message: 'Auto-login successful',
+                user: loginResult.user,
+                action: 'auto-login', // Explicit action type
+                isNewUser: false
+            };
         }
 
         console.log('🟡 New user, generating OTP...');
@@ -145,6 +154,7 @@ class AuthManager {
                         success: true,
                         message: 'OTP generated successfully',
                         expiryMinutes: Math.floor(this.otpExpiryTime / (60 * 1000)),
+                        action: 'otp-sent', // Explicit action type
                         isNewUser: true
                     });
                     
@@ -262,6 +272,82 @@ class AuthManager {
             console.error('❌ OTP verification error:', error);
             throw error;
         }
+    }
+
+    // UI STATE MANAGEMENT
+    handleSendOTPResponse(result) {
+        console.log('🔄 Handling OTP response:', result);
+        
+        if (result.action === 'auto-login') {
+            // Existing user - auto-logged in
+            this.showAutoLoginSuccess(result.user);
+        } else if (result.action === 'otp-sent') {
+            // New user - show OTP fields
+            this.showOTPFields();
+        }
+    }
+
+    showAutoLoginSuccess(user) {
+        // Hide OTP section
+        const otpSection = document.getElementById('otpSection');
+        if (otpSection) otpSection.style.display = 'none';
+        
+        // Show success message
+        this.showMessage(`Welcome back, ${user.profile.fullName || user.phone}!`, 'success');
+        
+        // Optional: Redirect after delay
+        setTimeout(() => {
+            window.location.href = 'dashboard.html'; // or your main app page
+        }, 2000);
+    }
+
+    showOTPFields() {
+        // Show OTP section
+        const otpSection = document.getElementById('otpSection');
+        if (otpSection) otpSection.style.display = 'block';
+        
+        // Focus OTP input
+        const otpInput = document.getElementById('otp');
+        if (otpInput) otpInput.focus();
+        
+        this.showMessage('OTP sent to your phone', 'success');
+    }
+
+    showMessage(message, type = 'info') {
+        // Remove existing messages
+        const existingMsg = document.getElementById('auth-message');
+        if (existingMsg) existingMsg.remove();
+        
+        // Create new message
+        const messageDiv = document.createElement('div');
+        messageDiv.id = 'auth-message';
+        messageDiv.className = `auth-message ${type}`;
+        messageDiv.textContent = message;
+        messageDiv.style.cssText = `
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            ${type === 'success' ? 'background: #d4edda; color: #155724; border: 1px solid #c3e6cb;' : ''}
+            ${type === 'error' ? 'background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;' : ''}
+            ${type === 'info' ? 'background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb;' : ''}
+        `;
+        
+        // Insert after phone form or at top
+        const phoneForm = document.querySelector('.phone-form') || document.getElementById('phoneForm');
+        if (phoneForm) {
+            phoneForm.parentNode.insertBefore(messageDiv, phoneForm.nextSibling);
+        } else {
+            document.body.insertBefore(messageDiv, document.body.firstChild);
+        }
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (messageDiv.parentNode) {
+                messageDiv.parentNode.removeChild(messageDiv);
+            }
+        }, 5000);
     }
 
     async login(phoneNumber, userProfile = null) {
