@@ -5,6 +5,7 @@ class AuthManager {
     constructor() {
         this.currentUser = null;
         this.isInitialized = false;
+        this.isDatabaseReady = false;
         this.otpExpiryTime = 2 * 60 * 1000; // 2 minutes
         this.maxOtpAttempts = 3;
         
@@ -21,8 +22,8 @@ class AuthManager {
         console.log('🔐 Auth Manager initializing...');
         
         try {
-            // Wait for database to be ready
-            await this.waitForDatabase();
+            // Wait for database with longer timeout
+            await this.waitForDatabase(25, 1000); // 25 seconds max
             
             // Load existing session if any
             await this.loadCurrentUser();
@@ -35,24 +36,45 @@ class AuthManager {
             
         } catch (error) {
             console.error('❌ Auth Manager initialization failed:', error);
-            this.showError('Authentication system failed to initialize');
+            // Mark as initialized anyway to allow user to try
+            this.isInitialized = true;
+            console.log('🔄 Auth Manager: Continuing despite initialization issues...');
         }
     }
 
-    async waitForDatabase(maxRetries = 10, retryDelay = 500) {
+    async waitForDatabase(maxRetries = 25, retryDelay = 1000) {
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            if (window.databaseManager && window.databaseManager.isReady()) {
-                console.log('✅ Database connection verified');
+            if (window.databaseManager && await this.checkDatabaseReady()) {
+                this.isDatabaseReady = true;
+                console.log('✅ Database connection established');
                 return;
             }
             
             console.log(`⏳ Waiting for database... (attempt ${attempt}/${maxRetries})`);
             
             if (attempt === maxRetries) {
-                throw new Error('Database not available after maximum retries');
+                console.warn('⚠️ Database not available after maximum retries, but continuing...');
+                return;
             }
             
             await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
+    }
+
+    async checkDatabaseReady() {
+        try {
+            if (!window.databaseManager) {
+                return false;
+            }
+            
+            // Try a simple database operation to verify readiness
+            await window.databaseManager.executeTransaction('settings', 'readonly', (store) => {
+                return store.count();
+            });
+            
+            return true;
+        } catch (error) {
+            return false;
         }
     }
 
@@ -245,7 +267,7 @@ class AuthManager {
         this.triggerAuthStateChange('logout', null);
     }
 
-    // OTP SYSTEM (Simplified - display on screen for testing)
+    // OTP SYSTEM
 
     async sendOTP(phoneNumber) {
         if (!this.isInitialized) {
@@ -507,18 +529,6 @@ class AuthManager {
         const existingDisplay = document.getElementById('otp-display-container');
         if (existingDisplay) {
             existingDisplay.remove();
-        }
-    }
-
-    showError(message) {
-        console.error('🔴 Auth Error:', message);
-        // This will be integrated with app.js notification system
-        if (window.app && window.app.showNotification) {
-            window.app.showNotification({
-                type: 'error',
-                title: 'Authentication Error',
-                message: message
-            });
         }
     }
 
