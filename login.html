@@ -6,6 +6,22 @@
     <title>Register - Transparent Transactions</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
+    <style>
+        .auth-section { display: none; }
+        .auth-section.active { display: block; }
+        .btn-loading { display: none; }
+        .message { display: none; padding: 12px; border-radius: 8px; margin: 15px 0; font-weight: 500; }
+        .message.success { background: rgba(40, 167, 69, 0.1); color: #28A745; border: 1px solid rgba(40, 167, 69, 0.2); }
+        .message.error { background: rgba(220, 53, 69, 0.1); color: #DC3545; border: 1px solid rgba(220, 53, 69, 0.2); }
+        .message.warning { background: rgba(255, 193, 7, 0.1); color: #FFC107; border: 1px solid rgba(255, 193, 7, 0.2); }
+        .message.info { background: rgba(23, 162, 184, 0.1); color: #17A2B8; border: 1px solid rgba(23, 162, 184, 0.2); }
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; }
+        .loading-spinner { width: 48px; height: 48px; border: 4px solid #f3f3f3; border-top: 4px solid #2E8B57; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -33,16 +49,16 @@
                         <input type="email" id="email" placeholder="Email Address" class="form-input" value="test@example.com">
                     </div>
                     
-                    <button id="registerBtn" onclick="handleRegistration()" class="btn btn-primary" style="width: 100%;">
+                    <button id="registerBtn" class="btn btn-primary" style="width: 100%;">
                         <span class="btn-text">🚀 Create Account & Go to Dashboard</span>
-                        <span class="btn-loading" style="display: none;">⏳ Creating...</span>
+                        <span class="btn-loading">⏳ Creating...</span>
                     </button>
                     
-                    <div id="message" class="message" style="margin-top: 15px;"></div>
+                    <div id="message" class="message"></div>
                 </section>
 
                 <!-- OTP Verification Section -->
-                <section id="otpSection" class="auth-section" style="display: none;">
+                <section id="otpSection" class="auth-section">
                     <h3>Verify Your Phone</h3>
                     <p style="color: #666; margin-bottom: 20px;">Enter the OTP sent to your phone</p>
                     
@@ -51,17 +67,17 @@
                         <small style="color: #666; display: block; margin-top: 5px;">Check the OTP display on screen</small>
                     </div>
                     
-                    <button id="verifyOtpBtn" onclick="verifyOTP()" class="btn btn-primary" style="width: 100%;">
+                    <button id="verifyOtpBtn" class="btn btn-primary" style="width: 100%;">
                         <span class="btn-text">✅ Verify OTP</span>
-                        <span class="btn-loading" style="display: none;">⏳ Verifying...</span>
+                        <span class="btn-loading">⏳ Verifying...</span>
                     </button>
                     
                     <div style="display: flex; justify-content: space-between; margin-top: 15px;">
-                        <button onclick="resendOTP()" class="btn btn-link" style="color: #2E8B57;">↻ Resend OTP</button>
-                        <button onclick="backToRegistration()" class="btn btn-link" style="color: #666;">← Back</button>
+                        <button id="resendOtpBtn" class="btn btn-link" style="color: #2E8B57;">↻ Resend OTP</button>
+                        <button id="backToRegBtn" class="btn btn-link" style="color: #666;">← Back</button>
                     </div>
 
-                    <div id="otpMessage" class="message" style="margin-top: 15px;"></div>
+                    <div id="otpMessage" class="message"></div>
                 </section>
             </div>
 
@@ -75,17 +91,10 @@
     </div>
 
     <!-- Loading Overlay -->
-    <div id="loadingOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10000;">
-        <div style="width: 48px; height: 48px; border: 4px solid #f3f3f3; border-top: 4px solid #2E8B57; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;"></div>
+    <div id="loadingOverlay">
+        <div class="loading-spinner"></div>
         <p>Processing...</p>
     </div>
-
-    <style>
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
 
     <!-- Scripts in correct order -->
     <script src="database.js"></script>
@@ -96,57 +105,152 @@
         let currentRegistrationData = null;
         let componentsReady = false;
 
-        // Initialize components when page loads
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🔐 Login page loaded - initializing components...');
-            
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔐 Login page loaded - initializing...');
+            initializeApp();
+        });
+
+        async function initializeApp() {
             try {
-                // Wait for database to be ready
-                if (window.databaseManager) {
-                    await window.databaseManager.init();
-                    console.log('✅ Database ready');
-                }
+                console.log('🔄 Starting component initialization...');
                 
-                // Wait for auth manager to be ready
-                if (window.authManager) {
-                    // Wait for auth manager initialization
-                    await new Promise((resolve) => {
-                        const checkReady = setInterval(() => {
-                            if (window.authManager.isInitialized) {
-                                clearInterval(checkReady);
-                                resolve();
-                            }
-                        }, 100);
-                    });
-                    console.log('✅ Auth manager ready');
-                }
+                // Wait for scripts to load
+                await waitForScripts();
+                
+                // Initialize database
+                await initializeDatabase();
+                
+                // Initialize auth manager
+                await initializeAuthManager();
                 
                 componentsReady = true;
-                console.log('✅ All components ready for registration');
+                console.log('✅ All components ready!');
                 
-                // Check if user is already logged in
-                if (window.authManager && window.authManager.isAuthenticated()) {
-                    console.log('✅ User already logged in, redirecting to dashboard...');
-                    window.location.href = 'dashboard.html';
-                }
+                // Setup event listeners
+                setupEventListeners();
+                
+                // Check if already authenticated
+                checkExistingAuth();
                 
             } catch (error) {
-                console.error('❌ Component initialization failed:', error);
-                showMessage('System initialization failed. Please refresh the page.', 'error', 'message');
+                console.error('❌ App initialization failed:', error);
+                showMessage('System initialization issue. Please refresh the page.', 'error', 'message');
+                // Still setup event listeners for retry
+                setupEventListeners();
             }
-        });
+        }
+
+        async function waitForScripts() {
+            // Wait for essential scripts to load
+            let attempts = 0;
+            while (attempts < 10) {
+                if (window.databaseManager && window.authManager) {
+                    console.log('✅ Scripts loaded');
+                    return;
+                }
+                await new Promise(resolve => setTimeout(resolve, 200));
+                attempts++;
+            }
+            throw new Error('Scripts not loaded after timeout');
+        }
+
+        async function initializeDatabase() {
+            if (!window.databaseManager) {
+                throw new Error('Database manager not found');
+            }
+            
+            let attempts = 0;
+            while (attempts < 5) {
+                try {
+                    await window.databaseManager.init();
+                    console.log('✅ Database initialized');
+                    return;
+                } catch (error) {
+                    attempts++;
+                    if (attempts === 5) throw error;
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            }
+        }
+
+        async function initializeAuthManager() {
+            if (!window.authManager) {
+                throw new Error('Auth manager not found');
+            }
+            
+            // Wait for auth manager to self-initialize
+            let attempts = 0;
+            while (attempts < 10) {
+                if (window.authManager.isInitialized) {
+                    console.log('✅ Auth manager initialized');
+                    return;
+                }
+                await new Promise(resolve => setTimeout(resolve, 300));
+                attempts++;
+            }
+            throw new Error('Auth manager not initialized after timeout');
+        }
+
+        function setupEventListeners() {
+            console.log('🔧 Setting up event listeners...');
+            
+            // Registration button
+            document.getElementById('registerBtn').addEventListener('click', handleRegistration);
+            
+            // OTP verification button
+            document.getElementById('verifyOtpBtn').addEventListener('click', verifyOTP);
+            
+            // OTP actions
+            document.getElementById('resendOtpBtn').addEventListener('click', resendOTP);
+            document.getElementById('backToRegBtn').addEventListener('click', backToRegistration);
+            
+            // Enter key support
+            document.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const activeSection = document.querySelector('.auth-section.active');
+                    if (activeSection.id === 'registrationSection') {
+                        handleRegistration();
+                    } else if (activeSection.id === 'otpSection') {
+                        verifyOTP();
+                    }
+                }
+            });
+            
+            // Input validation
+            document.getElementById('phoneNumber').addEventListener('input', function(e) {
+                this.value = this.value.replace(/\D/g, '').slice(0, 10);
+            });
+            
+            document.getElementById('otpInput').addEventListener('input', function(e) {
+                this.value = this.value.replace(/\D/g, '').slice(0, 6);
+            });
+            
+            console.log('✅ Event listeners setup complete');
+        }
+
+        function checkExistingAuth() {
+            if (window.authManager && window.authManager.isAuthenticated()) {
+                console.log('✅ User already authenticated, redirecting...');
+                showMessage('You are already logged in. Redirecting to dashboard...', 'info', 'message');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            }
+        }
 
         // REGISTRATION FLOW
 
         async function handleRegistration() {
-            // Check if components are ready
+            console.log('🔄 Registration flow started');
+            
             if (!componentsReady) {
-                showMessage('System still initializing... Please wait a moment.', 'warning', 'message');
+                showMessage('🔄 System still initializing... Please wait.', 'warning', 'message');
                 return;
             }
 
             if (!window.authManager || !window.authManager.isInitialized) {
-                showMessage('Authentication system not ready. Please refresh the page.', 'error', 'message');
+                showMessage('❌ Authentication system not ready. Please refresh.', 'error', 'message');
                 return;
             }
 
@@ -178,7 +282,7 @@
             showMessage('Sending OTP...', 'info', 'message');
 
             try {
-                // Send OTP using auth manager
+                console.log('📱 Sending OTP to:', phone);
                 const result = await window.authManager.sendOTP(phone);
                 
                 if (result.success) {
@@ -213,12 +317,10 @@
             showMessage('Verifying OTP...', 'info', 'otpMessage');
 
             try {
-                // Verify OTP
                 const result = await window.authManager.verifyOTP(currentRegistrationData.phone, otp);
                 
                 if (result.success) {
                     showMessage('OTP verified successfully!', 'success', 'otpMessage');
-                    // Proceed with user registration
                     await completeRegistration();
                 } else {
                     throw new Error(result.message);
@@ -237,13 +339,11 @@
             showMessage('Creating your account...', 'info', 'otpMessage');
 
             try {
-                // Register user with auth manager
                 const result = await window.authManager.registerUser(currentRegistrationData);
                 
                 if (result.success) {
                     showMessage('✅ Account created successfully! Redirecting...', 'success', 'otpMessage');
                     
-                    // Wait a moment then redirect to dashboard
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
                     }, 1500);
@@ -268,6 +368,7 @@
                 return;
             }
 
+            setButtonLoading('resendOtpBtn', true);
             showMessage('Resending OTP...', 'info', 'otpMessage');
 
             try {
@@ -282,22 +383,24 @@
             } catch (error) {
                 console.error('❌ OTP resend failed:', error);
                 showMessage(error.message || 'Failed to resend OTP', 'error', 'otpMessage');
+            } finally {
+                setButtonLoading('resendOtpBtn', false);
             }
         }
 
         // SECTION NAVIGATION
 
         function showOTPSection() {
-            document.getElementById('registrationSection').style.display = 'none';
-            document.getElementById('otpSection').style.display = 'block';
+            document.getElementById('registrationSection').classList.remove('active');
+            document.getElementById('otpSection').classList.add('active');
             document.getElementById('otpInput').value = '';
             document.getElementById('otpInput').focus();
             clearMessages();
         }
 
         function backToRegistration() {
-            document.getElementById('otpSection').style.display = 'none';
-            document.getElementById('registrationSection').style.display = 'block';
+            document.getElementById('otpSection').classList.remove('active');
+            document.getElementById('registrationSection').classList.add('active');
             currentRegistrationData = null;
             clearMessages();
         }
@@ -339,29 +442,6 @@
             const overlay = document.getElementById('loadingOverlay');
             overlay.style.display = show ? 'flex' : 'none';
         }
-
-        // ENTER KEY SUPPORT
-        document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                const activeSection = document.querySelector('.auth-section[style="display: block;"]') || 
-                                     document.getElementById('registrationSection');
-                
-                if (activeSection.id === 'registrationSection') {
-                    handleRegistration();
-                } else if (activeSection.id === 'otpSection') {
-                    verifyOTP();
-                }
-            }
-        });
-
-        // INPUT VALIDATION
-        document.getElementById('phoneNumber').addEventListener('input', function(e) {
-            this.value = this.value.replace(/\D/g, '').slice(0, 10);
-        });
-
-        document.getElementById('otpInput').addEventListener('input', function(e) {
-            this.value = this.value.replace(/\D/g, '').slice(0, 6);
-        });
     </script>
 </body>
 </html>
