@@ -267,7 +267,7 @@ class AuthManager {
         this.triggerAuthStateChange('logout', null);
     }
 
-    // OTP SYSTEM - FIXED VERSION
+    // OTP SYSTEM - WITH USER EXISTENCE CHECK
 
     async sendOTP(phoneNumber) {
         if (!this.isInitialized) {
@@ -279,8 +279,15 @@ class AuthManager {
             throw new Error(validation.message);
         }
 
+        // Check if user already exists - if yes, auto-login instead of sending OTP
+        const existingUser = await window.databaseManager.getUser(validation.cleaned);
+        if (existingUser) {
+            console.log('✅ User exists, auto-logging in:', validation.cleaned);
+            return await this.login(validation.cleaned, existingUser);
+        }
+
         return new Promise((resolve, reject) => {
-            console.log(`📱 Generating OTP for ${phoneNumber}...`);
+            console.log(`📱 Generating OTP for new user: ${phoneNumber}...`);
 
             // Simulate API call delay
             setTimeout(async () => {
@@ -310,7 +317,8 @@ class AuthManager {
                     resolve({
                         success: true,
                         message: 'OTP generated successfully',
-                        expiryMinutes: Math.floor(this.otpExpiryTime / (60 * 1000))
+                        expiryMinutes: Math.floor(this.otpExpiryTime / (60 * 1000)),
+                        isNewUser: true
                     });
                     
                 } catch (error) {
@@ -325,7 +333,7 @@ class AuthManager {
         });
     }
 
-    async verifyOTP(phoneNumber, enteredOTP) {
+    async verifyOTP(phoneNumber, enteredOTP, userData = null) {
         if (!this.isInitialized) {
             throw new Error('Auth system not ready');
         }
@@ -376,23 +384,36 @@ class AuthManager {
             console.log(`🔍 Comparing: Entered OTP "${enteredOTP}" vs Stored OTP "${otpData.otp}"`);
             
             if (otpData.otp === enteredOTP) {
-                // OTP verified successfully
-                const updatedOtpData = {
-                    ...otpData,
-                    verified: true,
-                    verifiedAt: currentTime
+                // OTP verified successfully - create new user
+                const userProfile = {
+                    phone: phoneNumber,
+                    fullName: userData?.fullName || '',
+                    email: userData?.email || '',
+                    isActive: true,
+                    createdAt: new Date().toISOString(),
+                    trustScore: 100,
+                    balance: 0
                 };
+
+                // Save new user
+                await window.databaseManager.saveUser(userProfile);
                 
-                await window.databaseManager.saveSetting(`otp_${phoneNumber}`, updatedOtpData);
+                // Clear OTP data
+                await window.databaseManager.deleteSetting(`otp_${phoneNumber}`);
                 
                 // Remove OTP display
                 this.removeOTPDisplay();
+
+                // Auto-login the new user
+                const loginResult = await this.login(phoneNumber, userProfile);
                 
-                console.log('✅ OTP verified successfully for:', phoneNumber);
+                console.log('✅ New user created and logged in:', phoneNumber);
                 
                 return {
                     success: true,
-                    message: 'OTP verified successfully'
+                    message: 'Account created successfully',
+                    user: loginResult.user,
+                    isNewUser: true
                 };
                 
             } else {
@@ -419,6 +440,24 @@ class AuthManager {
             console.error('❌ OTP verification error:', error);
             throw error;
         }
+    }
+
+    // Check if user exists (public method for UI)
+    async checkUserExists(phoneNumber) {
+        if (!this.isInitialized) {
+            throw new Error('Auth system not ready');
+        }
+
+        const validation = this.validatePhoneNumber(phoneNumber);
+        if (!validation.valid) {
+            throw new Error(validation.message);
+        }
+
+        const user = await window.databaseManager.getUser(validation.cleaned);
+        return {
+            exists: !!user,
+            user: user
+        };
     }
 
     // UTILITY METHODS
