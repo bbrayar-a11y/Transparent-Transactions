@@ -267,7 +267,7 @@ class AuthManager {
         this.triggerAuthStateChange('logout', null);
     }
 
-    // OTP SYSTEM
+    // OTP SYSTEM - FIXED DATA STRUCTURE
 
     async sendOTP(phoneNumber) {
         if (!this.isInitialized) {
@@ -288,14 +288,17 @@ class AuthManager {
                     // Generate OTP
                     const otp = this.generateOTP();
                     
-                    // Store OTP data
-                    await window.databaseManager.saveSetting(`otp_${phoneNumber}`, {
+                    // Store OTP data with correct structure
+                    const otpData = {
                         phone: phoneNumber,
-                        code: otp,
+                        otp: otp, // Changed from 'code' to 'otp'
                         timestamp: Date.now(),
                         verified: false,
-                        attempts: 0
-                    });
+                        attempts: 0,
+                        expiresAt: new Date(Date.now() + this.otpExpiryTime).toISOString() // Add expiry
+                    };
+                    
+                    await window.databaseManager.saveSetting(`otp_${phoneNumber}`, otpData);
                     
                     // Display OTP on screen for testing
                     this.displayOTPOnScreen(phoneNumber, otp);
@@ -323,12 +326,14 @@ class AuthManager {
         }
 
         try {
-            // Get OTP data
-            const otpData = await window.databaseManager.getSetting(`otp_${phoneNumber}`);
+            // Get OTP data - FIXED: Extract value from settings object
+            const otpSetting = await window.databaseManager.getSetting(`otp_${phoneNumber}`);
             
-            if (!otpData || !otpData.code) {
+            if (!otpSetting || !otpSetting.value) {
                 throw new Error('OTP not found. Please request a new OTP.');
             }
+
+            const otpData = otpSetting.value; // Extract the actual OTP data
 
             // Check if OTP is expired
             const currentTime = Date.now();
@@ -345,14 +350,16 @@ class AuthManager {
                 throw new Error('Too many failed attempts. Please request a new OTP.');
             }
 
-            // Check if OTP matches
-            if (otpData.code === enteredOTP) {
+            // Check if OTP matches - FIXED: Use otpData.otp instead of otpData.code
+            if (otpData.otp === enteredOTP) {
                 // OTP verified successfully
-                await window.databaseManager.saveSetting(`otp_${phoneNumber}`, {
+                const updatedOtpData = {
                     ...otpData,
                     verified: true,
                     verifiedAt: currentTime
-                });
+                };
+                
+                await window.databaseManager.saveSetting(`otp_${phoneNumber}`, updatedOtpData);
                 
                 // Remove OTP display
                 this.removeOTPDisplay();
@@ -364,10 +371,12 @@ class AuthManager {
                 
             } else {
                 // Invalid OTP - increment attempts
-                await window.databaseManager.saveSetting(`otp_${phoneNumber}`, {
+                const updatedOtpData = {
                     ...otpData,
                     attempts: otpData.attempts + 1
-                });
+                };
+                
+                await window.databaseManager.saveSetting(`otp_${phoneNumber}`, updatedOtpData);
                 
                 const attemptsLeft = this.maxOtpAttempts - (otpData.attempts + 1);
                 
