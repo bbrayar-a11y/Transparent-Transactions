@@ -5,160 +5,671 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Transparent Transactions</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Simple Header -->
-        <div style="padding: 20px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-            <h1>Welcome to Your Dashboard!</h1>
-            <p>Account created successfully 🎉</p>
-        </div>
-
-        <!-- Quick Stats -->
-        <div style="padding: 20px;">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Account Status</h3>
-                    <p class="stat-amount">✅ Active</p>
-                    <small>Welcome to Transparent Transactions</small>
-                </div>
-                <div class="stat-card">
-                    <h3>Your Balance</h3>
-                    <p class="stat-amount">₹0.00</p>
-                    <small>Start transacting!</small>
-                </div>
-                <div class="stat-card">
-                    <h3>Trust Score</h3>
-                    <p class="stat-amount">100%</p>
-                    <small>New Member</small>
-                </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div style="margin-top: 30px; text-align: center;">
-                <h3>Get Started</h3>
-                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-top: 15px;">
-                    <button class="btn btn-primary" onclick="showReferralCode()">
-                        🎯 Get Referral Code
-                    </button>
-                    <button class="btn btn-secondary" onclick="addFirstContact()">
-                        👥 Add First Contact
-                    </button>
-                    <button class="btn btn-success" onclick="makeFirstTransaction()">
-                        💸 Make First Transaction
-                    </button>
-                </div>
-            </div>
-
-            <!-- User Info -->
-            <div style="background: white; padding: 20px; border-radius: 10px; margin-top: 30px; text-align: center;">
-                <h3>Your Account Information</h3>
-                <div id="userInfo">
-                    <p>Loading your information...</p>
-                </div>
-            </div>
-
-            <!-- Session Test -->
-            <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                <h4>Session Test</h4>
-                <button class="btn btn-info" onclick="testSession()">
-                    🔄 Test Session Persistence
-                </button>
-                <button class="btn btn-secondary" onclick="goToHome()">
-                    🏠 Go to Home
-                </button>
-                <button class="btn btn-logout" onclick="logout()">
-                    🚪 Logout
-                </button>
-            </div>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3>Loading Dashboard</h3>
+            <p>Please wait while we verify your session...</p>
         </div>
     </div>
 
+    <!-- Main App (initially hidden) -->
+    <div id="appContainer" class="app-container" style="display: none;">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>Transparent Transactions</h1>
+                    <div class="online-indicator" id="onlineIndicator">
+                        <span class="indicator-dot"></span>
+                        <span class="indicator-text">Online</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="user-info">
+                        <span class="user-name" id="userName">Loading...</span>
+                        <span class="user-phone" id="userPhone"></span>
+                    </div>
+                    <button class="btn-logout" onclick="handleLogout()">🚪 Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <div class="container">
+                <!-- Welcome Section -->
+                <section class="welcome-section">
+                    <div class="welcome-card">
+                        <h2>🎉 Welcome back, <span id="welcomeName">User</span>!</h2>
+                        <p>Your account is active and ready for transactions</p>
+                        <div class="member-since">
+                            Member since: <span id="memberSince">Loading...</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Quick Stats -->
+                <section class="stats-section">
+                    <h3>Your Overview</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">💰</div>
+                            <div class="stat-content">
+                                <h4>Account Balance</h4>
+                                <p class="stat-amount" id="balanceAmount">₹0.00</p>
+                                <small>Available funds</small>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">📊</div>
+                            <div class="stat-content">
+                                <h4>Trust Score</h4>
+                                <p class="stat-amount" id="trustScore">100%</p>
+                                <small>Reputation level</small>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">🔄</div>
+                            <div class="stat-content">
+                                <h4>Total Transactions</h4>
+                                <p class="stat-amount" id="transactionsCount">0</p>
+                                <small>All time</small>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">👥</div>
+                            <div class="stat-content">
+                                <h4>Contacts</h4>
+                                <p class="stat-amount" id="contactsCount">0</p>
+                                <small>Trusted users</small>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Quick Actions -->
+                <section class="actions-section">
+                    <h3>Quick Actions</h3>
+                    <div class="actions-grid">
+                        <button class="action-card" onclick="sendMoney()">
+                            <div class="action-icon">💸</div>
+                            <div class="action-text">Send Money</div>
+                        </button>
+                        
+                        <button class="action-card" onclick="addContact()">
+                            <div class="action-icon">👤</div>
+                            <div class="action-text">Add Contact</div>
+                        </button>
+                        
+                        <button class="action-card" onclick="showReferral()">
+                            <div class="action-icon">🎯</div>
+                            <div class="action-text">Referral Code</div>
+                        </button>
+                        
+                        <button class="action-card" onclick="viewProfile()">
+                            <div class="action-icon">👨‍💼</div>
+                            <div class="action-text">My Profile</div>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Recent Activity -->
+                <section class="activity-section">
+                    <div class="section-header">
+                        <h3>Recent Activity</h3>
+                        <button class="btn-link" onclick="viewAllActivity()">View All</button>
+                    </div>
+                    
+                    <div class="activity-list" id="activityList">
+                        <div class="empty-state">
+                            <p>No recent activity</p>
+                            <small>Your transactions will appear here</small>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Debug Panel (for testing) -->
+                <section class="debug-section" id="debugSection">
+                    <div class="section-header">
+                        <h4>🔧 Debug Information</h4>
+                        <button class="btn-link" onclick="toggleDebug()">Hide</button>
+                    </div>
+                    
+                    <div class="debug-content" id="debugContent">
+                        <div class="debug-grid">
+                            <div class="debug-item">
+                                <label>Session Status:</label>
+                                <span id="debugSessionStatus">Checking...</span>
+                            </div>
+                            <div class="debug-item">
+                                <label>User Phone:</label>
+                                <span id="debugUserPhone">Loading...</span>
+                            </div>
+                            <div class="debug-item">
+                                <label>Login Time:</label>
+                                <span id="debugLoginTime">Loading...</span>
+                            </div>
+                            <div class="debug-item">
+                                <label>Database Status:</label>
+                                <span id="debugDbStatus">Checking...</span>
+                            </div>
+                        </div>
+                        
+                        <div class="debug-actions">
+                            <button class="btn btn-info" onclick="checkSession()">🔍 Check Session</button>
+                            <button class="btn btn-info" onclick="refreshData()">🔄 Refresh Data</button>
+                            <button class="btn btn-warning" onclick="clearData()">🧹 Clear Data</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="dashboard-footer">
+            <div class="container">
+                <p>&copy; 2024 Transparent Transactions. Secure & Transparent Money Transfers.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="notification-container"></div>
+
+    <!-- Scripts in correct order -->
+    <script src="database.js"></script>
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+    
     <script>
-        // Load user info when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            loadUserInfo();
-            checkSession();
+        // Dashboard state
+        let dashboardData = {
+            user: null,
+            stats: null,
+            activities: []
+        };
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🏠 Dashboard initializing...');
+            
+            try {
+                // Wait for essential components
+                await waitForComponents();
+                
+                // Validate user session
+                await validateAndLoadSession();
+                
+            } catch (error) {
+                console.error('💥 Dashboard initialization failed:', error);
+                showFatalError('Failed to load dashboard. Please try again.');
+            }
         });
 
-        function loadUserInfo() {
-            const userData = localStorage.getItem('currentUser');
-            if (userData) {
-                try {
-                    const user = JSON.parse(userData);
-                    document.getElementById('userInfo').innerHTML = `
-                        <p><strong>Name:</strong> ${user.fullName || 'Not set'}</p>
-                        <p><strong>Phone:</strong> ${user.phone || 'Not set'}</p>
-                        <p><strong>Email:</strong> ${user.email || 'Not set'}</p>
-                        <p><strong>Member Since:</strong> ${new Date().toLocaleDateString()}</p>
-                    `;
-                } catch (error) {
-                    document.getElementById('userInfo').innerHTML = '<p>Error loading user info</p>';
+        // Wait for essential components to be ready
+        async function waitForComponents() {
+            const maxWaitTime = 10000; // 10 seconds
+            const startTime = Date.now();
+            
+            while (Date.now() - startTime < maxWaitTime) {
+                if (window.databaseManager && window.databaseManager.isReady() && 
+                    window.authManager && window.authManager.isInitialized) {
+                    console.log('✅ All components ready');
+                    return;
                 }
-            } else {
-                document.getElementById('userInfo').innerHTML = '<p>No user session found</p>';
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            throw new Error('Components not ready within timeout');
+        }
+
+        // Validate session and load data
+        async function validateAndLoadSession() {
+            try {
+                // Check if user is authenticated
+                if (!window.authManager.isAuthenticated()) {
+                    throw new Error('No active session');
+                }
+
+                // Validate session with database
+                const sessionValidation = await window.authManager.validateSession();
+                
+                if (!sessionValidation.valid) {
+                    throw new Error(sessionValidation.reason);
+                }
+
+                // Session is valid, load user data
+                dashboardData.user = sessionValidation.user;
+                console.log('✅ Session validated:', dashboardData.user.phone);
+                
+                // Load dashboard data
+                await loadDashboardData();
+                
+                // Show main app
+                showAppInterface();
+                
+                // Update debug info
+                updateDebugInfo();
+                
+            } catch (error) {
+                console.error('❌ Session validation failed:', error);
+                handleSessionError(error.message);
             }
         }
 
-        function checkSession() {
-            const userData = localStorage.getItem('currentUser');
-            if (!userData) {
-                alert('No session found! Redirecting to login...');
-                window.location.href = 'login.html';
+        // Load all dashboard data
+        async function loadDashboardData() {
+            try {
+                showLoadingMessage('Loading your data...');
+                
+                // Load user stats
+                await loadUserStats();
+                
+                // Load recent activity
+                await loadRecentActivity();
+                
+                // Update UI
+                updateDashboardUI();
+                
+                // Hide loading
+                hideLoadingScreen();
+                
+            } catch (error) {
+                console.error('❌ Data loading failed:', error);
+                showNotification('warning', 'Data Loading', 'Some data may not be current');
+            }
+        }
+
+        // Load user statistics
+        async function loadUserStats() {
+            try {
+                const userPhone = dashboardData.user.phone;
+                
+                // Get user profile for latest data
+                const userProfile = await window.databaseManager.getUser(userPhone);
+                if (userProfile) {
+                    dashboardData.user.profile = userProfile;
+                }
+                
+                // Calculate basic stats
+                const transactions = await window.databaseManager.getUserTransactions(userPhone);
+                const contacts = await window.databaseManager.getContacts(userPhone);
+                const commissions = await window.databaseManager.getUserCommissions(userPhone);
+                
+                dashboardData.stats = {
+                    balance: userProfile?.balance || 0,
+                    trustScore: userProfile?.trustScore || 100,
+                    transactionsCount: transactions.length,
+                    contactsCount: contacts.length,
+                    totalEarnings: commissions.filter(c => c.status === 'paid')
+                                           .reduce((sum, c) => sum + (c.amount || 0), 0)
+                };
+                
+            } catch (error) {
+                console.error('❌ Stats loading error:', error);
+                // Set default stats
+                dashboardData.stats = {
+                    balance: 0,
+                    trustScore: 100,
+                    transactionsCount: 0,
+                    contactsCount: 0,
+                    totalEarnings: 0
+                };
+            }
+        }
+
+        // Load recent activity
+        async function loadRecentActivity() {
+            try {
+                const userPhone = dashboardData.user.phone;
+                const transactions = await window.databaseManager.getUserTransactions(userPhone);
+                
+                // Get last 5 transactions, sorted by date
+                dashboardData.activities = transactions
+                    .sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate))
+                    .slice(0, 5)
+                    .map(tx => ({
+                        type: 'transaction',
+                        id: tx.id,
+                        amount: tx.amount,
+                        description: tx.description,
+                        date: tx.createdDate,
+                        status: tx.status,
+                        isIncoming: tx.toPhone === userPhone
+                    }));
+                    
+            } catch (error) {
+                console.error('❌ Activity loading error:', error);
+                dashboardData.activities = [];
+            }
+        }
+
+        // Update dashboard UI with loaded data
+        function updateDashboardUI() {
+            if (!dashboardData.user || !dashboardData.stats) return;
+            
+            // User info
+            document.getElementById('userName').textContent = 
+                dashboardData.user.profile?.fullName || 'User';
+            document.getElementById('userPhone').textContent = 
+                formatPhone(dashboardData.user.phone);
+            document.getElementById('welcomeName').textContent = 
+                dashboardData.user.profile?.fullName || 'there';
+            document.getElementById('memberSince').textContent = 
+                new Date(dashboardData.user.profile?.createdAt || Date.now()).toLocaleDateString();
+            
+            // Stats
+            document.getElementById('balanceAmount').textContent = 
+                formatCurrency(dashboardData.stats.balance);
+            document.getElementById('trustScore').textContent = 
+                `${dashboardData.stats.trustScore}%`;
+            document.getElementById('transactionsCount').textContent = 
+                dashboardData.stats.transactionsCount.toString();
+            document.getElementById('contactsCount').textContent = 
+                dashboardData.stats.contactsCount.toString();
+            
+            // Recent activity
+            updateActivityList();
+            
+            // Online indicator
+            updateOnlineStatus();
+        }
+
+        // Update activity list
+        function updateActivityList() {
+            const activityList = document.getElementById('activityList');
+            
+            if (dashboardData.activities.length === 0) {
+                activityList.innerHTML = `
+                    <div class="empty-state">
+                        <p>No recent activity</p>
+                        <small>Your transactions will appear here</small>
+                    </div>
+                `;
                 return;
             }
             
-            console.log('Session check passed:', JSON.parse(userData));
+            activityList.innerHTML = dashboardData.activities.map(activity => `
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        ${activity.isIncoming ? '📥' : '📤'}
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-title">
+                            ${activity.isIncoming ? 'Received' : 'Sent'} Money
+                        </div>
+                        <div class="activity-description">
+                            ${activity.description || 'Transaction'}
+                        </div>
+                        <div class="activity-date">
+                            ${new Date(activity.date).toLocaleDateString()}
+                        </div>
+                    </div>
+                    <div class="activity-amount ${activity.isIncoming ? 'positive' : 'negative'}">
+                        ${activity.isIncoming ? '+' : '-'}${formatCurrency(activity.amount)}
+                    </div>
+                </div>
+            `).join('');
         }
 
-        function showReferralCode() {
-            const userData = localStorage.getItem('currentUser');
-            if (userData) {
-                const user = JSON.parse(userData);
-                const referralCode = `TT${user.phone.slice(-6)}${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
-                alert(`Your Referral Code: ${referralCode}\n\nShare this with friends to earn commissions!`);
-            } else {
-                alert('Please login first');
+        // Show main app interface
+        function showAppInterface() {
+            document.getElementById('loadingScreen').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            
+            showNotification('success', 'Welcome Back', 
+                `Good to see you, ${dashboardData.user.profile?.fullName || 'there'}!`);
+        }
+
+        // Handle session errors
+        function handleSessionError(errorMessage) {
+            hideLoadingScreen();
+            
+            const errorHtml = `
+                <div class="error-screen">
+                    <div class="error-content">
+                        <h2>🔐 Session Error</h2>
+                        <p>${errorMessage}</p>
+                        <div class="error-actions">
+                            <button class="btn btn-primary" onclick="goToLogin()">
+                                Go to Login
+                            </button>
+                            <button class="btn btn-secondary" onclick="retryInitialization()">
+                                Try Again
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.innerHTML = errorHtml;
+        }
+
+        // Show fatal error
+        function showFatalError(message) {
+            hideLoadingScreen();
+            
+            const errorHtml = `
+                <div class="error-screen">
+                    <div class="error-content">
+                        <h2>💥 Application Error</h2>
+                        <p>${message}</p>
+                        <div class="error-actions">
+                            <button class="btn btn-primary" onclick="window.location.reload()">
+                                Reload Application
+                            </button>
+                            <button class="btn btn-secondary" onclick="goToLogin()">
+                                Go to Login
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.innerHTML = errorHtml;
+        }
+
+        // ACTION HANDLERS
+
+        async function handleLogout() {
+            try {
+                showLoadingMessage('Logging out...');
+                
+                await window.authManager.logout();
+                
+                showNotification('success', 'Logged Out', 'You have been signed out successfully');
+                
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+                
+            } catch (error) {
+                console.error('❌ Logout error:', error);
+                // Force logout anyway
+                localStorage.removeItem('currentUser');
+                window.location.href = 'index.html';
             }
         }
 
-        function addFirstContact() {
-            alert('Add contact feature would open here');
+        function sendMoney() {
+            showNotification('info', 'Send Money', 'This feature will be available soon!');
+            // TODO: Implement send money flow
         }
 
-        function makeFirstTransaction() {
-            alert('Make transaction feature would open here');
+        function addContact() {
+            showNotification('info', 'Add Contact', 'This feature will be available soon!');
+            // TODO: Implement add contact flow
         }
 
-        function testSession() {
-            const userData = localStorage.getItem('currentUser');
-            if (userData) {
-                alert('✅ Session is persistent! User data found in localStorage.');
-                console.log('Current session:', JSON.parse(userData));
-            } else {
-                alert('❌ No session found! This is the issue.');
+        function showReferral() {
+            if (dashboardData.user) {
+                const referralCode = generateReferralCode();
+                showNotification('success', 'Your Referral Code', 
+                    `Share this code: ${referralCode}\nEarn commissions when friends join!`);
             }
         }
 
-        function goToHome() {
-            window.location.href = 'index.html';
+        function viewProfile() {
+            showNotification('info', 'Profile', 'Profile section coming soon!');
+            // TODO: Navigate to profile page
         }
 
-        function logout() {
-            localStorage.removeItem('currentUser');
-            alert('Logged out successfully');
-            window.location.href = 'index.html';
+        function viewAllActivity() {
+            showNotification('info', 'Activity', 'Full activity history coming soon!');
+            // TODO: Navigate to transactions page
         }
 
-        // Prevent redirect if we have a session
-        const userData = localStorage.getItem('currentUser');
-        if (!userData) {
-            console.log('No user session, allowing potential redirect');
-        } else {
-            console.log('User session found, blocking redirects');
-            // Override any redirect attempts
-            window.location.href = window.location.href;
+        // DEBUG FUNCTIONS
+
+        function toggleDebug() {
+            const debugContent = document.getElementById('debugContent');
+            const toggleBtn = document.querySelector('#debugSection .btn-link');
+            
+            if (debugContent.style.display === 'none') {
+                debugContent.style.display = 'block';
+                toggleBtn.textContent = 'Hide';
+            } else {
+                debugContent.style.display = 'none';
+                toggleBtn.textContent = 'Show';
+            }
         }
+
+        function updateDebugInfo() {
+            if (!dashboardData.user) return;
+            
+            document.getElementById('debugSessionStatus').textContent = 'Valid';
+            document.getElementById('debugSessionStatus').className = 'status-valid';
+            document.getElementById('debugUserPhone').textContent = dashboardData.user.phone;
+            document.getElementById('debugLoginTime').textContent = 
+                new Date(dashboardData.user.loginTime).toLocaleString();
+            document.getElementById('debugDbStatus').textContent = 
+                window.databaseManager.isReady() ? 'Connected' : 'Disconnected';
+            document.getElementById('debugDbStatus').className = 
+                window.databaseManager.isReady() ? 'status-valid' : 'status-error';
+        }
+
+        async function checkSession() {
+            try {
+                const validation = await window.authManager.validateSession();
+                showNotification(
+                    validation.valid ? 'success' : 'warning',
+                    'Session Check',
+                    validation.valid ? 'Session is valid' : `Session issue: ${validation.reason}`
+                );
+                updateDebugInfo();
+            } catch (error) {
+                showNotification('error', 'Session Check Failed', error.message);
+            }
+        }
+
+        async function refreshData() {
+            showLoadingMessage('Refreshing data...');
+            await loadDashboardData();
+            showNotification('success', 'Data Refreshed', 'Your dashboard has been updated');
+        }
+
+        function clearData() {
+            if (confirm('Are you sure you want to clear all local data? This will log you out.')) {
+                localStorage.clear();
+                window.location.href = 'index.html';
+            }
+        }
+
+        // UTILITY FUNCTIONS
+
+        function showLoadingMessage(message) {
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (loadingScreen) {
+                loadingScreen.querySelector('p').textContent = message;
+            }
+        }
+
+        function hideLoadingScreen() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (loadingScreen) {
+                loadingScreen.style.display = 'none';
+            }
+        }
+
+        function showNotification(type, title, message) {
+            // Use app.js notification system if available
+            if (window.app && window.app.showNotification) {
+                window.app.showNotification({ type, title, message });
+                return;
+            }
+            
+            // Fallback notification system
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <div class="notification-title">${title}</div>
+                <div class="notification-message">${message}</div>
+            `;
+            
+            const container = document.getElementById('notificationContainer');
+            container.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 5000);
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                minimumFractionDigits: 2
+            }).format(amount);
+        }
+
+        function formatPhone(phone) {
+            return phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+        }
+
+        function generateReferralCode() {
+            const phone = dashboardData.user.phone;
+            return `TT${phone.slice(-6)}${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
+        }
+
+        function updateOnlineStatus() {
+            const indicator = document.getElementById('onlineIndicator');
+            if (navigator.onLine) {
+                indicator.className = 'online-indicator online';
+                indicator.querySelector('.indicator-text').textContent = 'Online';
+            } else {
+                indicator.className = 'online-indicator offline';
+                indicator.querySelector('.indicator-text').textContent = 'Offline';
+            }
+        }
+
+        function goToLogin() {
+            window.location.href = 'login.html';
+        }
+
+        function retryInitialization() {
+            window.location.reload();
+        }
+
+        // Event listeners
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        
+        // Update activity every minute
+        setInterval(() => {
+            if (dashboardData.user) {
+                window.authManager.updateUserActivity();
+            }
+        }, 60000);
     </script>
 </body>
 </html>
