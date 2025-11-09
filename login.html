@@ -103,94 +103,18 @@
     <script>
         // Current registration state
         let currentRegistrationData = null;
-        let componentsReady = false;
+        let isSystemReady = false;
 
-        // Initialize everything when page loads
+        // Simple initialization - just wait for scripts to load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔐 Login page loaded - initializing...');
-            initializeApp();
+            console.log('🔐 Login page loaded');
+            
+            // Setup event listeners immediately
+            setupEventListeners();
+            
+            // Check system readiness after a short delay
+            setTimeout(checkSystemReadiness, 1000);
         });
-
-        async function initializeApp() {
-            try {
-                console.log('🔄 Starting component initialization...');
-                
-                // Wait for scripts to load
-                await waitForScripts();
-                
-                // Initialize database
-                await initializeDatabase();
-                
-                // Initialize auth manager
-                await initializeAuthManager();
-                
-                componentsReady = true;
-                console.log('✅ All components ready!');
-                
-                // Setup event listeners
-                setupEventListeners();
-                
-                // Check if already authenticated
-                checkExistingAuth();
-                
-            } catch (error) {
-                console.error('❌ App initialization failed:', error);
-                showMessage('System initialization issue. Please refresh the page.', 'error', 'message');
-                // Still setup event listeners for retry
-                setupEventListeners();
-            }
-        }
-
-        async function waitForScripts() {
-            // Wait for essential scripts to load
-            let attempts = 0;
-            while (attempts < 10) {
-                if (window.databaseManager && window.authManager) {
-                    console.log('✅ Scripts loaded');
-                    return;
-                }
-                await new Promise(resolve => setTimeout(resolve, 200));
-                attempts++;
-            }
-            throw new Error('Scripts not loaded after timeout');
-        }
-
-        async function initializeDatabase() {
-            if (!window.databaseManager) {
-                throw new Error('Database manager not found');
-            }
-            
-            let attempts = 0;
-            while (attempts < 5) {
-                try {
-                    await window.databaseManager.init();
-                    console.log('✅ Database initialized');
-                    return;
-                } catch (error) {
-                    attempts++;
-                    if (attempts === 5) throw error;
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                }
-            }
-        }
-
-        async function initializeAuthManager() {
-            if (!window.authManager) {
-                throw new Error('Auth manager not found');
-            }
-            
-            // Wait for auth manager to self-initialize
-            let attempts = 0;
-            while (attempts < 10) {
-                if (window.authManager.isInitialized) {
-                    console.log('✅ Auth manager initialized');
-                    return;
-                }
-                await new Promise(resolve => setTimeout(resolve, 300));
-                attempts++;
-            }
-            throw new Error('Auth manager not initialized after timeout');
-        }
 
         function setupEventListeners() {
             console.log('🔧 Setting up event listeners...');
@@ -225,32 +149,35 @@
             document.getElementById('otpInput').addEventListener('input', function(e) {
                 this.value = this.value.replace(/\D/g, '').slice(0, 6);
             });
-            
-            console.log('✅ Event listeners setup complete');
         }
 
-        function checkExistingAuth() {
-            if (window.authManager && window.authManager.isAuthenticated()) {
-                console.log('✅ User already authenticated, redirecting...');
-                showMessage('You are already logged in. Redirecting to dashboard...', 'info', 'message');
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 1000);
+        function checkSystemReadiness() {
+            console.log('🔍 Checking system readiness...');
+            console.log('Database manager:', !!window.databaseManager);
+            console.log('Auth manager:', !!window.authManager);
+            console.log('Auth manager initialized:', window.authManager?.isInitialized);
+            
+            // Check if essential components are available
+            if (window.databaseManager && window.authManager) {
+                isSystemReady = true;
+                console.log('✅ System is ready!');
+                showMessage('System ready! You can now create an account.', 'success', 'message');
+            } else {
+                console.log('⚠️ System not ready yet, retrying...');
+                // Try again in 2 seconds
+                setTimeout(checkSystemReadiness, 2000);
             }
         }
 
         // REGISTRATION FLOW
 
         async function handleRegistration() {
-            console.log('🔄 Registration flow started');
+            console.log('🔄 Registration attempted');
+            console.log('System ready:', isSystemReady);
+            console.log('Auth manager:', !!window.authManager);
             
-            if (!componentsReady) {
-                showMessage('🔄 System still initializing... Please wait.', 'warning', 'message');
-                return;
-            }
-
-            if (!window.authManager || !window.authManager.isInitialized) {
-                showMessage('❌ Authentication system not ready. Please refresh.', 'error', 'message');
+            if (!isSystemReady) {
+                showMessage('🔄 Please wait... System is still loading.', 'warning', 'message');
                 return;
             }
 
@@ -282,7 +209,7 @@
             showMessage('Sending OTP...', 'info', 'message');
 
             try {
-                console.log('📱 Sending OTP to:', phone);
+                console.log('📱 Attempting to send OTP...');
                 const result = await window.authManager.sendOTP(phone);
                 
                 if (result.success) {
@@ -294,7 +221,7 @@
                 
             } catch (error) {
                 console.error('❌ OTP send failed:', error);
-                showMessage(error.message || 'Failed to send OTP. Please try again.', 'error', 'message');
+                showMessage('Failed to send OTP: ' + error.message, 'error', 'message');
             } finally {
                 setButtonLoading('registerBtn', false);
             }
@@ -328,7 +255,7 @@
                 
             } catch (error) {
                 console.error('❌ OTP verification failed:', error);
-                showMessage(error.message || 'OTP verification failed', 'error', 'otpMessage');
+                showMessage('OTP verification failed: ' + error.message, 'error', 'otpMessage');
             } finally {
                 setButtonLoading('verifyOtpBtn', false);
             }
@@ -354,7 +281,7 @@
                 
             } catch (error) {
                 console.error('❌ Registration failed:', error);
-                showMessage(error.message || 'Account creation failed', 'error', 'otpMessage');
+                showMessage('Account creation failed: ' + error.message, 'error', 'otpMessage');
             } finally {
                 showLoadingOverlay(false);
             }
@@ -382,7 +309,7 @@
                 
             } catch (error) {
                 console.error('❌ OTP resend failed:', error);
-                showMessage(error.message || 'Failed to resend OTP', 'error', 'otpMessage');
+                showMessage('Failed to resend OTP: ' + error.message, 'error', 'otpMessage');
             } finally {
                 setButtonLoading('resendOtpBtn', false);
             }
