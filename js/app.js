@@ -1,5 +1,5 @@
-// app.js - Enhanced Main Application Orchestrator for Transparent Transactions
-// Now with comprehensive dashboard functionality and user management
+// app.js - Enhanced with Passwordless Login Integration
+// Now with automatic session management and device recognition
 
 class TransparentTransactionsApp {
     constructor() {
@@ -8,6 +8,7 @@ class TransparentTransactionsApp {
         this.isOnline = navigator.onLine;
         this.userStats = null;
         this.dashboardData = null;
+        this.isAutoLoggedIn = false;
         this.init();
     }
 
@@ -19,14 +20,19 @@ class TransparentTransactionsApp {
             // Initialize core components in sequence
             await this.initializeCoreComponents();
             
-            // Setup application event listeners
-            this.setupEventListeners();
+            // Check for automatic login first
+            const autoLoggedIn = await this.checkAutoLogin();
             
-            // Check authentication state
-            await this.checkAuthentication();
-            
-            // Load initial data
-            await this.loadInitialData();
+            if (!autoLoggedIn) {
+                // Setup application event listeners
+                this.setupEventListeners();
+                
+                // Check authentication state
+                await this.checkAuthentication();
+                
+                // Load initial data
+                await this.loadInitialData();
+            }
             
             // Update UI based on current state
             this.updateApplicationUI();
@@ -36,7 +42,8 @@ class TransparentTransactionsApp {
             // Trigger app ready event
             this.triggerAppEvent('appReady', {
                 user: this.currentUser,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                autoLoggedIn: this.isAutoLoggedIn
             });
             
         } catch (error) {
@@ -45,7 +52,31 @@ class TransparentTransactionsApp {
         }
     }
 
-    // Initialize all core components
+    // Check for automatic login via device recognition
+    async checkAutoLogin() {
+        // If we're already on dashboard and have auth manager, check for auto-login
+        if (window.location.pathname.includes('dashboard.html') && window.authManager) {
+            if (window.authManager.isAuthenticated()) {
+                this.currentUser = window.authManager.getCurrentUser();
+                this.isAutoLoggedIn = true;
+                console.log('✅ Auto-login successful for:', this.currentUser.phone);
+                return true;
+            }
+        }
+        
+        // If on login page but user is already authenticated, redirect to dashboard
+        if (window.location.pathname.includes('login.html') && window.authManager) {
+            if (window.authManager.isAuthenticated()) {
+                console.log('🔍 User already authenticated, redirecting to dashboard...');
+                window.location.href = 'dashboard.html';
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    // Enhanced core components initialization
     async initializeCoreComponents() {
         console.log('🔄 Initializing core components...');
         
@@ -56,9 +87,16 @@ class TransparentTransactionsApp {
             throw new Error('Database manager not found');
         }
         
-        // Initialize auth manager
+        // Initialize auth manager (this handles auto-login internally)
         if (window.authManager) {
             await window.authManager.init();
+            
+            // Check if auth manager auto-logged us in
+            if (window.authManager.isAuthenticated() && !this.currentUser) {
+                this.currentUser = window.authManager.getCurrentUser();
+                this.isAutoLoggedIn = true;
+                console.log('✅ Auto-login detected during auth init:', this.currentUser.phone);
+            }
         }
         
         // Initialize referral manager if exists
@@ -71,6 +109,232 @@ class TransparentTransactionsApp {
         
         console.log('✅ All core components initialized');
     }
+
+    // Enhanced authentication check
+    async checkAuthentication() {
+        if (this.isAutoLoggedIn) {
+            console.log('🔐 User auto-authenticated:', this.currentUser.phone);
+            return;
+        }
+
+        if (window.authManager && window.authManager.isAuthenticated()) {
+            this.currentUser = window.authManager.getCurrentUser();
+            console.log('🔐 User authenticated:', this.currentUser.phone);
+        } else {
+            console.log('🔐 No authenticated user found');
+            
+            // Don't redirect if we're already on login page or homepage
+            if (!window.location.pathname.includes('login.html') && 
+                !window.location.pathname.includes('index.html')) {
+                this.redirectToLogin();
+            }
+        }
+    }
+
+    // Enhanced authentication state handler
+    handleAuthStateChange(authDetail) {
+        console.log('🔄 Auth state changed:', authDetail.action);
+        
+        switch (authDetail.action) {
+            case 'login':
+                this.currentUser = authDetail.user;
+                this.isAutoLoggedIn = authDetail.user.deviceId ? true : false;
+                
+                // If this was an auto-login, we might already be on dashboard
+                if (this.isAutoLoggedIn && !window.location.pathname.includes('dashboard.html')) {
+                    window.location.href = 'dashboard.html';
+                } else {
+                    this.loadInitialData().then(() => {
+                        this.navigateTo('dashboard');
+                    });
+                }
+                break;
+                
+            case 'logout':
+                this.currentUser = null;
+                this.userStats = null;
+                this.dashboardData = null;
+                this.isAutoLoggedIn = false;
+                
+                // If we're on dashboard, redirect to login
+                if (window.location.pathname.includes('dashboard.html')) {
+                    this.redirectToLogin();
+                }
+                break;
+        }
+        
+        this.updateApplicationUI();
+    }
+
+    // Enhanced logout with device disassociation
+    async logout() {
+        if (window.authManager) {
+            // Use manual logout to prevent immediate auto-login
+            await window.authManager.manualLogout();
+        } else {
+            this.redirectToLogin();
+        }
+    }
+
+    // Enhanced navigation with auto-login consideration
+    navigateTo(page, data = {}) {
+        // Don't navigate if this is an auto-login and we're already on the target page
+        if (this.isAutoLoggedIn && this.currentPage === page && window.location.pathname.includes(`${page}.html`)) {
+            console.log('🧭 Auto-login: Already on target page', page);
+            return;
+        }
+
+        console.log('🧭 Navigating to:', page);
+        
+        // Save current page state
+        this.savePageState(this.currentPage);
+        
+        // Update current page
+        this.currentPage = page;
+        
+        // Hide all pages
+        this.hideAllPages();
+        
+        // Show target page
+        const targetPage = document.getElementById(`${page}-page`);
+        if (targetPage) {
+            targetPage.style.display = 'block';
+            targetPage.classList.add('active');
+            
+            // Load page-specific data
+            this.loadPageData(page, data);
+            
+            this.triggerAppEvent('pageChanged', {
+                from: this.currentPage,
+                to: page,
+                data: data,
+                autoLoggedIn: this.isAutoLoggedIn
+            });
+        } else {
+            console.error('❌ Page not found:', page);
+            this.showError('Page not found');
+        }
+        
+        // Update navigation UI
+        this.updateNavigationUI();
+    }
+
+    // Enhanced application state management
+    saveApplicationState() {
+        const state = {
+            currentPage: this.currentPage,
+            user: this.currentUser ? {
+                phone: this.currentUser.phone,
+                isAuthenticated: this.currentUser.isAuthenticated
+            } : null,
+            isAutoLoggedIn: this.isAutoLoggedIn,
+            timestamp: new Date().toISOString()
+        };
+        
+        localStorage.setItem('appState', JSON.stringify(state));
+    }
+
+    async restoreApplicationState() {
+        try {
+            const state = JSON.parse(localStorage.getItem('appState'));
+            if (state && state.user && state.user.isAuthenticated) {
+                this.currentPage = state.currentPage || 'dashboard';
+                this.isAutoLoggedIn = state.isAutoLoggedIn || false;
+                return true;
+            }
+        } catch (error) {
+            console.warn('⚠️ Could not restore app state:', error);
+        }
+        return false;
+    }
+
+    // Enhanced user content update for auto-login
+    updateUserContent() {
+        if (this.currentUser && this.currentUser.profile) {
+            // Update user name displays
+            const nameElements = document.querySelectorAll('[data-user-name]');
+            nameElements.forEach(element => {
+                element.textContent = this.currentUser.profile.fullName || this.currentUser.phone;
+            });
+            
+            // Update user phone displays
+            const phoneElements = document.querySelectorAll('[data-user-phone]');
+            phoneElements.forEach(element => {
+                element.textContent = this.currentUser.phone;
+            });
+            
+            // Update user trust level
+            const trustElements = document.querySelectorAll('[data-user-trust]');
+            trustElements.forEach(element => {
+                element.textContent = this.userStats?.trustLevel || 'Beginner';
+            });
+
+            // Show auto-login indicator if applicable
+            if (this.isAutoLoggedIn) {
+                const autoLoginIndicator = document.getElementById('auto-login-indicator');
+                if (autoLoginIndicator) {
+                    autoLoginIndicator.style.display = 'inline';
+                    autoLoginIndicator.title = 'Automatically logged in via device recognition';
+                }
+            }
+        }
+    }
+
+    // Enhanced online status with auto-login info
+    updateOnlineStatusUI() {
+        const indicator = document.getElementById('online-status');
+        if (indicator) {
+            indicator.className = this.isOnline ? 'online' : 'offline';
+            let title = this.isOnline ? 'Online' : 'Offline';
+            if (this.isAutoLoggedIn) {
+                title += ' • Auto-logged in';
+            }
+            indicator.title = title;
+        }
+    }
+
+    // New method: Get login method info
+    getLoginMethod() {
+        return this.isAutoLoggedIn ? 'auto' : 'manual';
+    }
+
+    // New method: Handle device management
+    async getDeviceInfo() {
+        if (window.authManager) {
+            return window.authManager.getDeviceInfo();
+        }
+        return null;
+    }
+
+    // Enhanced app status with login method
+    getAppStatus() {
+        return {
+            user: this.currentUser,
+            page: this.currentPage,
+            online: this.isOnline,
+            stats: this.userStats,
+            loginMethod: this.getLoginMethod(),
+            autoLoggedIn: this.isAutoLoggedIn,
+            components: {
+                database: !!window.databaseManager,
+                auth: !!window.authManager,
+                referral: !!window.referralManager
+            }
+        };
+    }
+
+    // ===== ALL EXISTING METHODS REMAIN THE SAME =====
+    // (registerServiceWorker, setupEventListeners, loadInitialData, loadEnhancedUserStats,
+    // calculateTotalBalance, calculateTrustLevel, handleOnlineStatusChange, handleVisibilityChange,
+    // handleGlobalClick, navigateBack, hideAllPages, updateNavigationUI, updatePageTitle,
+    // updateBreadcrumbs, loadPageData, loadEnhancedDashboardData, calculateQuickStats,
+    // calculateMonthlyGrowth, updateDashboardUI, updateStatsCards, updateRecentTransactions,
+    // updateRecentCommissions, updateQuickStats, updateDashboardCharts, addNewTransaction,
+    // getTransactionHistory, updateUserProfile, changeUserPassword, generateReferralCode,
+    // getReferralStatistics, loadReferralsData, updateReferralsUI, formatCurrency, maskPhone,
+    // showNotification, createNotificationContainer, showError, showFatalError, redirectToLogin,
+    // savePageState, getPreviousPage, refreshDashboardData, refreshAllData, updateApplicationUI,
+    // updateAuthUI, loadTransactionsData, loadProfileData, loadSettingsData, triggerAppEvent)
 
     // Register service worker for offline functionality
     async registerServiceWorker() {
@@ -120,17 +384,6 @@ class TransparentTransactionsApp {
         });
         
         console.log('✅ Event listeners setup complete');
-    }
-
-    // Check user authentication status
-    async checkAuthentication() {
-        if (window.authManager && window.authManager.isAuthenticated()) {
-            this.currentUser = window.authManager.getCurrentUser();
-            console.log('🔐 User authenticated:', this.currentUser.phone);
-        } else {
-            console.log('🔐 No authenticated user found');
-            this.redirectToLogin();
-        }
     }
 
     // Load initial application data
@@ -246,29 +499,6 @@ class TransparentTransactionsApp {
         return 'Beginner';
     }
 
-    // Handle authentication state changes
-    handleAuthStateChange(authDetail) {
-        console.log('🔄 Auth state changed:', authDetail.action);
-        
-        switch (authDetail.action) {
-            case 'login':
-                this.currentUser = authDetail.user;
-                this.loadInitialData().then(() => {
-                    this.navigateTo('dashboard');
-                });
-                break;
-                
-            case 'logout':
-                this.currentUser = null;
-                this.userStats = null;
-                this.dashboardData = null;
-                this.redirectToLogin();
-                break;
-        }
-        
-        this.updateApplicationUI();
-    }
-
     // Handle online/offline status changes
     handleOnlineStatusChange(online) {
         this.isOnline = online;
@@ -323,42 +553,6 @@ class TransparentTransactionsApp {
             event.preventDefault();
             this.logout();
         }
-    }
-
-    // Navigate to specific page
-    navigateTo(page, data = {}) {
-        console.log('🧭 Navigating to:', page);
-        
-        // Save current page state
-        this.savePageState(this.currentPage);
-        
-        // Update current page
-        this.currentPage = page;
-        
-        // Hide all pages
-        this.hideAllPages();
-        
-        // Show target page
-        const targetPage = document.getElementById(`${page}-page`);
-        if (targetPage) {
-            targetPage.style.display = 'block';
-            targetPage.classList.add('active');
-            
-            // Load page-specific data
-            this.loadPageData(page, data);
-            
-            this.triggerAppEvent('pageChanged', {
-                from: this.currentPage,
-                to: page,
-                data: data
-            });
-        } else {
-            console.error('❌ Page not found:', page);
-            this.showError('Page not found');
-        }
-        
-        // Update navigation UI
-        this.updateNavigationUI();
     }
 
     // Navigate back to previous page
@@ -958,15 +1152,6 @@ class TransparentTransactionsApp {
         window.location.href = 'login.html';
     }
 
-    // Logout user
-    async logout() {
-        if (window.authManager) {
-            await window.authManager.logout();
-        } else {
-            this.redirectToLogin();
-        }
-    }
-
     // Save current page state
     savePageState(page) {
         const state = {
@@ -983,34 +1168,6 @@ class TransparentTransactionsApp {
         const pages = ['dashboard', 'transactions', 'contacts', 'reports', 'profile', 'settings', 'referrals'];
         const currentIndex = pages.indexOf(this.currentPage);
         return currentIndex > 0 ? pages[currentIndex - 1] : null;
-    }
-
-    // Save application state
-    saveApplicationState() {
-        const state = {
-            currentPage: this.currentPage,
-            user: this.currentUser ? {
-                phone: this.currentUser.phone,
-                isAuthenticated: this.currentUser.isAuthenticated
-            } : null,
-            timestamp: new Date().toISOString()
-        };
-        
-        localStorage.setItem('appState', JSON.stringify(state));
-    }
-
-    // Restore application state
-    async restoreApplicationState() {
-        try {
-            const state = JSON.parse(localStorage.getItem('appState'));
-            if (state && state.user && state.user.isAuthenticated) {
-                this.currentPage = state.currentPage || 'dashboard';
-                return true;
-            }
-        } catch (error) {
-            console.warn('⚠️ Could not restore app state:', error);
-        }
-        return false;
     }
 
     // Refresh dashboard data
@@ -1066,38 +1223,6 @@ class TransparentTransactionsApp {
         });
     }
 
-    // Update online/offline status indicator
-    updateOnlineStatusUI() {
-        const indicator = document.getElementById('online-status');
-        if (indicator) {
-            indicator.className = this.isOnline ? 'online' : 'offline';
-            indicator.title = this.isOnline ? 'Online' : 'Offline';
-        }
-    }
-
-    // Update user-specific content
-    updateUserContent() {
-        if (this.currentUser && this.currentUser.profile) {
-            // Update user name displays
-            const nameElements = document.querySelectorAll('[data-user-name]');
-            nameElements.forEach(element => {
-                element.textContent = this.currentUser.profile.fullName || this.currentUser.phone;
-            });
-            
-            // Update user phone displays
-            const phoneElements = document.querySelectorAll('[data-user-phone]');
-            phoneElements.forEach(element => {
-                element.textContent = this.currentUser.phone;
-            });
-            
-            // Update user trust level
-            const trustElements = document.querySelectorAll('[data-user-trust]');
-            trustElements.forEach(element => {
-                element.textContent = this.userStats?.trustLevel || 'Beginner';
-            });
-        }
-    }
-
     // Load transactions page data
     async loadTransactionsData() {
         console.log('Loading transactions data...');
@@ -1122,21 +1247,6 @@ class TransparentTransactionsApp {
             detail: detail
         });
         document.dispatchEvent(event);
-    }
-
-    // Public method to get app status
-    getAppStatus() {
-        return {
-            user: this.currentUser,
-            page: this.currentPage,
-            online: this.isOnline,
-            stats: this.userStats,
-            components: {
-                database: !!window.databaseManager,
-                auth: !!window.authManager,
-                referral: !!window.referralManager
-            }
-        };
     }
 }
 
