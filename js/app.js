@@ -1,49 +1,48 @@
-// app.js - Enhanced with Passwordless Login Integration
-// Now with automatic session management and device recognition
+// app.js - Core Application Logic for Transparent Transactions
+// Builds on database.js and auth.js foundation
 
 class TransparentTransactionsApp {
     constructor() {
         this.currentUser = null;
-        this.currentPage = 'dashboard';
         this.isOnline = navigator.onLine;
+        this.isInitialized = false;
         this.userStats = null;
         this.dashboardData = null;
-        this.isAutoLoggedIn = false;
+        
+        // Initialize when class is created
         this.init();
     }
 
-    // Initialize the application
     async init() {
+        if (this.isInitialized) {
+            console.log('✅ App already initialized');
+            return;
+        }
+
         console.log('🚀 Transparent Transactions App Initializing...');
         
         try {
-            // Initialize core components in sequence
-            await this.initializeCoreComponents();
+            // Wait for essential components
+            await this.waitForComponents();
             
-            // Check for automatic login first
-            const autoLoggedIn = await this.checkAutoLogin();
+            // Setup event listeners
+            this.setupEventListeners();
             
-            if (!autoLoggedIn) {
-                // Setup application event listeners
-                this.setupEventListeners();
-                
-                // Check authentication state
-                await this.checkAuthentication();
-                
-                // Load initial data
+            // Check authentication state
+            await this.checkAuthentication();
+            
+            // Load initial data if authenticated
+            if (this.currentUser) {
                 await this.loadInitialData();
             }
             
-            // Update UI based on current state
-            this.updateApplicationUI();
-            
+            this.isInitialized = true;
             console.log('✅ Transparent Transactions App Ready');
             
             // Trigger app ready event
             this.triggerAppEvent('appReady', {
                 user: this.currentUser,
-                timestamp: new Date().toISOString(),
-                autoLoggedIn: this.isAutoLoggedIn
+                timestamp: new Date().toISOString()
             });
             
         } catch (error) {
@@ -52,307 +51,113 @@ class TransparentTransactionsApp {
         }
     }
 
-    // Check for automatic login via device recognition
-    async checkAutoLogin() {
-        // If we're already on dashboard and have auth manager, check for auto-login
-        if (window.location.pathname.includes('dashboard.html') && window.authManager) {
-            if (window.authManager.isAuthenticated()) {
-                this.currentUser = window.authManager.getCurrentUser();
-                this.isAutoLoggedIn = true;
-                console.log('✅ Auto-login successful for:', this.currentUser.phone);
-                return true;
+    async waitForComponents() {
+        const maxWaitTime = 10000; // 10 seconds
+        const startTime = Date.now();
+        
+        while (Date.now() - startTime < maxWaitTime) {
+            if (window.databaseManager && window.databaseManager.isReady() && 
+                window.authManager && window.authManager.isInitialized) {
+                console.log('✅ All components ready');
+                return;
             }
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
         
-        // If on login page but user is already authenticated, redirect to dashboard
-        if (window.location.pathname.includes('login.html') && window.authManager) {
-            if (window.authManager.isAuthenticated()) {
-                console.log('🔍 User already authenticated, redirecting to dashboard...');
-                window.location.href = 'dashboard.html';
-                return true;
-            }
-        }
-        
-        return false;
+        throw new Error('Essential components not ready within timeout');
     }
 
-    // Enhanced core components initialization
-    async initializeCoreComponents() {
-        console.log('🔄 Initializing core components...');
-        
-        // Wait for database to be ready
-        if (window.databaseManager) {
-            await window.databaseManager.init();
-        } else {
-            throw new Error('Database manager not found');
-        }
-        
-        // Initialize auth manager (this handles auto-login internally)
-        if (window.authManager) {
-            await window.authManager.init();
-            
-            // Check if auth manager auto-logged us in
-            if (window.authManager.isAuthenticated() && !this.currentUser) {
-                this.currentUser = window.authManager.getCurrentUser();
-                this.isAutoLoggedIn = true;
-                console.log('✅ Auto-login detected during auth init:', this.currentUser.phone);
-            }
-        }
-        
-        // Initialize referral manager if exists
-        if (window.referralManager) {
-            await window.referralManager.init();
-        }
-        
-        // Register service worker for PWA functionality
-        await this.registerServiceWorker();
-        
-        console.log('✅ All core components initialized');
-    }
-
-    // Enhanced authentication check
     async checkAuthentication() {
-        if (this.isAutoLoggedIn) {
-            console.log('🔐 User auto-authenticated:', this.currentUser.phone);
-            return;
-        }
-
         if (window.authManager && window.authManager.isAuthenticated()) {
             this.currentUser = window.authManager.getCurrentUser();
             console.log('🔐 User authenticated:', this.currentUser.phone);
         } else {
             console.log('🔐 No authenticated user found');
-            
-            // Don't redirect if we're already on login page or homepage
-            if (!window.location.pathname.includes('login.html') && 
-                !window.location.pathname.includes('index.html')) {
-                this.redirectToLogin();
-            }
+            this.currentUser = null;
         }
     }
 
-    // Enhanced authentication state handler
-    handleAuthStateChange(authDetail) {
-        console.log('🔄 Auth state changed:', authDetail.action);
+    async loadInitialData() {
+        if (!this.currentUser) return;
         
-        switch (authDetail.action) {
-            case 'login':
-                this.currentUser = authDetail.user;
-                this.isAutoLoggedIn = authDetail.user.deviceId ? true : false;
-                
-                // If this was an auto-login, we might already be on dashboard
-                if (this.isAutoLoggedIn && !window.location.pathname.includes('dashboard.html')) {
-                    window.location.href = 'dashboard.html';
-                } else {
-                    this.loadInitialData().then(() => {
-                        this.navigateTo('dashboard');
-                    });
-                }
-                break;
-                
-            case 'logout':
-                this.currentUser = null;
-                this.userStats = null;
-                this.dashboardData = null;
-                this.isAutoLoggedIn = false;
-                
-                // If we're on dashboard, redirect to login
-                if (window.location.pathname.includes('dashboard.html')) {
-                    this.redirectToLogin();
-                }
-                break;
-        }
+        console.log('📥 Loading initial app data...');
         
-        this.updateApplicationUI();
-    }
-
-    // Enhanced logout with device disassociation
-    async logout() {
-        if (window.authManager) {
-            // Use manual logout to prevent immediate auto-login
-            await window.authManager.manualLogout();
-        } else {
-            this.redirectToLogin();
-        }
-    }
-
-    // Enhanced navigation with auto-login consideration
-    navigateTo(page, data = {}) {
-        // Don't navigate if this is an auto-login and we're already on the target page
-        if (this.isAutoLoggedIn && this.currentPage === page && window.location.pathname.includes(`${page}.html`)) {
-            console.log('🧭 Auto-login: Already on target page', page);
-            return;
-        }
-
-        console.log('🧭 Navigating to:', page);
-        
-        // Save current page state
-        this.savePageState(this.currentPage);
-        
-        // Update current page
-        this.currentPage = page;
-        
-        // Hide all pages
-        this.hideAllPages();
-        
-        // Show target page
-        const targetPage = document.getElementById(`${page}-page`);
-        if (targetPage) {
-            targetPage.style.display = 'block';
-            targetPage.classList.add('active');
-            
-            // Load page-specific data
-            this.loadPageData(page, data);
-            
-            this.triggerAppEvent('pageChanged', {
-                from: this.currentPage,
-                to: page,
-                data: data,
-                autoLoggedIn: this.isAutoLoggedIn
-            });
-        } else {
-            console.error('❌ Page not found:', page);
-            this.showError('Page not found');
-        }
-        
-        // Update navigation UI
-        this.updateNavigationUI();
-    }
-
-    // Enhanced application state management
-    saveApplicationState() {
-        const state = {
-            currentPage: this.currentPage,
-            user: this.currentUser ? {
-                phone: this.currentUser.phone,
-                isAuthenticated: this.currentUser.isAuthenticated
-            } : null,
-            isAutoLoggedIn: this.isAutoLoggedIn,
-            timestamp: new Date().toISOString()
-        };
-        
-        localStorage.setItem('appState', JSON.stringify(state));
-    }
-
-    async restoreApplicationState() {
         try {
-            const state = JSON.parse(localStorage.getItem('appState'));
-            if (state && state.user && state.user.isAuthenticated) {
-                this.currentPage = state.currentPage || 'dashboard';
-                this.isAutoLoggedIn = state.isAutoLoggedIn || false;
-                return true;
+            // Load user profile from database
+            const userProfile = await window.databaseManager.getUser(this.currentUser.phone);
+            if (userProfile) {
+                this.currentUser.profile = userProfile;
             }
+            
+            // Load user statistics
+            await this.loadUserStats();
+            
+            console.log('✅ Initial app data loaded');
+            
         } catch (error) {
-            console.warn('⚠️ Could not restore app state:', error);
+            console.error('❌ Error loading initial data:', error);
+            this.showNotification('error', 'Data Load Error', 'Some data may not be available');
         }
-        return false;
     }
 
-    // Enhanced user content update for auto-login
-    updateUserContent() {
-        if (this.currentUser && this.currentUser.profile) {
-            // Update user name displays
-            const nameElements = document.querySelectorAll('[data-user-name]');
-            nameElements.forEach(element => {
-                element.textContent = this.currentUser.profile.fullName || this.currentUser.phone;
-            });
+    async loadUserStats() {
+        if (!this.currentUser) return;
+        
+        try {
+            const userPhone = this.currentUser.phone;
             
-            // Update user phone displays
-            const phoneElements = document.querySelectorAll('[data-user-phone]');
-            phoneElements.forEach(element => {
-                element.textContent = this.currentUser.phone;
-            });
+            // Load various data in parallel
+            const [transactions, contacts, commissions] = await Promise.all([
+                window.databaseManager.getUserTransactions(userPhone),
+                window.databaseManager.getContacts(userPhone),
+                window.databaseManager.getUserCommissions(userPhone)
+            ]);
             
-            // Update user trust level
-            const trustElements = document.querySelectorAll('[data-user-trust]');
-            trustElements.forEach(element => {
-                element.textContent = this.userStats?.trustLevel || 'Beginner';
-            });
-
-            // Show auto-login indicator if applicable
-            if (this.isAutoLoggedIn) {
-                const autoLoginIndicator = document.getElementById('auto-login-indicator');
-                if (autoLoginIndicator) {
-                    autoLoginIndicator.style.display = 'inline';
-                    autoLoginIndicator.title = 'Automatically logged in via device recognition';
-                }
-            }
-        }
-    }
-
-    // Enhanced online status with auto-login info
-    updateOnlineStatusUI() {
-        const indicator = document.getElementById('online-status');
-        if (indicator) {
-            indicator.className = this.isOnline ? 'online' : 'offline';
-            let title = this.isOnline ? 'Online' : 'Offline';
-            if (this.isAutoLoggedIn) {
-                title += ' • Auto-logged in';
-            }
-            indicator.title = title;
-        }
-    }
-
-    // New method: Get login method info
-    getLoginMethod() {
-        return this.isAutoLoggedIn ? 'auto' : 'manual';
-    }
-
-    // New method: Handle device management
-    async getDeviceInfo() {
-        if (window.authManager) {
-            return window.authManager.getDeviceInfo();
-        }
-        return null;
-    }
-
-    // Enhanced app status with login method
-    getAppStatus() {
-        return {
-            user: this.currentUser,
-            page: this.currentPage,
-            online: this.isOnline,
-            stats: this.userStats,
-            loginMethod: this.getLoginMethod(),
-            autoLoggedIn: this.isAutoLoggedIn,
-            components: {
-                database: !!window.databaseManager,
-                auth: !!window.authManager,
-                referral: !!window.referralManager
-            }
-        };
-    }
-
-    // ===== ALL EXISTING METHODS REMAIN THE SAME =====
-    // (registerServiceWorker, setupEventListeners, loadInitialData, loadEnhancedUserStats,
-    // calculateTotalBalance, calculateTrustLevel, handleOnlineStatusChange, handleVisibilityChange,
-    // handleGlobalClick, navigateBack, hideAllPages, updateNavigationUI, updatePageTitle,
-    // updateBreadcrumbs, loadPageData, loadEnhancedDashboardData, calculateQuickStats,
-    // calculateMonthlyGrowth, updateDashboardUI, updateStatsCards, updateRecentTransactions,
-    // updateRecentCommissions, updateQuickStats, updateDashboardCharts, addNewTransaction,
-    // getTransactionHistory, updateUserProfile, changeUserPassword, generateReferralCode,
-    // getReferralStatistics, loadReferralsData, updateReferralsUI, formatCurrency, maskPhone,
-    // showNotification, createNotificationContainer, showError, showFatalError, redirectToLogin,
-    // savePageState, getPreviousPage, refreshDashboardData, refreshAllData, updateApplicationUI,
-    // updateAuthUI, loadTransactionsData, loadProfileData, loadSettingsData, triggerAppEvent)
-
-    // Register service worker for offline functionality
-    async registerServiceWorker() {
-        if ('serviceWorker' in navigator) {
-            try {
-                // Note: You'll need to create a service worker file for production
-                // const registration = await navigator.serviceWorker.register('/sw.js');
-                console.log('✅ Service Worker ready for registration');
+            // Calculate statistics
+            const pendingTransactions = transactions.filter(t => t.status === 'pending');
+            const earnedCommissions = commissions.filter(c => c.status === 'paid');
+            const pendingCommissions = commissions.filter(c => c.status === 'pending');
+            
+            this.userStats = {
+                // Basic counts
+                contacts: contacts.length,
+                transactions: transactions.length,
+                pendingTransactions: pendingTransactions.length,
                 
-            } catch (error) {
-                console.warn('⚠️ Service Worker registration failed:', error);
-            }
+                // Financial data
+                balance: this.currentUser.profile?.balance || 0,
+                totalEarnings: earnedCommissions.reduce((sum, c) => sum + (c.amount || 0), 0),
+                pendingEarnings: pendingCommissions.reduce((sum, c) => sum + (c.amount || 0), 0),
+                
+                // Trust and reputation
+                trustScore: this.currentUser.profile?.trustScore || 100,
+                trustLevel: this.calculateTrustLevel(this.currentUser.profile?.trustScore || 100),
+                
+                // Activity metrics
+                successfulTransactions: transactions.filter(t => t.status === 'completed').length
+            };
+            
+        } catch (error) {
+            console.error('❌ Error loading user stats:', error);
+            // Set default stats
+            this.userStats = {
+                contacts: 0,
+                transactions: 0,
+                pendingTransactions: 0,
+                balance: 0,
+                totalEarnings: 0,
+                pendingEarnings: 0,
+                trustScore: 100,
+                trustLevel: 'Beginner',
+                successfulTransactions: 0
+            };
         }
     }
 
-    // Setup global event listeners
+    // EVENT SYSTEM
+
     setupEventListeners() {
-        console.log('🔧 Setting up event listeners...');
+        console.log('🔧 Setting up app event listeners...');
         
         // Online/offline detection
         window.addEventListener('online', () => {
@@ -383,123 +188,9 @@ class TransparentTransactionsApp {
             this.saveApplicationState();
         });
         
-        console.log('✅ Event listeners setup complete');
+        console.log('✅ App event listeners setup complete');
     }
 
-    // Load initial application data
-    async loadInitialData() {
-        if (!this.currentUser) return;
-        
-        console.log('📥 Loading initial data...');
-        
-        try {
-            // Load user profile
-            const userProfile = await window.databaseManager.getUser(this.currentUser.phone);
-            if (userProfile) {
-                this.currentUser.profile = userProfile;
-            }
-            
-            // Load enhanced user stats
-            await this.loadEnhancedUserStats();
-            
-            console.log('✅ Initial data loaded:', this.userStats);
-            
-        } catch (error) {
-            console.error('❌ Error loading initial data:', error);
-        }
-    }
-
-    // Enhanced user statistics loading
-    async loadEnhancedUserStats() {
-        if (!this.currentUser) return;
-        
-        try {
-            // Load contacts count
-            const contacts = await window.databaseManager.getContacts(this.currentUser.phone);
-            
-            // Load transactions with enhanced data
-            const transactions = await window.databaseManager.getUserTransactions(this.currentUser.phone);
-            const pendingTransactions = transactions.filter(t => t.status === 'pending');
-            
-            // Load commissions data
-            const commissions = await window.databaseManager.getUserCommissions(this.currentUser.phone);
-            const earnedCommissions = commissions.filter(c => c.status === 'paid');
-            const pendingCommissions = commissions.filter(c => c.status === 'pending');
-            
-            // Load trust score
-            const trustScore = await window.databaseManager.getTrustScore(this.currentUser.phone);
-            
-            // Calculate total balance from transactions
-            const totalBalance = this.calculateTotalBalance(transactions);
-            
-            // Calculate total commission earnings
-            const totalEarnings = earnedCommissions.reduce((sum, commission) => 
-                sum + (commission.amount || 0), 0
-            );
-            
-            this.userStats = {
-                // Basic stats
-                contacts: contacts.length,
-                transactions: transactions.length,
-                pending: pendingTransactions.length,
-                
-                // Financial stats
-                totalBalance: totalBalance,
-                totalEarnings: totalEarnings,
-                pendingEarnings: pendingCommissions.reduce((sum, c) => sum + (c.amount || 0), 0),
-                
-                // Trust and reputation
-                trustScore: trustScore?.score || 0,
-                trustLevel: this.calculateTrustLevel(trustScore?.score || 0),
-                
-                // Activity stats
-                activeReferrals: 0, // Will be populated by referral manager
-                successfulTransactions: transactions.filter(t => t.status === 'settled').length
-            };
-            
-        } catch (error) {
-            console.error('❌ Error loading enhanced user stats:', error);
-            // Set default stats on error
-            this.userStats = {
-                contacts: 0,
-                transactions: 0,
-                pending: 0,
-                totalBalance: 0,
-                totalEarnings: 0,
-                pendingEarnings: 0,
-                trustScore: 0,
-                trustLevel: 'Beginner',
-                activeReferrals: 0,
-                successfulTransactions: 0
-            };
-        }
-    }
-
-    // Calculate total balance from transactions
-    calculateTotalBalance(transactions) {
-        return transactions.reduce((balance, transaction) => {
-            if (transaction.status === 'settled') {
-                // Add received amounts, subtract sent amounts
-                if (transaction.toPhone === this.currentUser.phone) {
-                    return balance + (transaction.amount || 0);
-                } else if (transaction.fromPhone === this.currentUser.phone) {
-                    return balance - (transaction.amount || 0);
-                }
-            }
-            return balance;
-        }, 0);
-    }
-
-    // Calculate trust level based on score
-    calculateTrustLevel(score) {
-        if (score >= 90) return 'Excellent';
-        if (score >= 80) return 'Very Good';
-        if (score >= 70) return 'Good';
-        if (score >= 60) return 'Fair';
-        return 'Beginner';
-    }
-
-    // Handle online/offline status changes
     handleOnlineStatusChange(online) {
         this.isOnline = online;
         
@@ -513,23 +204,38 @@ class TransparentTransactionsApp {
         this.updateApplicationUI();
     }
 
-    // Handle page visibility changes
+    handleAuthStateChange(authDetail) {
+        console.log('🔄 Auth state changed:', authDetail.action);
+        
+        switch (authDetail.action) {
+            case 'login':
+                this.currentUser = authDetail.user;
+                this.loadInitialData().then(() => {
+                    this.updateApplicationUI();
+                });
+                break;
+                
+            case 'logout':
+                this.currentUser = null;
+                this.userStats = null;
+                this.dashboardData = null;
+                this.updateApplicationUI();
+                break;
+        }
+    }
+
     handleVisibilityChange() {
         if (!document.hidden && this.currentUser) {
             // Page became visible, update user activity
             if (window.authManager) {
                 window.authManager.updateUserActivity();
             }
-            
-            // Refresh data if needed
-            this.refreshDashboardData();
         }
     }
 
-    // Handle global click events for navigation and actions
     handleGlobalClick(event) {
         // Navigation links
-        const navLink = event.target.closest('a[data-nav]');
+        const navLink = event.target.closest('[data-nav]');
         if (navLink) {
             event.preventDefault();
             const page = navLink.getAttribute('data-nav');
@@ -547,15 +253,42 @@ class TransparentTransactionsApp {
             event.preventDefault();
             this.refreshAllData();
         }
-        
-        // Logout buttons
-        if (event.target.matches('[data-logout]') || event.target.closest('[data-logout]')) {
-            event.preventDefault();
-            this.logout();
-        }
     }
 
-    // Navigate back to previous page
+    // NAVIGATION SYSTEM
+
+    navigateTo(page, data = {}) {
+        console.log('🧭 Navigating to:', page);
+        
+        // Update current page
+        this.currentPage = page;
+        
+        // Hide all pages
+        this.hideAllPages();
+        
+        // Show target page
+        const targetPage = document.getElementById(`${page}-page`);
+        if (targetPage) {
+            targetPage.style.display = 'block';
+            targetPage.classList.add('active');
+            
+            // Load page-specific data
+            this.loadPageData(page, data);
+            
+            this.triggerAppEvent('pageChanged', {
+                from: this.currentPage,
+                to: page,
+                data: data
+            });
+        } else {
+            console.error('❌ Page not found:', page);
+            this.showError('Page not found');
+        }
+        
+        // Update navigation UI
+        this.updateNavigationUI();
+    }
+
     navigateBack() {
         const previousPage = this.getPreviousPage();
         if (previousPage) {
@@ -565,7 +298,6 @@ class TransparentTransactionsApp {
         }
     }
 
-    // Hide all application pages
     hideAllPages() {
         const pages = document.querySelectorAll('[data-page]');
         pages.forEach(page => {
@@ -574,7 +306,6 @@ class TransparentTransactionsApp {
         });
     }
 
-    // Update navigation UI (active states, etc.)
     updateNavigationUI() {
         // Update active nav links
         const navLinks = document.querySelectorAll('[data-nav]');
@@ -588,372 +319,154 @@ class TransparentTransactionsApp {
         
         // Update page title
         this.updatePageTitle();
-        
-        // Update breadcrumbs if they exist
-        this.updateBreadcrumbs();
     }
 
-    // Update page title based on current page
     updatePageTitle() {
         const titles = {
             'dashboard': 'Dashboard',
-            'contacts': 'My Contacts',
             'transactions': 'Transactions',
-            'reports': 'Trust Reports',
+            'contacts': 'My Contacts',
             'profile': 'My Profile',
-            'settings': 'Settings',
-            'referrals': 'Referral Program'
+            'settings': 'Settings'
         };
         
         const title = titles[this.currentPage] || 'Transparent Transactions';
         document.title = `${title} - Transparent Transactions`;
     }
 
-    // Update breadcrumb navigation
-    updateBreadcrumbs() {
-        const breadcrumbContainer = document.getElementById('breadcrumb-container');
-        if (!breadcrumbContainer) return;
-        
-        const breadcrumbs = {
-            'dashboard': [{ name: 'Dashboard', active: true }],
-            'transactions': [
-                { name: 'Dashboard', page: 'dashboard' },
-                { name: 'Transactions', active: true }
-            ],
-            'profile': [
-                { name: 'Dashboard', page: 'dashboard' },
-                { name: 'Profile', active: true }
-            ]
-            // Add more breadcrumb paths as needed
-        };
-        
-        const currentBreadcrumbs = breadcrumbs[this.currentPage] || breadcrumbs.dashboard;
-        
-        breadcrumbContainer.innerHTML = currentBreadcrumbs.map(breadcrumb => 
-            breadcrumb.active 
-                ? `<span class="breadcrumb-active">${breadcrumb.name}</span>`
-                : `<a href="#" data-nav="${breadcrumb.page}" class="breadcrumb-link">${breadcrumb.name}</a>`
-        ).join(' / ');
-    }
+    // DATA MANAGEMENT
 
-    // Load data for specific page
-    async loadPageData(page, data) {
+    async loadPageData(page, data = {}) {
         console.log(`📊 Loading data for: ${page}`);
         
-        switch (page) {
-            case 'dashboard':
-                await this.loadEnhancedDashboardData();
-                break;
-            case 'transactions':
-                await this.loadTransactionsData();
-                break;
-            case 'profile':
-                await this.loadProfileData();
-                break;
-            case 'referrals':
-                await this.loadReferralsData();
-                break;
-            case 'settings':
-                await this.loadSettingsData();
-                break;
+        try {
+            switch (page) {
+                case 'dashboard':
+                    await this.loadDashboardData();
+                    break;
+                case 'transactions':
+                    await this.loadTransactionsData();
+                    break;
+                case 'contacts':
+                    await this.loadContactsData();
+                    break;
+                case 'profile':
+                    await this.loadProfileData();
+                    break;
+                case 'settings':
+                    await this.loadSettingsData();
+                    break;
+            }
+            
+            this.triggerAppEvent('pageDataLoaded', {
+                page: page,
+                data: data
+            });
+            
+        } catch (error) {
+            console.error(`❌ Error loading ${page} data:`, error);
+            this.showError(`Failed to load ${page} data`);
         }
-        
-        // Trigger page data loaded event
-        this.triggerAppEvent('pageDataLoaded', {
-            page: page,
-            data: data
-        });
     }
 
-    // Enhanced dashboard data loading with comprehensive stats
-    async loadEnhancedDashboardData() {
+    async loadDashboardData() {
         if (!this.currentUser) return;
         
-        console.log('📈 Loading enhanced dashboard data...');
+        console.log('📈 Loading dashboard data...');
         
         try {
-            // Load recent transactions
-            const transactions = await window.databaseManager.getUserTransactions(this.currentUser.phone);
-            const recentTransactions = transactions
-                .sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate))
-                .slice(0, 10);
+            const userPhone = this.currentUser.phone;
             
-            // Load recent commissions
-            const commissions = await window.databaseManager.getUserCommissions(this.currentUser.phone);
-            const recentCommissions = commissions
+            // Load recent transactions
+            const transactions = await window.databaseManager.getUserTransactions(userPhone);
+            const recentTransactions = transactions
                 .sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate))
                 .slice(0, 5);
             
             // Load quick stats
             const quickStats = await this.calculateQuickStats();
             
-            // Compile dashboard data
             this.dashboardData = {
                 recentTransactions: recentTransactions,
-                recentCommissions: recentCommissions,
                 quickStats: quickStats,
                 lastUpdated: new Date().toISOString()
             };
             
-            // Update dashboard UI
-            this.updateDashboardUI();
+            // Update dashboard UI if we're on dashboard
+            if (this.currentPage === 'dashboard') {
+                this.updateDashboardUI();
+            }
             
-            console.log('✅ Enhanced dashboard data loaded');
-            
-        } catch (error) {
-            console.error('❌ Error loading enhanced dashboard data:', error);
-            this.showError('Failed to load dashboard data');
-        }
-    }
-
-    // Calculate quick stats for dashboard
-    async calculateQuickStats() {
-        if (!this.currentUser || !this.userStats) return {};
-        
-        const transactions = await window.databaseManager.getUserTransactions(this.currentUser.phone);
-        const today = new Date();
-        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        
-        const todayTransactions = transactions.filter(t => 
-            new Date(t.createdDate) >= todayStart
-        );
-        
-        const weeklyTransactions = transactions.filter(t => {
-            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-            return new Date(t.createdDate) >= weekAgo;
-        });
-        
-        return {
-            todayCount: todayTransactions.length,
-            todayAmount: todayTransactions.reduce((sum, t) => {
-                if (t.toPhone === this.currentUser.phone) return sum + (t.amount || 0);
-                if (t.fromPhone === this.currentUser.phone) return sum - (t.amount || 0);
-                return sum;
-            }, 0),
-            weeklyCount: weeklyTransactions.length,
-            monthlyGrowth: this.calculateMonthlyGrowth(transactions)
-        };
-    }
-
-    // Calculate monthly growth percentage
-    calculateMonthlyGrowth(transactions) {
-        const now = new Date();
-        const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        
-        const currentMonthTransactions = transactions.filter(t => 
-            new Date(t.createdDate) >= currentMonth
-        );
-        const lastMonthTransactions = transactions.filter(t => 
-            new Date(t.createdDate) >= lastMonth && new Date(t.createdDate) < currentMonth
-        );
-        
-        if (lastMonthTransactions.length === 0) return 100; // 100% growth if no previous data
-        
-        return ((currentMonthTransactions.length - lastMonthTransactions.length) / lastMonthTransactions.length) * 100;
-    }
-
-    // Update dashboard UI with loaded data
-    updateDashboardUI() {
-        if (!this.dashboardData || !this.userStats) return;
-        
-        // Update stats cards
-        this.updateStatsCards();
-        
-        // Update recent transactions list
-        this.updateRecentTransactions();
-        
-        // Update recent commissions
-        this.updateRecentCommissions();
-        
-        // Update quick stats
-        this.updateQuickStats();
-        
-        // Update charts if they exist
-        this.updateDashboardCharts();
-    }
-
-    // Update statistics cards on dashboard
-    updateStatsCards() {
-        if (!this.userStats) return;
-        
-        const elements = {
-            balance: document.getElementById('balance-amount'),
-            transactions: document.getElementById('transactions-count'),
-            contacts: document.getElementById('contacts-count'),
-            trustScore: document.getElementById('trust-score'),
-            earnings: document.getElementById('total-earnings'),
-            pending: document.getElementById('pending-count')
-        };
-        
-        if (elements.balance) elements.balance.textContent = this.formatCurrency(this.userStats.totalBalance);
-        if (elements.transactions) elements.transactions.textContent = this.userStats.transactions;
-        if (elements.contacts) elements.contacts.textContent = this.userStats.contacts;
-        if (elements.trustScore) elements.trustScore.textContent = `${this.userStats.trustScore}%`;
-        if (elements.earnings) elements.earnings.textContent = this.formatCurrency(this.userStats.totalEarnings);
-        if (elements.pending) elements.pending.textContent = this.userStats.pending;
-    }
-
-    // Update recent transactions list
-    updateRecentTransactions() {
-        const container = document.getElementById('recent-transactions-list');
-        if (!container || !this.dashboardData.recentTransactions) return;
-        
-        if (this.dashboardData.recentTransactions.length === 0) {
-            container.innerHTML = '<div class="empty-state">No recent transactions</div>';
-            return;
-        }
-        
-        container.innerHTML = this.dashboardData.recentTransactions.map(transaction => `
-            <div class="transaction-item" data-transaction-id="${transaction.id}">
-                <div class="transaction-info">
-                    <div class="transaction-party">
-                        ${transaction.fromPhone === this.currentUser.phone ? 'To: ' + this.maskPhone(transaction.toPhone) : 'From: ' + this.maskPhone(transaction.fromPhone)}
-                    </div>
-                    <div class="transaction-date">
-                        ${new Date(transaction.createdDate).toLocaleDateString()}
-                    </div>
-                </div>
-                <div class="transaction-amount ${transaction.fromPhone === this.currentUser.phone ? 'negative' : 'positive'}">
-                    ${transaction.fromPhone === this.currentUser.phone ? '-' : '+'}${this.formatCurrency(transaction.amount || 0)}
-                </div>
-            </div>
-        `).join('');
-    }
-
-    // Update recent commissions list
-    updateRecentCommissions() {
-        const container = document.getElementById('recent-commissions-list');
-        if (!container || !this.dashboardData.recentCommissions) return;
-        
-        if (this.dashboardData.recentCommissions.length === 0) {
-            container.innerHTML = '<div class="empty-state">No recent commissions</div>';
-            return;
-        }
-        
-        container.innerHTML = this.dashboardData.recentCommissions.map(commission => `
-            <div class="commission-item">
-                <div class="commission-info">
-                    <div class="commission-source">Referral Commission</div>
-                    <div class="commission-date">
-                        ${new Date(commission.createdDate).toLocaleDateString()}
-                    </div>
-                </div>
-                <div class="commission-amount positive">
-                    +${this.formatCurrency(commission.amount || 0)}
-                </div>
-            </div>
-        `).join('');
-    }
-
-    // Update quick stats display
-    updateQuickStats() {
-        if (!this.dashboardData.quickStats) return;
-        
-        const elements = {
-            todayCount: document.getElementById('today-count'),
-            todayAmount: document.getElementById('today-amount'),
-            weeklyCount: document.getElementById('weekly-count'),
-            monthlyGrowth: document.getElementById('monthly-growth')
-        };
-        
-        const stats = this.dashboardData.quickStats;
-        
-        if (elements.todayCount) elements.todayCount.textContent = stats.todayCount || 0;
-        if (elements.todayAmount) elements.todayAmount.textContent = this.formatCurrency(stats.todayAmount || 0);
-        if (elements.weeklyCount) elements.weeklyCount.textContent = stats.weeklyCount || 0;
-        if (elements.monthlyGrowth) {
-            const growth = stats.monthlyGrowth || 0;
-            elements.monthlyGrowth.textContent = `${growth > 0 ? '+' : ''}${growth.toFixed(1)}%`;
-            elements.monthlyGrowth.className = `growth-indicator ${growth >= 0 ? 'positive' : 'negative'}`;
-        }
-    }
-
-    // Update dashboard charts (placeholder for future implementation)
-    updateDashboardCharts() {
-        // This would integrate with a charting library like Chart.js
-        console.log('📊 Dashboard charts would be updated here');
-    }
-
-    // TRANSACTION MANAGEMENT METHODS
-
-    // Add new transaction
-    async addNewTransaction(transactionData) {
-        if (!this.currentUser) {
-            throw new Error('User must be authenticated to create transactions');
-        }
-
-        try {
-            const transaction = {
-                fromPhone: this.currentUser.phone,
-                toPhone: transactionData.toPhone,
-                amount: transactionData.amount,
-                description: transactionData.description || '',
-                type: transactionData.type || 'transfer',
-                status: 'pending'
-            };
-
-            const result = await window.databaseManager.createTransaction(transaction);
-            
-            this.showNotification({
-                type: 'success',
-                title: 'Transaction Created',
-                message: `Transaction of ${this.formatCurrency(transactionData.amount)} initiated`,
-                duration: 3000
-            });
-
-            // Refresh dashboard data
-            await this.refreshDashboardData();
-
-            return result;
+            console.log('✅ Dashboard data loaded');
             
         } catch (error) {
-            console.error('❌ Error creating transaction:', error);
-            this.showError('Failed to create transaction');
+            console.error('❌ Error loading dashboard data:', error);
             throw error;
         }
     }
 
-    // Get transaction history with filtering
-    async getTransactionHistory(filters = {}) {
-        if (!this.currentUser) return [];
+    async calculateQuickStats() {
+        if (!this.currentUser) return {};
         
         try {
             const transactions = await window.databaseManager.getUserTransactions(this.currentUser.phone);
+            const today = new Date();
+            const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
             
-            // Apply filters
-            let filteredTransactions = transactions;
-            
-            if (filters.status) {
-                filteredTransactions = filteredTransactions.filter(t => t.status === filters.status);
-            }
-            
-            if (filters.type) {
-                filteredTransactions = filteredTransactions.filter(t => t.type === filters.type);
-            }
-            
-            if (filters.dateRange) {
-                const startDate = new Date(filters.dateRange.start);
-                const endDate = new Date(filters.dateRange.end);
-                filteredTransactions = filteredTransactions.filter(t => {
-                    const transactionDate = new Date(t.createdDate);
-                    return transactionDate >= startDate && transactionDate <= endDate;
-                });
-            }
-            
-            return filteredTransactions.sort((a, b) => 
-                new Date(b.createdDate) - new Date(a.createdDate)
+            const todayTransactions = transactions.filter(t => 
+                new Date(t.createdDate) >= todayStart
             );
             
+            const weeklyTransactions = transactions.filter(t => {
+                const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                return new Date(t.createdDate) >= weekAgo;
+            });
+            
+            return {
+                todayCount: todayTransactions.length,
+                todayAmount: todayTransactions.reduce((sum, t) => {
+                    if (t.toPhone === this.currentUser.phone) return sum + (t.amount || 0);
+                    if (t.fromPhone === this.currentUser.phone) return sum - (t.amount || 0);
+                    return sum;
+                }, 0),
+                weeklyCount: weeklyTransactions.length
+            };
+            
         } catch (error) {
-            console.error('❌ Error getting transaction history:', error);
-            return [];
+            console.error('❌ Error calculating quick stats:', error);
+            return {
+                todayCount: 0,
+                todayAmount: 0,
+                weeklyCount: 0
+            };
         }
     }
 
-    // USER PROFILE MANAGEMENT
+    async loadTransactionsData() {
+        console.log('💳 Loading transactions data...');
+        // Implementation for transactions page
+        // This would load transaction history with filtering options
+    }
 
-    // Update user profile
+    async loadContactsData() {
+        console.log('👥 Loading contacts data...');
+        // Implementation for contacts page
+        // This would load user's contact list
+    }
+
+    async loadProfileData() {
+        console.log('👤 Loading profile data...');
+        // Implementation for profile page
+        // This would load user profile and settings
+    }
+
+    async loadSettingsData() {
+        console.log('⚙️ Loading settings data...');
+        // Implementation for settings page
+    }
+
+    // USER MANAGEMENT
+
     async updateUserProfile(updates) {
         if (!this.currentUser) {
             throw new Error('User must be authenticated to update profile');
@@ -995,53 +508,105 @@ class TransparentTransactionsApp {
         }
     }
 
-    // Change user password
-    async changeUserPassword(currentPassword, newPassword) {
-        if (!window.authManager) {
-            throw new Error('Authentication manager not available');
+    // TRANSACTION MANAGEMENT
+
+    async createTransaction(transactionData) {
+        if (!this.currentUser) {
+            throw new Error('User must be authenticated to create transactions');
         }
 
-        // This would integrate with your auth system
-        // For now, just show a notification
-        this.showNotification({
-            type: 'success',
-            title: 'Password Updated',
-            message: 'Your password has been changed successfully',
-            duration: 3000
-        });
+        try {
+            const transaction = {
+                fromPhone: this.currentUser.phone,
+                toPhone: transactionData.toPhone,
+                amount: transactionData.amount,
+                description: transactionData.description || '',
+                type: transactionData.type || 'transfer',
+                status: 'pending',
+                createdDate: new Date().toISOString()
+            };
+
+            const result = await window.databaseManager.createTransaction(transaction);
+            
+            this.showNotification({
+                type: 'success',
+                title: 'Transaction Created',
+                message: `Transaction of ${this.formatCurrency(transactionData.amount)} initiated`,
+                duration: 3000
+            });
+
+            // Refresh data
+            await this.refreshDashboardData();
+
+            return result;
+            
+        } catch (error) {
+            console.error('❌ Error creating transaction:', error);
+            this.showError('Failed to create transaction');
+            throw error;
+        }
     }
 
-    // REFERRAL SYSTEM INTEGRATION
+    async getTransactionHistory(filters = {}) {
+        if (!this.currentUser) return [];
+        
+        try {
+            const transactions = await window.databaseManager.getUserTransactions(this.currentUser.phone);
+            
+            // Apply filters
+            let filteredTransactions = transactions;
+            
+            if (filters.status) {
+                filteredTransactions = filteredTransactions.filter(t => t.status === filters.status);
+            }
+            
+            if (filters.type) {
+                filteredTransactions = filteredTransactions.filter(t => t.type === filters.type);
+            }
+            
+            if (filters.dateRange) {
+                const startDate = new Date(filters.dateRange.start);
+                const endDate = new Date(filters.dateRange.end);
+                filteredTransactions = filteredTransactions.filter(t => {
+                    const transactionDate = new Date(t.createdDate);
+                    return transactionDate >= startDate && transactionDate <= endDate;
+                });
+            }
+            
+            return filteredTransactions.sort((a, b) => 
+                new Date(b.createdDate) - new Date(a.createdDate)
+            );
+            
+        } catch (error) {
+            console.error('❌ Error getting transaction history:', error);
+            return [];
+        }
+    }
 
-    // Generate referral code for user
+    // REFERRAL SYSTEM
+
     generateReferralCode() {
         if (!this.currentUser) return null;
         
-        // Simple referral code generation based on phone number
         const phone = this.currentUser.phone;
         const code = `TT${phone.slice(-6)}${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
         return code;
     }
 
-    // Get referral statistics
     async getReferralStatistics() {
         if (!this.currentUser) return null;
         
         try {
             const referralCode = this.currentUser.profile?.referralCode || this.generateReferralCode();
-            const referrals = await window.databaseManager.getReferralsByCode(referralCode);
-            const commissions = await window.databaseManager.getUserCommissions(this.currentUser.phone);
-            
-            const earnedCommissions = commissions.filter(c => c.status === 'paid');
-            const pendingCommissions = commissions.filter(c => c.status === 'pending');
+            // This would query referrals from database
+            // For now, return mock data
             
             return {
                 referralCode: referralCode,
-                totalReferrals: referrals.length,
-                activeReferrals: referrals.filter(r => r.status === 'active').length,
-                totalEarned: earnedCommissions.reduce((sum, c) => sum + (c.amount || 0), 0),
-                pendingAmount: pendingCommissions.reduce((sum, c) => sum + (c.amount || 0), 0),
-                commissionHistory: earnedCommissions.sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate))
+                totalReferrals: 0,
+                activeReferrals: 0,
+                totalEarned: 0,
+                pendingAmount: 0
             };
             
         } catch (error) {
@@ -1050,166 +615,19 @@ class TransparentTransactionsApp {
         }
     }
 
-    // Load referrals page data
-    async loadReferralsData() {
-        const stats = await this.getReferralStatistics();
-        if (stats) {
-            this.updateReferralsUI(stats);
-        }
-    }
+    // UI UPDATES
 
-    // Update referrals UI
-    updateReferralsUI(stats) {
-        const elements = {
-            referralCode: document.getElementById('user-referral-code'),
-            totalReferrals: document.getElementById('total-referrals'),
-            activeReferrals: document.getElementById('active-referrals'),
-            totalEarned: document.getElementById('total-earned'),
-            pendingAmount: document.getElementById('pending-amount')
-        };
-        
-        if (elements.referralCode) elements.referralCode.textContent = stats.referralCode;
-        if (elements.totalReferrals) elements.totalReferrals.textContent = stats.totalReferrals;
-        if (elements.activeReferrals) elements.activeReferrals.textContent = stats.activeReferrals;
-        if (elements.totalEarned) elements.totalEarned.textContent = this.formatCurrency(stats.totalEarned);
-        if (elements.pendingAmount) elements.pendingAmount.textContent = this.formatCurrency(stats.pendingAmount);
-    }
-
-    // UTILITY METHODS
-
-    // Format currency for display
-    formatCurrency(amount) {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            minimumFractionDigits: 2
-        }).format(amount);
-    }
-
-    // Mask phone number for display
-    maskPhone(phone) {
-        if (!phone) return 'Unknown';
-        return phone.replace(/(\d{3})\d{4}(\d{3})/, '$1****$2');
-    }
-
-    // Show notification to user
-    showNotification(notification) {
-        // Create notification element
-        const notificationEl = document.createElement('div');
-        notificationEl.className = `notification notification-${notification.type}`;
-        notificationEl.innerHTML = `
-            <div class="notification-title">${notification.title}</div>
-            <div class="notification-message">${notification.message}</div>
-        `;
-        
-        // Add to notification container
-        const container = document.getElementById('notification-container') || 
-                         this.createNotificationContainer();
-        container.appendChild(notificationEl);
-        
-        // Remove after duration
-        setTimeout(() => {
-            if (notificationEl.parentNode) {
-                notificationEl.parentNode.removeChild(notificationEl);
-            }
-        }, notification.duration || 5000);
-    }
-
-    // Create notification container if it doesn't exist
-    createNotificationContainer() {
-        const container = document.createElement('div');
-        container.id = 'notification-container';
-        container.className = 'notification-container';
-        document.body.appendChild(container);
-        return container;
-    }
-
-    // Show error message
-    showError(message) {
-        this.showNotification({
-            type: 'error',
-            title: 'Error',
-            message: message,
-            duration: 5000
-        });
-    }
-
-    // Show fatal error (blocks application)
-    showFatalError(message) {
-        const errorHtml = `
-            <div class="fatal-error">
-                <h2>Application Error</h2>
-                <p>${message}</p>
-                <button onclick="window.location.reload()">Reload Application</button>
-            </div>
-        `;
-        
-        document.body.innerHTML = errorHtml;
-    }
-
-    // Redirect to login page
-    redirectToLogin() {
-        window.location.href = 'login.html';
-    }
-
-    // Save current page state
-    savePageState(page) {
-        const state = {
-            page: page,
-            timestamp: new Date().toISOString()
-        };
-        
-        sessionStorage.setItem(`pageState_${page}`, JSON.stringify(state));
-    }
-
-    // Get previous page from history
-    getPreviousPage() {
-        // Simple implementation - could be enhanced with proper routing history
-        const pages = ['dashboard', 'transactions', 'contacts', 'reports', 'profile', 'settings', 'referrals'];
-        const currentIndex = pages.indexOf(this.currentPage);
-        return currentIndex > 0 ? pages[currentIndex - 1] : null;
-    }
-
-    // Refresh dashboard data
-    async refreshDashboardData() {
-        await this.loadEnhancedUserStats();
-        await this.loadEnhancedDashboardData();
-        this.updateApplicationUI();
-    }
-
-    // Public method to refresh all data
-    async refreshAllData() {
-        console.log('🔄 Refreshing all application data...');
-        await this.loadInitialData();
-        await this.loadEnhancedDashboardData();
-        this.updateApplicationUI();
-        
-        this.showNotification({
-            type: 'success',
-            title: 'Data Refreshed',
-            message: 'All application data has been updated',
-            duration: 2000
-        });
-    }
-
-    // Update overall application UI
     updateApplicationUI() {
         // Update auth-dependent UI
         this.updateAuthUI();
         
-        // Update online/offline indicator
-        this.updateOnlineStatusUI();
-        
         // Update user-specific content
         this.updateUserContent();
         
-        // Update current page UI if needed
-        if (this.currentPage === 'dashboard') {
-            this.updateDashboardUI();
-        }
+        // Update online/offline indicator
+        this.updateOnlineStatusUI();
     }
 
-    // Update authentication-dependent UI
     updateAuthUI() {
         const authElements = document.querySelectorAll('[data-auth-state]');
         
@@ -1223,30 +641,214 @@ class TransparentTransactionsApp {
         });
     }
 
-    // Load transactions page data
-    async loadTransactionsData() {
-        console.log('Loading transactions data...');
-        // Implementation for transactions page
+    updateUserContent() {
+        if (this.currentUser && this.currentUser.profile) {
+            // Update user name displays
+            const nameElements = document.querySelectorAll('[data-user-name]');
+            nameElements.forEach(element => {
+                element.textContent = this.currentUser.profile.fullName || this.currentUser.phone;
+            });
+            
+            // Update user phone displays
+            const phoneElements = document.querySelectorAll('[data-user-phone]');
+            phoneElements.forEach(element => {
+                element.textContent = this.currentUser.phone;
+            });
+            
+            // Update user trust level
+            const trustElements = document.querySelectorAll('[data-user-trust]');
+            trustElements.forEach(element => {
+                element.textContent = this.userStats?.trustLevel || 'Beginner';
+            });
+        }
     }
 
-    // Load profile page data
-    async loadProfileData() {
-        console.log('Loading profile data...');
-        // Implementation for profile page
+    updateOnlineStatusUI() {
+        const indicator = document.getElementById('online-status');
+        if (indicator) {
+            indicator.className = this.isOnline ? 'online' : 'offline';
+            indicator.title = this.isOnline ? 'Online' : 'Offline';
+        }
     }
 
-    // Load settings page data
-    async loadSettingsData() {
-        console.log('Loading settings data...');
-        // Implementation for settings page
+    updateDashboardUI() {
+        if (!this.dashboardData || !this.userStats) return;
+        
+        // This would update various dashboard components
+        // Stats cards, recent transactions, charts, etc.
+        console.log('📊 Updating dashboard UI with latest data');
     }
 
-    // Trigger application events
+    // NOTIFICATION SYSTEM
+
+    showNotification(notification) {
+        // Create notification container if it doesn't exist
+        let container = document.getElementById('notification-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'notification-container';
+            container.className = 'notification-container';
+            document.body.appendChild(container);
+        }
+        
+        // Create notification element
+        const notificationEl = document.createElement('div');
+        notificationEl.className = `notification notification-${notification.type}`;
+        notificationEl.innerHTML = `
+            <div class="notification-title">${notification.title}</div>
+            <div class="notification-message">${notification.message}</div>
+        `;
+        
+        // Add to container
+        container.appendChild(notificationEl);
+        
+        // Remove after duration
+        setTimeout(() => {
+            if (notificationEl.parentNode) {
+                notificationEl.parentNode.removeChild(notificationEl);
+            }
+        }, notification.duration || 5000);
+    }
+
+    showError(message) {
+        this.showNotification({
+            type: 'error',
+            title: 'Error',
+            message: message,
+            duration: 5000
+        });
+    }
+
+    showFatalError(message) {
+        const errorHtml = `
+            <div class="fatal-error">
+                <div class="error-content">
+                    <h2>💥 Application Error</h2>
+                    <p>${message}</p>
+                    <button class="btn btn-primary" onclick="window.location.reload()">
+                        Reload Application
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.innerHTML = errorHtml;
+    }
+
+    // DATA REFRESH
+
+    async refreshDashboardData() {
+        await this.loadUserStats();
+        await this.loadDashboardData();
+        this.updateApplicationUI();
+    }
+
+    async refreshAllData() {
+        console.log('🔄 Refreshing all application data...');
+        
+        await this.loadUserStats();
+        await this.loadDashboardData();
+        this.updateApplicationUI();
+        
+        this.showNotification({
+            type: 'success',
+            title: 'Data Refreshed',
+            message: 'All application data has been updated',
+            duration: 2000
+        });
+    }
+
+    // UTILITY METHODS
+
+    calculateTrustLevel(score) {
+        if (score >= 90) return 'Excellent';
+        if (score >= 80) return 'Very Good';
+        if (score >= 70) return 'Good';
+        if (score >= 60) return 'Fair';
+        return 'Beginner';
+    }
+
+    formatCurrency(amount) {
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            minimumFractionDigits: 2
+        }).format(amount);
+    }
+
+    maskPhone(phone) {
+        if (!phone) return 'Unknown';
+        return phone.replace(/(\d{3})\d{4}(\d{3})/, '$1****$2');
+    }
+
+    // STATE MANAGEMENT
+
+    saveApplicationState() {
+        const state = {
+            currentPage: this.currentPage,
+            user: this.currentUser ? {
+                phone: this.currentUser.phone,
+                isAuthenticated: this.currentUser.isAuthenticated
+            } : null,
+            timestamp: new Date().toISOString()
+        };
+        
+        localStorage.setItem('appState', JSON.stringify(state));
+    }
+
+    async restoreApplicationState() {
+        try {
+            const state = JSON.parse(localStorage.getItem('appState'));
+            if (state && state.user && state.user.isAuthenticated) {
+                this.currentPage = state.currentPage || 'dashboard';
+                return true;
+            }
+        } catch (error) {
+            console.warn('⚠️ Could not restore app state:', error);
+        }
+        return false;
+    }
+
+    getPreviousPage() {
+        const pages = ['dashboard', 'transactions', 'contacts', 'profile', 'settings'];
+        const currentIndex = pages.indexOf(this.currentPage);
+        return currentIndex > 0 ? pages[currentIndex - 1] : null;
+    }
+
+    // EVENT SYSTEM
+
     triggerAppEvent(eventName, detail) {
         const event = new CustomEvent(eventName, {
             detail: detail
         });
         document.dispatchEvent(event);
+    }
+
+    // PUBLIC API
+
+    getAppStatus() {
+        return {
+            user: this.currentUser,
+            page: this.currentPage,
+            online: this.isOnline,
+            stats: this.userStats,
+            components: {
+                database: !!window.databaseManager,
+                auth: !!window.authManager
+            }
+        };
+    }
+
+    async logout() {
+        if (window.authManager) {
+            await window.authManager.logout();
+        } else {
+            this.redirectToLogin();
+        }
+    }
+
+    redirectToLogin() {
+        window.location.href = 'login.html';
     }
 }
 
