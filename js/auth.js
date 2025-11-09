@@ -267,7 +267,7 @@ class AuthManager {
         this.triggerAuthStateChange('logout', null);
     }
 
-    // OTP SYSTEM - FIXED DATA STRUCTURE
+    // OTP SYSTEM - FIXED VERSION
 
     async sendOTP(phoneNumber) {
         if (!this.isInitialized) {
@@ -291,14 +291,18 @@ class AuthManager {
                     // Store OTP data with correct structure
                     const otpData = {
                         phone: phoneNumber,
-                        otp: otp, // Changed from 'code' to 'otp'
+                        otp: otp,
                         timestamp: Date.now(),
                         verified: false,
                         attempts: 0,
-                        expiresAt: new Date(Date.now() + this.otpExpiryTime).toISOString() // Add expiry
+                        expiresAt: new Date(Date.now() + this.otpExpiryTime).toISOString()
                     };
                     
                     await window.databaseManager.saveSetting(`otp_${phoneNumber}`, otpData);
+                    
+                    // Verify the OTP was stored correctly
+                    const verifyStored = await window.databaseManager.getSetting(`otp_${phoneNumber}`);
+                    console.log('🔍 OTP stored verification:', verifyStored);
                     
                     // Display OTP on screen for testing
                     this.displayOTPOnScreen(phoneNumber, otp);
@@ -310,6 +314,7 @@ class AuthManager {
                     });
                     
                 } catch (error) {
+                    console.error('❌ OTP generation failed:', error);
                     reject({
                         success: false,
                         message: 'Failed to generate OTP',
@@ -326,14 +331,31 @@ class AuthManager {
         }
 
         try {
-            // Get OTP data - FIXED: Extract value from settings object
-            const otpSetting = await window.databaseManager.getSetting(`otp_${phoneNumber}`);
+            // Get OTP data - FIXED: Handle different return formats
+            const otpResult = await window.databaseManager.getSetting(`otp_${phoneNumber}`);
             
-            if (!otpSetting || !otpSetting.value) {
+            // Debug log to see what's actually returned
+            console.log('🔍 OTP retrieval result:', otpResult);
+            
+            // Handle different possible return formats
+            let otpData;
+            if (!otpResult) {
+                throw new Error('OTP not found. Please request a new OTP.');
+            } else if (otpResult.value) {
+                // If data is wrapped in .value property
+                otpData = otpResult.value;
+            } else {
+                // If data is returned directly
+                otpData = otpResult;
+            }
+
+            // Check if we have valid OTP data
+            if (!otpData || !otpData.otp) {
+                console.error('❌ Invalid OTP data structure:', otpData);
                 throw new Error('OTP not found. Please request a new OTP.');
             }
 
-            const otpData = otpSetting.value; // Extract the actual OTP data
+            console.log('🔍 OTP data retrieved:', otpData);
 
             // Check if OTP is expired
             const currentTime = Date.now();
@@ -350,7 +372,9 @@ class AuthManager {
                 throw new Error('Too many failed attempts. Please request a new OTP.');
             }
 
-            // Check if OTP matches - FIXED: Use otpData.otp instead of otpData.code
+            // Check if OTP matches
+            console.log(`🔍 Comparing: Entered OTP "${enteredOTP}" vs Stored OTP "${otpData.otp}"`);
+            
             if (otpData.otp === enteredOTP) {
                 // OTP verified successfully
                 const updatedOtpData = {
@@ -363,6 +387,8 @@ class AuthManager {
                 
                 // Remove OTP display
                 this.removeOTPDisplay();
+                
+                console.log('✅ OTP verified successfully for:', phoneNumber);
                 
                 return {
                     success: true,
@@ -390,6 +416,7 @@ class AuthManager {
                 }
             }
         } catch (error) {
+            console.error('❌ OTP verification error:', error);
             throw error;
         }
     }
