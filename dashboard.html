@@ -13,6 +13,9 @@
             <div class="sidebar-header">
                 <h2>Transparent Transactions</h2>
                 <p>User Dashboard</p>
+                <div id="auto-login-indicator" class="auto-login-badge" style="display: none;">
+                    🔄 Auto-logged in
+                </div>
             </div>
             
             <nav class="sidebar-nav">
@@ -41,6 +44,9 @@
                     <strong data-user-name>Loading...</strong>
                     <br>
                     <small data-user-phone>Loading...</small>
+                    <div id="login-method" style="font-size: 0.8em; color: #666; margin-top: 5px;">
+                        <!-- Auto-login status will be shown here -->
+                    </div>
                 </div>
                 <button class="btn btn-logout" data-logout>🚪 Logout</button>
             </div>
@@ -53,12 +59,23 @@
                 <div>
                     <h1>Welcome, <span data-user-name>User</span>!</h1>
                     <p id="currentDate">Loading date...</p>
+                    <div id="session-info" style="font-size: 0.9em; color: #666;">
+                        <!-- Session information will be shown here -->
+                    </div>
                 </div>
                 <div class="header-actions">
                     <span class="online-status" id="online-status" title="Online">●</span>
                     <button class="btn btn-secondary" data-refresh>🔄 Refresh</button>
+                    <button class="btn btn-info" data-action="device-info" title="Device Information">
+                        📱
+                    </button>
                 </div>
             </header>
+
+            <!-- Auto-Login Welcome Message -->
+            <div id="auto-login-welcome" class="message info" style="display: none; margin-bottom: 20px;">
+                <p>🎉 <strong>Welcome back!</strong> You were automatically logged in via device recognition.</p>
+            </div>
 
             <!-- Dashboard Section -->
             <section id="dashboard-page" class="dashboard-section active" data-page="dashboard">
@@ -328,6 +345,9 @@
                             <br>
                             <span data-user-trust style="color: #007bff; font-weight: bold;">Beginner</span>
                         </div>
+                        <div id="login-method-profile" style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                            <small>Login Method: <span id="login-method-text">Loading...</span></small>
+                        </div>
                     </div>
 
                     <!-- Profile Details -->
@@ -354,6 +374,29 @@
                             </div>
                         </div>
 
+                        <!-- Session Information -->
+                        <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            <h4 style="margin-bottom: 10px;">Session Information</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em;">
+                                <div>
+                                    <strong>Login Time:</strong>
+                                    <p id="login-time">Loading...</p>
+                                </div>
+                                <div>
+                                    <strong>Device:</strong>
+                                    <p id="device-info">This device</p>
+                                </div>
+                                <div>
+                                    <strong>Session Duration:</strong>
+                                    <p id="session-duration">Loading...</p>
+                                </div>
+                                <div>
+                                    <strong>Auto-login:</strong>
+                                    <p id="auto-login-status">No</p>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Security Settings -->
                         <div style="margin-top: 30px;">
                             <h3 style="margin-bottom: 15px;">Security</h3>
@@ -362,6 +405,9 @@
                             </button>
                             <button class="btn btn-secondary" data-action="enable-2fa" style="margin-left: 10px;">
                                 📱 Enable 2FA
+                            </button>
+                            <button class="btn btn-secondary" data-action="manage-devices" style="margin-left: 10px;">
+                                📱 Manage Devices
                             </button>
                         </div>
                     </div>
@@ -394,9 +440,9 @@
                         </div>
                     </div>
 
-                    <!-- Privacy Settings -->
+                    <!-- Privacy & Security Settings -->
                     <div style="background: white; padding: 25px; border-radius: 12px;">
-                        <h3 style="margin-bottom: 20px;">🛡️ Privacy & Data</h3>
+                        <h3 style="margin-bottom: 20px;">🛡️ Privacy & Security</h3>
                         <div style="display: flex; flex-direction: column; gap: 15px;">
                             <button class="btn btn-secondary" data-action="download-data">
                                 📥 Download My Data
@@ -404,9 +450,43 @@
                             <button class="btn btn-secondary" data-action="privacy-settings">
                                 👁️ Privacy Settings
                             </button>
+                            <button class="btn btn-secondary" data-action="device-settings">
+                                📱 Device Settings
+                            </button>
                             <button class="btn btn-danger" data-action="delete-account">
                                 🗑️ Delete Account
                             </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Auto-Login Settings -->
+                <div style="background: white; padding: 25px; border-radius: 12px; margin-top: 30px;">
+                    <h3 style="margin-bottom: 20px;">🔐 Auto-Login Settings</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                        <div>
+                            <label style="font-weight: 600; color: #666;">Auto-Login</label>
+                            <div style="margin-top: 10px;">
+                                <label style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="checkbox" id="auto-login-enabled" checked>
+                                    Enable automatic login on this device
+                                </label>
+                                <small style="color: #666; display: block; margin-top: 5px;">
+                                    Remember this device for faster access
+                                </small>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; color: #666;">Session Timeout</label>
+                            <select class="form-input mt-1" id="session-timeout">
+                                <option value="1">1 hour</option>
+                                <option value="4">4 hours</option>
+                                <option value="8" selected>8 hours</option>
+                                <option value="24">24 hours</option>
+                            </select>
+                            <small style="color: #666; display: block; margin-top: 5px;">
+                                How long to stay logged in
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -456,6 +536,8 @@
     <script>
         // Initialize dashboard when page loads
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Dashboard initializing...');
+            
             // Set current date
             const now = new Date();
             document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', {
@@ -464,6 +546,9 @@
                 month: 'long',
                 day: 'numeric'
             });
+
+            // Check authentication and setup auto-login indicators
+            checkAuthenticationAndSetup();
 
             // Navigation handler
             document.querySelectorAll('[data-nav]').forEach(link => {
@@ -498,6 +583,99 @@
                 }
             });
 
+            // Update session info every minute
+            setInterval(updateSessionInfo, 60000);
+
+            function checkAuthenticationAndSetup() {
+                if (window.authManager && window.authManager.isAuthenticated()) {
+                    const currentUser = window.authManager.getCurrentUser();
+                    
+                    // Check if this was an auto-login
+                    if (window.app && window.app.isAutoLoggedIn) {
+                        showAutoLoginWelcome();
+                    }
+                    
+                    // Update login method display
+                    updateLoginMethodDisplay();
+                    
+                    // Update session information
+                    updateSessionInfo();
+                    
+                } else {
+                    console.log('❌ User not authenticated, redirecting to login...');
+                    window.location.href = 'login.html';
+                }
+            }
+
+            function showAutoLoginWelcome() {
+                const welcomeMsg = document.getElementById('auto-login-welcome');
+                const indicator = document.getElementById('auto-login-indicator');
+                
+                if (welcomeMsg) welcomeMsg.style.display = 'block';
+                if (indicator) indicator.style.display = 'inline-block';
+                
+                // Auto-hide welcome message after 5 seconds
+                setTimeout(() => {
+                    if (welcomeMsg) welcomeMsg.style.display = 'none';
+                }, 5000);
+            }
+
+            function updateLoginMethodDisplay() {
+                const loginMethod = document.getElementById('login-method');
+                const loginMethodText = document.getElementById('login-method-text');
+                const loginMethodProfile = document.getElementById('login-method-profile');
+                
+                if (window.app) {
+                    const method = window.app.getLoginMethod();
+                    const displayText = method === 'auto' ? '🔄 Auto-login' : '🔐 Manual login';
+                    
+                    if (loginMethod) loginMethod.innerHTML = displayText;
+                    if (loginMethodText) loginMethodText.textContent = displayText;
+                    
+                    // Add color coding
+                    if (loginMethodProfile) {
+                        loginMethodProfile.style.background = method === 'auto' ? '#e8f5e8' : '#fff3cd';
+                        loginMethodProfile.style.border = method === 'auto' ? '1px solid #28a745' : '1px solid #ffc107';
+                    }
+                }
+            }
+
+            function updateSessionInfo() {
+                if (window.authManager && window.authManager.isAuthenticated()) {
+                    const currentUser = window.authManager.getCurrentUser();
+                    const sessionInfo = document.getElementById('session-info');
+                    const loginTime = document.getElementById('login-time');
+                    const sessionDuration = document.getElementById('session-duration');
+                    const autoLoginStatus = document.getElementById('auto-login-status');
+                    
+                    if (currentUser && currentUser.loginTime) {
+                        const loginDate = new Date(currentUser.loginTime);
+                        const now = new Date();
+                        const durationMs = now - loginDate;
+                        const durationMins = Math.floor(durationMs / (1000 * 60));
+                        const durationHours = Math.floor(durationMins / 60);
+                        const remainingMins = durationMins % 60;
+                        
+                        if (sessionInfo) {
+                            sessionInfo.innerHTML = `Session active for ${durationHours}h ${remainingMins}m`;
+                        }
+                        
+                        if (loginTime) {
+                            loginTime.textContent = loginDate.toLocaleString();
+                        }
+                        
+                        if (sessionDuration) {
+                            sessionDuration.textContent = `${durationHours}h ${remainingMins}m`;
+                        }
+                        
+                        if (autoLoginStatus) {
+                            autoLoginStatus.textContent = window.app && window.app.isAutoLoggedIn ? 'Yes' : 'No';
+                            autoLoginStatus.style.color = window.app && window.app.isAutoLoggedIn ? '#28a745' : '#6c757d';
+                        }
+                    }
+                }
+            }
+
             function handleAction(action) {
                 if (!window.app) return;
 
@@ -513,7 +691,6 @@
                         break;
                     case 'new-transaction':
                         if (window.app.addNewTransaction) {
-                            // This would open a transaction form
                             alert('New transaction form would open here');
                         }
                         break;
@@ -539,6 +716,21 @@
                     case 'change-password':
                         alert('Change password feature would open here');
                         break;
+                    case 'enable-2fa':
+                        alert('Two-factor authentication setup would open here');
+                        break;
+                    case 'manage-devices':
+                        alert('Device management would open here');
+                        break;
+                    case 'device-info':
+                        if (window.app.getDeviceInfo) {
+                            const deviceInfo = window.app.getDeviceInfo();
+                            alert(`Device Information:\n\n- Device ID: ${deviceInfo.deviceId}\n- Platform: ${deviceInfo.platform}\n- Browser: ${navigator.userAgent.split(' ')[0]}\n- Auto-login: ${window.app.isAutoLoggedIn ? 'Enabled' : 'Disabled'}`);
+                        }
+                        break;
+                    case 'device-settings':
+                        alert('Device settings would open here');
+                        break;
                     case 'download-data':
                         if (window.app.downloadData) {
                             window.app.downloadData();
@@ -553,12 +745,22 @@
                         console.log('Action not implemented:', action);
                 }
             }
-
-            // Check if user is authenticated
-            if (window.authManager && !window.authManager.isAuthenticated()) {
-                window.location.href = 'login.html';
-            }
         });
+
+        // Add CSS for auto-login badge
+        const style = document.createElement('style');
+        style.textContent = `
+            .auto-login-badge {
+                background: #28a745;
+                color: white;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 0.8em;
+                margin-top: 5px;
+                display: inline-block;
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
