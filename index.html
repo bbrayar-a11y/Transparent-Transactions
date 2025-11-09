@@ -3,131 +3,553 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transparent Transactions - Secure Financial Platform</title>
+    <title>Transparent Transactions - Secure Money Transfers</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2E8B57">
+    <meta name="description" content="Secure, transparent, and instant money transfers with built-in trust verification">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Transparent Transactions</h1>
-            <p class="tagline">Secure, Transparent Financial Management</p>
-        </header>
-
-        <main>
-            <div class="hero-section">
-                <h2>Welcome to Your Financial Future</h2>
-                <p>Join thousands of users who trust us with their financial transactions</p>
-                
-                <div class="cta-buttons">
-                    <a href="login.html" class="btn btn-primary">Get Started</a>
-                    <a href="#features" class="btn btn-secondary">Learn More</a>
-                </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>Transparent Transactions</h1>
             </div>
+            <div class="nav-links">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#how-it-works" class="nav-link">How It Works</a>
+                <a href="#about" class="nav-link">About</a>
+                <button class="btn btn-primary" onclick="goToApp()">Launch App</button>
+            </div>
+            <button class="nav-toggle" onclick="toggleMobileMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
 
-            <!-- Admin Referral Section -->
-            <section class="referral-section" id="admin-referral">
-                <h3>Admin Access</h3>
-                <div class="referral-form">
-                    <input 
-                        type="password" 
-                        id="adminPassword" 
-                        placeholder="Enter admin password" 
-                        class="form-input"
-                    >
-                    <button onclick="verifyAdmin()" class="btn btn-primary">Access Admin Panel</button>
-                </div>
-                <div id="adminMessage" class="message"></div>
-            </section>
-
-            <section id="features" class="features-section">
-                <h3>Why Choose Us?</h3>
-                <div class="features-grid">
-                    <div class="feature-card">
-                        <h4>🔒 Secure</h4>
-                        <p>Bank-level security for all your transactions</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>📊 Transparent</h4>
-                        <p>Clear, understandable fee structures</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>⚡ Fast</h4>
-                        <p>Quick processing times for all transactions</p>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <footer>
-            <p>&copy; 2024 Transparent Transactions. All rights reserved.</p>
-        </footer>
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="#features" class="mobile-nav-link" onclick="toggleMobileMenu()">Features</a>
+        <a href="#how-it-works" class="mobile-nav-link" onclick="toggleMobileMenu()">How It Works</a>
+        <a href="#about" class="mobile-nav-link" onclick="toggleMobileMenu()">About</a>
+        <button class="btn btn-primary mobile-nav-btn" onclick="goToApp()">Launch App</button>
     </div>
 
-    <script src="js/database.js"></script>
-    <script src="js/auth.js"></script>
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1 class="hero-title">
+                        Secure & Transparent<br>
+                        <span class="hero-highlight">Money Transfers</span>
+                    </h1>
+                    <p class="hero-description">
+                        Send and receive money with complete transparency, built-in trust verification, 
+                        and real-time tracking. No hidden fees, no surprises.
+                    </p>
+                    <div class="hero-actions">
+                        <button class="btn btn-primary btn-large" onclick="goToApp()">
+                            🚀 Get Started Free
+                        </button>
+                        <button class="btn btn-secondary btn-large" onclick="scrollToFeatures()">
+                            📚 Learn More
+                        </button>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="stat-item">
+                            <div class="stat-number">100%</div>
+                            <div class="stat-label">Secure</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">0%</div>
+                            <div class="stat-label">Hidden Fees</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">24/7</div>
+                            <div class="stat-label">Support</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="phone-mockup">
+                        <div class="phone-screen">
+                            <div class="app-preview">
+                                <div class="app-header">
+                                    <span class="app-logo">💰</span>
+                                    <span class="app-name">Transparent</span>
+                                </div>
+                                <div class="app-balance">
+                                    <div class="balance-label">Your Balance</div>
+                                    <div class="balance-amount">₹5,247.50</div>
+                                </div>
+                                <div class="app-actions">
+                                    <button class="app-btn">Send</button>
+                                    <button class="app-btn">Request</button>
+                                    <button class="app-btn">Contacts</button>
+                                </div>
+                                <div class="app-activity">
+                                    <div class="activity-item">
+                                        <div class="activity-icon">📥</div>
+                                        <div class="activity-details">
+                                            <div class="activity-title">Received from John</div>
+                                            <div class="activity-amount positive">+₹1,500.00</div>
+                                        </div>
+                                    </div>
+                                    <div class="activity-item">
+                                        <div class="activity-icon">📤</div>
+                                        <div class="activity-details">
+                                            <div class="activity-title">Sent to Sarah</div>
+                                            <div class="activity-amount negative">-₹750.00</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Why Choose Transparent Transactions?</h2>
+                <p>Experience the future of secure money transfers</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Bank-Grade Security</h3>
+                    <p>Your transactions are protected with military-grade encryption and multi-factor authentication.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">👁️</div>
+                    <h3>Complete Transparency</h3>
+                    <p>See exactly where your money is at every step. No hidden charges or surprise fees.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Instant Transfers</h3>
+                    <p>Send and receive money in seconds, not days. Real-time processing 24/7.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Trust Scoring</h3>
+                    <p>Built-in reputation system ensures you're transacting with verified, trusted users.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3>Zero Fees</h3>
+                    <p>No transaction fees, no maintenance charges. What you send is what they receive.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <h3>PWA Powered</h3>
+                    <p>Works offline, installs like an app, and loads instantly on any device.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="how-it-works-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>How It Works</h2>
+                <p>Get started in just 3 simple steps</p>
+            </div>
+            <div class="steps-container">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Create Your Account</h3>
+                        <p>Sign up with your phone number and basic details. No lengthy forms or paperwork.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Verify Your Identity</h3>
+                        <p>Complete quick verification with OTP. We ensure your security while keeping it simple.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Start Transacting</h3>
+                        <p>Send money to contacts, track transactions, and build your trust reputation.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="cta-container">
+                <button class="btn btn-primary btn-large" onclick="goToApp()">
+                    Start Your First Transaction
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Trusted by Thousands</h2>
+                <p>See what our users are saying</p>
+            </div>
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-content">
+                        "Finally, a money transfer app that doesn't hide anything. The transparency is refreshing!"
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">👨‍💼</div>
+                        <div class="author-info">
+                            <div class="author-name">Rahul Sharma</div>
+                            <div class="author-role">Small Business Owner</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-content">
+                        "The trust scoring system gives me confidence when sending money to new contacts."
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">👩‍🎓</div>
+                        <div class="author-info">
+                            <div class="author-name">Priya Patel</div>
+                            <div class="author-role">College Student</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-content">
+                        "Instant transfers and zero fees? This is exactly what we needed for our family expenses."
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">👨‍👩‍👧‍👦</div>
+                        <div class="author-info">
+                            <div class="author-name">The Kumar Family</div>
+                            <div class="author-role">Family Account</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about-section">
+        <div class="container">
+            <div class="about-content">
+                <div class="about-text">
+                    <h2>About Transparent Transactions</h2>
+                    <p>
+                        We believe that financial transactions should be simple, secure, and completely transparent. 
+                        Founded with the mission to eliminate hidden fees and build trust in peer-to-peer payments, 
+                        we're revolutionizing how people send and receive money.
+                    </p>
+                    <p>
+                        Our platform combines cutting-edge security with user-friendly design, ensuring that 
+                        everyone can enjoy the benefits of digital payments without the complexity.
+                    </p>
+                    <div class="about-features">
+                        <div class="about-feature">
+                            <span class="feature-check">✅</span>
+                            <span>Built with privacy-first design</span>
+                        </div>
+                        <div class="about-feature">
+                            <span class="feature-check">✅</span>
+                            <span>100% open about our operations</span>
+                        </div>
+                        <div class="about-feature">
+                            <span class="feature-check">✅</span>
+                            <span>Committed to zero hidden fees</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="about-visual">
+                    <div class="security-badge">
+                        <div class="badge-icon">🛡️</div>
+                        <div class="badge-text">
+                            <div class="badge-title">Bank-Level Security</div>
+                            <div class="badge-subtitle">Your money is safe with us</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section class="final-cta-section">
+        <div class="container">
+            <div class="cta-content">
+                <h2>Ready to Experience Transparent Banking?</h2>
+                <p>Join thousands of satisfied users today</p>
+                <div class="cta-actions">
+                    <button class="btn btn-primary btn-large" onclick="goToApp()">
+                        🚀 Create Free Account
+                    </button>
+                    <button class="btn btn-secondary btn-large" onclick="showDemo()">
+                        🎬 Watch Demo
+                    </button>
+                </div>
+                <div class="cta-features">
+                    <span class="cta-feature">✅ No credit card required</span>
+                    <span class="cta-feature">✅ 30-second setup</span>
+                    <span class="cta-feature">✅ Free forever</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Transparent Transactions</h3>
+                    <p>Secure, transparent, and instant money transfers for everyone.</p>
+                    <div class="social-links">
+                        <a href="#" class="social-link">📘</a>
+                        <a href="#" class="social-link">🐦</a>
+                        <a href="#" class="social-link">📷</a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Product</h4>
+                    <a href="#" class="footer-link">Features</a>
+                    <a href="#" class="footer-link">Security</a>
+                    <a href="#" class="footer-link">Pricing</a>
+                    <a href="#" class="footer-link">Download</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Company</h4>
+                    <a href="#" class="footer-link">About</a>
+                    <a href="#" class="footer-link">Blog</a>
+                    <a href="#" class="footer-link">Careers</a>
+                    <a href="#" class="footer-link">Contact</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <a href="#" class="footer-link">Help Center</a>
+                    <a href="#" class="footer-link">Privacy Policy</a>
+                    <a href="#" class="footer-link">Terms of Service</a>
+                    <a href="#" class="footer-link">Status</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Transparent Transactions. All rights reserved.</p>
+                <p>Made with ❤️ for secure financial freedom</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Demo Modal -->
+    <div id="demoModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>App Demo</h3>
+                <button class="modal-close" onclick="closeDemo()">×</button>
+            </div>
+            <div class="modal-body">
+                <p>Experience the full app features by creating your free account.</p>
+                <div class="demo-features">
+                    <div class="demo-feature">🔐 Secure authentication</div>
+                    <div class="demo-feature">💸 Instant money transfers</div>
+                    <div class="demo-feature">📊 Real-time transaction tracking</div>
+                    <div class="demo-feature">👥 Trust-based contact system</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="goToApp()">Try It Now</button>
+                <button class="btn btn-secondary" onclick="closeDemo()">Maybe Later</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="database.js"></script>
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+    
     <script>
-        function verifyAdmin() {
-            const password = document.getElementById('adminPassword').value;
-            const message = document.getElementById('adminMessage');
+        // Check if user is already logged in
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🌐 Landing page loaded');
             
-            if (password === 'admin2024') {
-                message.textContent = 'Admin access granted! Redirecting to dashboard...';
-                message.className = 'message success';
-                
-                // FIXED: Redirect to dashboard instead of non-existent admin.html
-                setTimeout(() => {
-                    // Create a temporary admin session and redirect to dashboard
-                    const adminSession = {
-                        phone: 'admin_user',
-                        isAuthenticated: true,
-                        loginTime: new Date().toISOString(),
-                        isAdmin: true,
-                        profile: {
-                            fullName: 'Admin User',
-                            phone: 'admin_user'
-                        }
-                    };
+            try {
+                // Wait for auth system to initialize
+                if (window.authManager) {
+                    await new Promise(resolve => {
+                        const checkReady = setInterval(() => {
+                            if (window.authManager.isInitialized) {
+                                clearInterval(checkReady);
+                                resolve();
+                            }
+                        }, 100);
+                    });
                     
-                    // Store session and redirect
-                    localStorage.setItem('currentUser', JSON.stringify(adminSession));
-                    window.location.href = 'dashboard.html';
-                }, 1000);
-                
+                    // Check if user is authenticated
+                    if (window.authManager.isAuthenticated()) {
+                        console.log('✅ User is authenticated, showing app shortcut');
+                        updateAuthState(true);
+                    } else {
+                        updateAuthState(false);
+                    }
+                }
+            } catch (error) {
+                console.log('ℹ️ Auth check not available, showing standard landing page');
+            }
+            
+            // Add scroll animations
+            setupScrollAnimations();
+        });
+
+        // Navigation functions
+        function goToApp() {
+            // Check if user is already authenticated
+            if (window.authManager && window.authManager.isAuthenticated()) {
+                window.location.href = 'dashboard.html';
             } else {
-                message.textContent = 'Invalid admin password';
-                message.className = 'message error';
+                window.location.href = 'login.html';
             }
         }
 
-        // Enhanced: Auto-redirect if already authenticated
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check if user is already authenticated
-            if (window.authManager) {
-                // Wait for auth manager to initialize
-                setTimeout(() => {
-                    if (window.authManager.isAuthenticated()) {
-                        console.log('User already authenticated, redirecting to dashboard...');
-                        window.location.href = 'dashboard.html';
-                    }
-                }, 500);
-            }
-            
-            // Check localStorage directly as fallback
-            const currentUser = localStorage.getItem('currentUser');
-            if (currentUser) {
-                try {
-                    const userData = JSON.parse(currentUser);
-                    if (userData.isAuthenticated) {
-                        console.log('Found existing session, redirecting to dashboard...');
-                        setTimeout(() => {
-                            window.location.href = 'dashboard.html';
-                        }, 1000);
-                    }
-                } catch (error) {
-                    console.log('No valid session found');
+        function scrollToFeatures() {
+            document.getElementById('features').scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        }
+
+        function toggleMobileMenu() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            mobileMenu.style.display = mobileMenu.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function showDemo() {
+            document.getElementById('demoModal').style.display = 'flex';
+        }
+
+        function closeDemo() {
+            document.getElementById('demoModal').style.display = 'none';
+        }
+
+        function updateAuthState(isAuthenticated) {
+            const authButtons = document.querySelectorAll('.btn-primary');
+            authButtons.forEach(button => {
+                if (isAuthenticated) {
+                    button.textContent = '🚀 Go to Dashboard';
+                    button.onclick = function() { window.location.href = 'dashboard.html'; };
+                } else {
+                    button.textContent = '🚀 Get Started Free';
+                    button.onclick = function() { window.location.href = 'login.html'; };
                 }
+            });
+        }
+
+        function setupScrollAnimations() {
+            // Simple fade-in animation for elements
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, observerOptions);
+
+            // Observe all feature cards and steps
+            document.querySelectorAll('.feature-card, .step, .testimonial-card').forEach(el => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(20px)';
+                el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                observer.observe(el);
+            });
+        }
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const mobileMenu = document.getElementById('mobileMenu');
+            const navToggle = document.querySelector('.nav-toggle');
+            
+            if (mobileMenu.style.display === 'flex' && 
+                !mobileMenu.contains(event.target) && 
+                !navToggle.contains(event.target)) {
+                mobileMenu.style.display = 'none';
             }
         });
+
+        // Handle responsive behavior
+        window.addEventListener('resize', function() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            if (window.innerWidth > 768 && mobileMenu.style.display === 'flex') {
+                mobileMenu.style.display = 'none';
+            }
+        });
+
+        // Add some interactive elements
+        document.querySelectorAll('.feature-card, .testimonial-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+
+        // PWA Installation prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            // Stash the event so it can be triggered later
+            deferredPrompt = e;
+            // Show install button (you can add this to your UI)
+            showInstallPrompt();
+        });
+
+        function showInstallPrompt() {
+            // You can add an install button to your UI here
+            console.log('📱 PWA installation available');
+        }
+
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('✅ User accepted PWA installation');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        }
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('✅ ServiceWorker registration successful');
+                    })
+                    .catch(function(error) {
+                        console.log('❌ ServiceWorker registration failed');
+                    });
+            });
+        }
     </script>
 </body>
 </html>
