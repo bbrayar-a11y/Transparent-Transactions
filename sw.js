@@ -8,16 +8,15 @@ const DYNAMIC_CACHE = 'transparent-dynamic-v1.0.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './login.html', 
+  './login.html',
   './dashboard.html',
   './styles.css',
-  './database.js',
-  './auth.js',
-  './app.js',
+  './js/database.js',    // ← Add js/ prefix
+  './js/auth.js',        // ← Add js/ prefix  
+  './js/app.js',         // ← Add js/ prefix
   './manifest.json',
   './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/app-preview.png'
+  './icons/icon-512.png'
 ];
 
 // API routes and external resources to cache
