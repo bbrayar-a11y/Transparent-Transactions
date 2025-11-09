@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - Transparent Transactions</title>
+    <title>Login - Transparent Transactions</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <style>
@@ -98,7 +98,7 @@
 
     <!-- Scripts in correct order -->
     <script src="js/database.js"></script>
-<script src="js/auth.js"></script>
+    <script src="js/auth.js"></script>
     
     <script>
         // Current registration state
@@ -169,7 +169,7 @@
             }
         }
 
-        // REGISTRATION FLOW
+        // REGISTRATION FLOW - UPDATED FOR AUTO-LOGIN
 
         async function handleRegistration() {
             console.log('🔄 Registration attempted');
@@ -206,17 +206,37 @@
 
             // Show loading state
             setButtonLoading('registerBtn', true);
-            showMessage('Sending OTP...', 'info', 'message');
+            showMessage('Checking phone number...', 'info', 'message');
 
             try {
                 console.log('📱 Attempting to send OTP...');
                 const result = await window.authManager.sendOTP(phone);
                 
-                if (result.success) {
+                console.log('📱 OTP response:', result);
+                
+                // Handle different response types
+                if (result.action === 'auto-login') {
+                    // Existing user - auto-logged in
+                    showMessage(`Welcome back, ${result.user.profile.fullName || result.user.phone}! Redirecting...`, 'success', 'message');
+                    console.log('✅ Auto-login successful for existing user');
+                    
+                    // Redirect to dashboard
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                    
+                } else if (result.action === 'otp-sent') {
+                    // New user - show OTP section
                     showMessage('OTP sent successfully! Check the display on screen.', 'success', 'message');
                     showOTPSection();
                 } else {
-                    throw new Error(result.message);
+                    // Fallback for older response format
+                    if (result.success) {
+                        showMessage('OTP sent successfully! Check the display on screen.', 'success', 'message');
+                        showOTPSection();
+                    } else {
+                        throw new Error(result.message);
+                    }
                 }
                 
             } catch (error) {
@@ -244,33 +264,16 @@
             showMessage('Verifying OTP...', 'info', 'otpMessage');
 
             try {
-                const result = await window.authManager.verifyOTP(currentRegistrationData.phone, otp);
+                const result = await window.authManager.verifyOTP(currentRegistrationData.phone, otp, currentRegistrationData);
                 
                 if (result.success) {
-                    showMessage('OTP verified successfully!', 'success', 'otpMessage');
-                    await completeRegistration();
-                } else {
-                    throw new Error(result.message);
-                }
-                
-            } catch (error) {
-                console.error('❌ OTP verification failed:', error);
-                showMessage('OTP verification failed: ' + error.message, 'error', 'otpMessage');
-            } finally {
-                setButtonLoading('verifyOtpBtn', false);
-            }
-        }
-
-        async function completeRegistration() {
-            showLoadingOverlay(true);
-            showMessage('Creating your account...', 'info', 'otpMessage');
-
-            try {
-                const result = await window.authManager.registerUser(currentRegistrationData);
-                
-                if (result.success) {
-                    showMessage('✅ Account created successfully! Redirecting...', 'success', 'otpMessage');
+                    if (result.isNewUser) {
+                        showMessage('✅ Account created successfully! Redirecting...', 'success', 'otpMessage');
+                    } else {
+                        showMessage('✅ Login successful! Redirecting...', 'success', 'otpMessage');
+                    }
                     
+                    // Redirect to dashboard
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
                     }, 1500);
@@ -280,10 +283,10 @@
                 }
                 
             } catch (error) {
-                console.error('❌ Registration failed:', error);
-                showMessage('Account creation failed: ' + error.message, 'error', 'otpMessage');
+                console.error('❌ OTP verification failed:', error);
+                showMessage('OTP verification failed: ' + error.message, 'error', 'otpMessage');
             } finally {
-                showLoadingOverlay(false);
+                setButtonLoading('verifyOtpBtn', false);
             }
         }
 
@@ -301,7 +304,13 @@
             try {
                 const result = await window.authManager.sendOTP(currentRegistrationData.phone);
                 
-                if (result.success) {
+                // Handle auto-login case during resend
+                if (result.action === 'auto-login') {
+                    showMessage('Welcome back! Redirecting...', 'success', 'otpMessage');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                } else if (result.success) {
                     showMessage('OTP resent successfully!', 'success', 'otpMessage');
                 } else {
                     throw new Error(result.message);
@@ -433,6 +442,3 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
-
-
-
