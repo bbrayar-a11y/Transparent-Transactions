@@ -1,5 +1,5 @@
-// auth.js - Authentication and User Management for Transparent Transactions
-// Updated with database readiness handling and OTP display
+// auth.js - Enhanced with Passwordless Subsequent Logins
+// Updated with device recognition and automatic session management
 
 class AuthManager {
     constructor() {
@@ -8,7 +8,18 @@ class AuthManager {
         this.maxOtpAttempts = 3;
         this.otpExpiryTime = 2 * 60 * 1000; // 2 minutes in milliseconds
         this.isDatabaseReady = false;
+        this.deviceId = this.generateDeviceId();
         this.init();
+    }
+
+    // Generate unique device ID for browser recognition
+    generateDeviceId() {
+        let deviceId = localStorage.getItem('deviceId');
+        if (!deviceId) {
+            deviceId = 'device_' + Math.random().toString(36).substr(2, 16) + '_' + Date.now();
+            localStorage.setItem('deviceId', deviceId);
+        }
+        return deviceId;
     }
 
     // Initialize authentication system
@@ -19,7 +30,13 @@ class AuthManager {
             // Wait for database to be ready with retry mechanism
             await this.waitForDatabase();
             
-            this.loadCurrentUser();
+            // Try automatic login first for returning users
+            const autoLoggedIn = await this.tryAutoLogin();
+            
+            if (!autoLoggedIn) {
+                this.loadCurrentUser();
+            }
+            
             this.setupEventListeners();
             console.log('✅ Auth Manager initialized successfully');
             
@@ -28,6 +45,304 @@ class AuthManager {
             this.showDatabaseError();
         }
     }
+
+    // Try automatic login for returning users
+    async tryAutoLogin() {
+        if (!this.isDatabaseReady) return false;
+
+        try {
+            // Check if this device has a recognized user
+            const deviceUser = await window.databaseManager.executeTransaction('settings', 'readonly', (store) => {
+                return store.get(`device_${this.deviceId}`);
+            });
+
+            if (deviceUser && deviceUser.phone) {
+                console.log('🔍 Found recognized device, attempting auto-login...');
+                
+                // Verify user still exists
+                const dbUser = await window.databaseManager.getUser(deviceUser.phone);
+                if (dbUser) {
+                    // Create session automatically
+                    await this.createUserSession(deviceUser.phone, dbUser);
+                    console.log('✅ Auto-login successful for:', deviceUser.phone);
+                    
+                    // Redirect to dashboard if on login page
+                    if (window.location.pathname.includes('login.html')) {
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 500);
+                    }
+                    
+                    return true;
+                } else {
+                    // User no longer exists, clear device association
+                    await this.clearDeviceAssociation();
+                }
+            }
+        } catch (error) {
+            console.warn('⚠️ Auto-login attempt failed:', error);
+        }
+        
+        return false;
+    }
+
+    // Associate device with user for automatic future logins
+    async associateDeviceWithUser(phoneNumber) {
+        if (!this.isDatabaseReady) return;
+        
+        try {
+            const deviceData = {
+                phone: phoneNumber,
+                deviceId: this.deviceId,
+                userAgent: navigator.userAgent,
+                associatedAt: new Date().toISOString(),
+                lastUsed: new Date().toISOString()
+            };
+
+            await window.databaseManager.executeTransaction('settings', 'readwrite', (store) => {
+                return store.put({
+                    phone: `device_${this.deviceId}`,
+                    ...deviceData
+                });
+            });
+            
+            console.log('✅ Device associated with user:', phoneNumber);
+        } catch (error) {
+            console.error('❌ Error associating device:', error);
+        }
+    }
+
+    // Clear device association (on logout or user change)
+    async clearDeviceAssociation() {
+        if (!this.isDatabaseReady) return;
+        
+        try {
+            await window.databaseManager.executeTransaction('settings', 'readwrite', (store) => {
+                return store.delete(`device_${this.deviceId}`);
+            });
+            console.log('✅ Device association cleared');
+        } catch (error) {
+            console.error('❌ Error clearing device association:', error);
+        }
+    }
+
+    // Enhanced user session creation with device association
+    async createUserSession(phoneNumber, userData = {}) {
+        if (!this.isDatabaseReady) {
+            throw {
+                success: false,
+                message: 'Database not ready. Please try again.'
+            };
+        }
+
+        return new Promise(async (resolve, reject) => {
+            try {
+                // Get or create user profile in database
+                let userProfile = await window.databaseManager.getUser(phoneNumber);
+                
+                if (!userProfile) {
+                    // Create basic user profile if doesn't exist
+                    userProfile = {
+                        phone: phoneNumber,
+                        isActive: true,
+                        createdAt: new Date().toISOString(),
+                        ...userData
+                    };
+                    
+                    await window.databaseManager.saveUser(userProfile);
+                    console.log('✅ New user profile created:', phoneNumber);
+                }
+
+                const userSession = {
+                    phone: phoneNumber,
+                    isAuthenticated: true,
+                    loginTime: new Date().toISOString(),
+                    lastActive: new Date().toISOString(),
+                    sessionId: this.generateSessionId(),
+                    deviceId: this.deviceId,
+                    profile: userProfile
+                };
+
+                // Store session in localStorage for quick access
+                localStorage.setItem('currentUser', JSON.stringify(userSession));
+                this.currentUser = userSession;
+
+                // Associate this device with user for automatic future logins
+                await this.associateDeviceWithUser(phoneNumber);
+
+                // Record login activity in database
+                await this.recordLoginActivity(phoneNumber);
+
+                // Trigger auth state change event
+                this.triggerAuthStateChange('login', userSession);
+
+                console.log('✅ User session created with device association:', phoneNumber);
+                
+                resolve({
+                    success: true,
+                    user: userSession
+                });
+                
+            } catch (error) {
+                reject({
+                    success: false,
+                    message: 'Failed to create user session',
+                    error: error.message
+                });
+            }
+        });
+    }
+
+    // Enhanced logout with device clearing
+    async logout() {
+        const userPhone = this.currentUser ? this.currentUser.phone : 'Unknown';
+        
+        try {
+            // Record logout activity
+            if (this.currentUser && this.isDatabaseReady) {
+                await this.recordLogoutActivity(userPhone);
+            }
+            
+        } catch (error) {
+            console.error('❌ Error recording logout activity:', error);
+        } finally {
+            // Clear device association and session data
+            await this.clearDeviceAssociation();
+            this.clearUserSession();
+            console.log('👋 User logged out and device disassociated:', userPhone);
+        }
+        
+        return {
+            success: true,
+            message: 'Logged out successfully'
+        };
+    }
+
+    // Enhanced session validation with device check
+    async validateSession() {
+        if (!this.currentUser) {
+            return { valid: false, reason: 'No active session' };
+        }
+
+        // Check if session is older than 24 hours
+        const sessionAge = Date.now() - new Date(this.currentUser.loginTime).getTime();
+        const maxSessionAge = 24 * 60 * 60 * 1000; // 24 hours
+
+        if (sessionAge > maxSessionAge) {
+            console.log('🕒 Session expired, logging out...');
+            await this.logout();
+            return { valid: false, reason: 'Session expired' };
+        }
+
+        // Verify device still matches
+        if (this.currentUser.deviceId !== this.deviceId) {
+            console.log('🔄 Device changed, requiring re-authentication');
+            await this.logout();
+            return { valid: false, reason: 'Device mismatch' };
+        }
+
+        // Verify user still exists in database
+        try {
+            if (!this.isDatabaseReady) {
+                return { valid: false, reason: 'Database not ready' };
+            }
+
+            const dbUser = await window.databaseManager.getUser(this.currentUser.phone);
+            if (!dbUser) {
+                await this.logout();
+                return { valid: false, reason: 'User not found in database' };
+            }
+
+            // Update session with latest profile data
+            this.currentUser.profile = dbUser;
+            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+
+            return { valid: true, user: this.currentUser };
+            
+        } catch (error) {
+            console.error('❌ Error validating session:', error);
+            return { valid: false, reason: 'Validation error' };
+        }
+    }
+
+    // Check if user should be automatically logged in
+    shouldAutoLogin() {
+        // Don't auto-login if user manually logged out recently
+        const lastManualLogout = localStorage.getItem('lastManualLogout');
+        if (lastManualLogout) {
+            const logoutTime = new Date(lastManualLogout).getTime();
+            const timeSinceLogout = Date.now() - logoutTime;
+            // If user manually logged out in the last 5 minutes, don't auto-login
+            if (timeSinceLogout < 5 * 60 * 1000) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Manual logout (user-initiated)
+    async manualLogout() {
+        // Store manual logout timestamp
+        localStorage.setItem('lastManualLogout', new Date().toISOString());
+        return await this.logout();
+    }
+
+    // Get device info for debugging
+    getDeviceInfo() {
+        return {
+            deviceId: this.deviceId,
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            language: navigator.language
+        };
+    }
+
+    // Clear all auth data including device associations
+    async clearAllAuthData() {
+        if (!this.isDatabaseReady) {
+            console.warn('⚠️ Database not ready, skipping auth data clear');
+            return;
+        }
+
+        try {
+            // Clear all OTP, session, and device data from database
+            const settings = await window.databaseManager.executeTransaction('settings', 'readonly', (store) => {
+                return store.getAll();
+            });
+
+            for (const setting of settings) {
+                if (setting.phone.startsWith('otp_') || 
+                    setting.phone.startsWith('activity_') || 
+                    setting.phone.startsWith('device_')) {
+                    await window.databaseManager.executeTransaction('settings', 'readwrite', (store) => {
+                        return store.delete(setting.phone);
+                    });
+                }
+            }
+            
+        } catch (error) {
+            console.error('❌ Error clearing auth data from database:', error);
+        } finally {
+            // Clear localStorage
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('deviceId');
+            localStorage.removeItem('lastManualLogout');
+            this.currentUser = null;
+            this.otpAttempts = 0;
+            this.deviceId = this.generateDeviceId(); // Generate new device ID
+            
+            console.log('🧹 All auth data cleared including device associations');
+        }
+    }
+
+    // ===== ALL EXISTING METHODS REMAIN THE SAME =====
+    // (waitForDatabase, checkDatabaseReady, showDatabaseError, loadCurrentUser,
+    // setupEventListeners, generateOTP, sendOTP, displayOTPOnScreen, verifyOTP,
+    // recordLoginActivity, generateSessionId, isAuthenticated, getCurrentUser,
+    // updateUserActivity, recordLogoutActivity, clearUserSession, 
+    // triggerAuthStateChange, handleAuthStateChange, updateAuthUI,
+    // validatePhoneNumber, getOtpExpiryMinutes, hasPendingOTP, 
+    // getUserLoginHistory, and all other existing methods...)
 
     // Wait for database to be ready with retry mechanism
     async waitForDatabase(maxRetries = 10, retryDelay = 500) {
@@ -456,69 +771,6 @@ class AuthManager {
         });
     }
 
-    // Create new user session after successful authentication
-    async createUserSession(phoneNumber, userData = {}) {
-        if (!this.isDatabaseReady) {
-            throw {
-                success: false,
-                message: 'Database not ready. Please try again.'
-            };
-        }
-
-        return new Promise(async (resolve, reject) => {
-            try {
-                // Get or create user profile in database
-                let userProfile = await window.databaseManager.getUser(phoneNumber);
-                
-                if (!userProfile) {
-                    // Create basic user profile if doesn't exist
-                    userProfile = {
-                        phone: phoneNumber,
-                        isActive: true,
-                        createdAt: new Date().toISOString(),
-                        ...userData
-                    };
-                    
-                    await window.databaseManager.saveUser(userProfile);
-                    console.log('✅ New user profile created:', phoneNumber);
-                }
-
-                const userSession = {
-                    phone: phoneNumber,
-                    isAuthenticated: true,
-                    loginTime: new Date().toISOString(),
-                    lastActive: new Date().toISOString(),
-                    sessionId: this.generateSessionId(),
-                    profile: userProfile
-                };
-
-                // Store session in localStorage for quick access
-                localStorage.setItem('currentUser', JSON.stringify(userSession));
-                this.currentUser = userSession;
-
-                // Record login activity in database
-                await this.recordLoginActivity(phoneNumber);
-
-                // Trigger auth state change event
-                this.triggerAuthStateChange('login', userSession);
-
-                console.log('✅ User session created:', phoneNumber);
-                
-                resolve({
-                    success: true,
-                    user: userSession
-                });
-                
-            } catch (error) {
-                reject({
-                    success: false,
-                    message: 'Failed to create user session',
-                    error: error.message
-                });
-            }
-        });
-    }
-
     // Record login activity in database
     async recordLoginActivity(phoneNumber) {
         if (!this.isDatabaseReady) return;
@@ -528,7 +780,8 @@ class AuthManager {
                 phone: phoneNumber,
                 type: 'login',
                 timestamp: new Date().toISOString(),
-                userAgent: navigator.userAgent
+                userAgent: navigator.userAgent,
+                deviceId: this.deviceId
             };
 
             await window.databaseManager.executeTransaction('settings', 'readwrite', (store) => {
@@ -566,30 +819,6 @@ class AuthManager {
         }
     }
 
-    // Logout user and clear session
-    async logout() {
-        const userPhone = this.currentUser ? this.currentUser.phone : 'Unknown';
-        
-        try {
-            // Record logout activity
-            if (this.currentUser && this.isDatabaseReady) {
-                await this.recordLogoutActivity(userPhone);
-            }
-            
-        } catch (error) {
-            console.error('❌ Error recording logout activity:', error);
-        } finally {
-            // Clear session data
-            this.clearUserSession();
-            console.log('👋 User logged out:', userPhone);
-        }
-        
-        return {
-            success: true,
-            message: 'Logged out successfully'
-        };
-    }
-
     // Record logout activity
     async recordLogoutActivity(phoneNumber) {
         if (!this.isDatabaseReady) return;
@@ -598,7 +827,8 @@ class AuthManager {
             const activity = {
                 phone: phoneNumber,
                 type: 'logout',
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                deviceId: this.deviceId
             };
 
             await window.databaseManager.executeTransaction('settings', 'readwrite', (store) => {
@@ -620,39 +850,6 @@ class AuthManager {
 
         // Trigger auth state change event
         this.triggerAuthStateChange('logout', null);
-    }
-
-    // Clear all authentication data (for testing/debugging)
-    async clearAllAuthData() {
-        if (!this.isDatabaseReady) {
-            console.warn('⚠️ Database not ready, skipping auth data clear');
-            return;
-        }
-
-        try {
-            // Clear all OTP and session data from database
-            const settings = await window.databaseManager.executeTransaction('settings', 'readonly', (store) => {
-                return store.getAll();
-            });
-
-            for (const setting of settings) {
-                if (setting.phone.startsWith('otp_') || setting.phone.startsWith('activity_')) {
-                    await window.databaseManager.executeTransaction('settings', 'readwrite', (store) => {
-                        return store.delete(setting.phone);
-                    });
-                }
-            }
-            
-        } catch (error) {
-            console.error('❌ Error clearing auth data from database:', error);
-        } finally {
-            // Clear localStorage
-            localStorage.removeItem('currentUser');
-            this.currentUser = null;
-            this.otpAttempts = 0;
-            
-            console.log('🧹 All auth data cleared');
-        }
     }
 
     // Trigger authentication state change events
@@ -770,46 +967,6 @@ class AuthManager {
         } catch (error) {
             console.error('❌ Error getting login history:', error);
             return [];
-        }
-    }
-
-    // Validate session and refresh if needed
-    async validateSession() {
-        if (!this.currentUser) {
-            return { valid: false, reason: 'No active session' };
-        }
-
-        // Check if session is older than 24 hours
-        const sessionAge = Date.now() - new Date(this.currentUser.loginTime).getTime();
-        const maxSessionAge = 24 * 60 * 60 * 1000; // 24 hours
-
-        if (sessionAge > maxSessionAge) {
-            console.log('🕒 Session expired, logging out...');
-            await this.logout();
-            return { valid: false, reason: 'Session expired' };
-        }
-
-        // Verify user still exists in database
-        try {
-            if (!this.isDatabaseReady) {
-                return { valid: false, reason: 'Database not ready' };
-            }
-
-            const dbUser = await window.databaseManager.getUser(this.currentUser.phone);
-            if (!dbUser) {
-                await this.logout();
-                return { valid: false, reason: 'User not found in database' };
-            }
-
-            // Update session with latest profile data
-            this.currentUser.profile = dbUser;
-            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
-
-            return { valid: true, user: this.currentUser };
-            
-        } catch (error) {
-            console.error('❌ Error validating session:', error);
-            return { valid: false, reason: 'Validation error' };
         }
     }
 }
