@@ -71,7 +71,11 @@
             <button class="test-button" onclick="reloadApp()">Reload Application</button>
         </div>
     </div>
-
+<script>
+// STOP AUTO-INITIALIZATION FOR DEBUGGING
+window.preventAutoInit = true;
+console.log('🛑 Auto-initialization prevented for debugging');
+</script>
     <!-- Load the same scripts as your main app -->
     <script src="js/database.js"></script>
     <script src="js/auth.js"></script>
