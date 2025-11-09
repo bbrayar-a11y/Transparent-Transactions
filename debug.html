@@ -357,5 +357,58 @@
             }, 2000);
         });
     </script>
+<!-- ... your existing debug.html content ... -->
+
+    <!-- ADD THIS SCRIPT TO TEST EXECUTION -->
+    <script>
+        console.log('🎯 DEBUG: Testing JavaScript Execution');
+        
+        // Test 1: Check if classes are defined
+        console.log('🔍 Checking class definitions:');
+        console.log('DatabaseManager defined:', typeof DatabaseManager);
+        console.log('AuthManager defined:', typeof AuthManager); 
+        console.log('TransparentTransactionsApp defined:', typeof TransparentTransactionsApp);
+        
+        // Test 2: Check if global instances exist
+        console.log('🔍 Checking global instances:');
+        console.log('window.databaseManager:', window.databaseManager);
+        console.log('window.authManager:', window.authManager);
+        console.log('window.app:', window.app);
+        
+        // Test 3: Check script loading status
+        console.log('🔍 Script loading status:');
+        const scripts = document.querySelectorAll('script[src]');
+        scripts.forEach(script => {
+            console.log(`📜 ${script.src}: ${script.complete ? 'Loaded' : 'Loading...'}`);
+        });
+        
+        // Test 4: Try to create instances manually
+        console.log('🔍 Testing manual instantiation:');
+        try {
+            if (typeof DatabaseManager === 'function') {
+                const testDB = new DatabaseManager();
+                console.log('✅ DatabaseManager instantiation: SUCCESS');
+            } else {
+                console.log('❌ DatabaseManager instantiation: CLASS NOT DEFINED');
+            }
+        } catch (error) {
+            console.log('❌ DatabaseManager instantiation: ERROR -', error.message);
+        }
+        
+        try {
+            if (typeof AuthManager === 'function') {
+                const testAuth = new AuthManager();
+                console.log('✅ AuthManager instantiation: SUCCESS');
+            } else {
+                console.log('❌ AuthManager instantiation: CLASS NOT DEFINED');
+            }
+        } catch (error) {
+            console.log('❌ AuthManager instantiation: ERROR -', error.message);
+        }
+        
+        console.log('🎯 DEBUG: Execution test complete');
+    </script>
+
 </body>
 </html>
+
