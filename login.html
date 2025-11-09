@@ -3,131 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Transparent Transactions</title>
+    <title>Register - Transparent Transactions</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🎉 Welcome to Your Dashboard!</h1>
-            <p class="tagline">Your account is active and ready</p>
+            <h1>Transparent Transactions</h1>
+            <p class="tagline">Create Your Account</p>
         </header>
 
         <main>
-            <div id="userInfo" style="background: white; padding: 25px; border-radius: 12px; margin: 20px 0;">
-                <h3>Your Account Information</h3>
-                <div id="userDetails">Loading...</div>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Account Status</h3>
-                    <p class="stat-amount">✅ Active</p>
-                    <small>Ready to use</small>
-                </div>
-                <div class="stat-card">
-                    <h3>Your Balance</h3>
-                    <p class="stat-amount">₹0.00</p>
-                    <small>Start transacting</small>
-                </div>
-                <div class="stat-card">
-                    <h3>Trust Score</h3>
-                    <p class="stat-amount">100%</p>
-                    <small>New Member</small>
-                </div>
-            </div>
-
-            <div style="text-align: center; margin: 30px 0;">
-                <button class="btn btn-primary" onclick="getReferralCode()" style="margin: 5px;">
-                    🎯 Get My Referral Code
-                </button>
-                <button class="btn btn-secondary" onclick="goToHome()" style="margin: 5px;">
-                    🏠 Home
-                </button>
-                <button class="btn btn-logout" onclick="logout()" style="margin: 5px;">
-                    🚪 Logout
-                </button>
-            </div>
-
-            <div id="debugInfo" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                <h4>Debug Information</h4>
-                <button class="btn btn-info" onclick="checkSession()" style="margin: 5px;">
-                    🔍 Check Session
-                </button>
-                <button class="btn btn-info" onclick="clearAndReset()" style="margin: 5px;">
-                    🧹 Clear & Reset
-                </button>
+            <div class="auth-container">
+                <section id="registrationSection" class="auth-section active">
+                    <h3>Quick Registration</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Fill in your details to get started</p>
+                    
+                    <div class="form-group">
+                        <input type="text" id="fullName" placeholder="Full Name" class="form-input" value="Test User">
+                    </div>
+                    
+                    <div class="form-group">
+                        <input type="tel" id="phoneNumber" placeholder="Phone Number (10 digits)" class="form-input" maxlength="10" value="9876543210">
+                    </div>
+                    
+                    <div class="form-group">
+                        <input type="email" id="email" placeholder="Email Address" class="form-input" value="test@example.com">
+                    </div>
+                    
+                    <button onclick="createAccount()" class="btn btn-primary" style="width: 100%;">
+                        🚀 Create Account & Go to Dashboard
+                    </button>
+                    
+                    <div id="message" class="message" style="margin-top: 15px;"></div>
+                </section>
             </div>
         </main>
     </div>
 
     <script>
-        // CHECK SESSION IMMEDIATELY on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Dashboard loaded - checking session...');
-            const session = localStorage.getItem('currentUser');
+        function createAccount() {
+            const fullName = document.getElementById('fullName').value || 'Test User';
+            const phone = document.getElementById('phoneNumber').value || '9876543210';
+            const email = document.getElementById('email').value || 'test@example.com';
+            const message = document.getElementById('message');
+
+            // Simple validation
+            if (!phone || phone.length !== 10) {
+                message.textContent = 'Please enter a 10-digit phone number';
+                message.className = 'message error';
+                return;
+            }
+
+            message.textContent = 'Creating your account...';
+            message.className = 'message info';
+
+            // FORCE CREATE SESSION - No fancy auth, just basic data
+            const userSession = {
+                fullName: fullName,
+                phone: phone,
+                email: email,
+                isAuthenticated: true,
+                loginTime: new Date().toISOString(),
+                lastActive: new Date().toISOString(),
+                registrationDate: new Date().toISOString(),
+                profile: {
+                    fullName: fullName,
+                    phone: phone,
+                    email: email
+                },
+                // Add device recognition for future
+                deviceId: 'device_' + Math.random().toString(36).substr(2, 16),
+                sessionId: 'session_' + Date.now()
+            };
+
+            // SAVE TO LOCALSTORAGE - This is what dashboard checks
+            localStorage.setItem('currentUser', JSON.stringify(userSession));
             
-            if (session) {
-                console.log('✅ Session found:', JSON.parse(session));
-                loadUserInfo();
+            // VERIFY it saved
+            const verify = localStorage.getItem('currentUser');
+            if (verify) {
+                message.textContent = '✅ Account created! Redirecting...';
+                message.className = 'message success';
+                
+                // Wait a moment then redirect
+                setTimeout(() => {
+                    console.log('Redirecting to dashboard with session:', JSON.parse(verify));
+                    window.location.href = 'dashboard.html';
+                }, 1000);
             } else {
-                console.log('❌ No session found in dashboard');
-                document.getElementById('userDetails').innerHTML = 
-                    '<p style="color: red;">No user session found! Registration failed.</p>' +
-                    '<button class="btn btn-primary" onclick="window.location.href=\'login.html\'">Go to Registration</button>';
+                message.textContent = '❌ Failed to save session';
+                message.className = 'message error';
+            }
+        }
+
+        // Auto-fill and create on Enter key
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                createAccount();
             }
         });
 
-        function loadUserInfo() {
-            const session = localStorage.getItem('currentUser');
-            if (session) {
-                const user = JSON.parse(session);
-                document.getElementById('userDetails').innerHTML = `
-                    <p><strong>Name:</strong> ${user.fullName || 'Not set'}</p>
-                    <p><strong>Phone:</strong> ${user.phone || 'Not set'}</p>
-                    <p><strong>Email:</strong> ${user.email || 'Not set'}</p>
-                    <p><strong>Member Since:</strong> ${new Date(user.registrationDate || Date.now()).toLocaleDateString()}</p>
-                    <p><strong>Session Active:</strong> ✅ Yes</p>
-                `;
-            }
-        }
-
-        function getReferralCode() {
-            const session = localStorage.getItem('currentUser');
-            if (session) {
-                const user = JSON.parse(session);
-                const code = `TT${(user.phone || '123456').slice(-6)}${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
-                alert(`🎉 Your Referral Code: ${code}\n\nShare this with friends to build your network!`);
-            } else {
-                alert('Please create an account first');
-            }
-        }
-
-        function checkSession() {
-            const session = localStorage.getItem('currentUser');
-            if (session) {
-                alert('✅ Session is ACTIVE!\n\nUser: ' + JSON.parse(session).fullName);
-                console.log('Current session:', JSON.parse(session));
-            } else {
-                alert('❌ No session found!');
-            }
-        }
-
-        function goToHome() {
-            window.location.href = 'index.html';
-        }
-
-        function logout() {
-            localStorage.removeItem('currentUser');
-            alert('Logged out successfully');
-            window.location.href = 'index.html';
-        }
-
-        function clearAndReset() {
-            localStorage.clear();
-            alert('All data cleared. Page will reload.');
-            window.location.href = 'index.html';
-        }
+        // Pre-fill form for easy testing
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Login page loaded - ready for quick registration');
+        });
     </script>
 </body>
 </html>
