@@ -1,28 +1,189 @@
 {
-    "name": "Transparent Transactions",
-    "short_name": "Transact",
-    "description": "Secure P2P transaction tracking with mutual trust",
-    "start_url": "/Transparent-Transactions/",
-    "scope": "/Transparent-Transactions/",
-    "display": "standalone",
-    "background_color": "#1976d2",
-    "theme_color": "#1976d2",
-    "orientation": "portrait-primary",
-    "icons": [
+  "name": "Transparent Transactions",
+  "short_name": "Transparent",
+  "description": "Secure, transparent, and instant money transfers with built-in trust verification",
+  "version": "1.0.0",
+  "version_name": "1.0.0",
+  
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay"],
+  "orientation": "portrait-primary",
+  
+  "theme_color": "#2E8B57",
+  "background_color": "#FFFFFF",
+  
+  "icons": [
+    {
+      "src": "icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  
+  "screenshots": [
+    {
+      "src": "screenshots/mobile-dashboard.png",
+      "sizes": "375x667",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mobile Dashboard View"
+    },
+    {
+      "src": "screenshots/desktop-dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop Dashboard View"
+    }
+  ],
+  
+  "categories": [
+    "finance",
+    "business",
+    "productivity"
+  ],
+  
+  "lang": "en-US",
+  "dir": "ltr",
+  
+  "related_applications": [],
+  "prefer_related_applications": false,
+  
+  "protocol_handlers": [
+    {
+      "protocol": "web+transparent",
+      "url": "/?transaction=%s"
+    }
+  ],
+  
+  "shortcuts": [
+    {
+      "name": "Send Money",
+      "short_name": "Send",
+      "description": "Quickly send money to contacts",
+      "url": "/dashboard.html?action=send",
+      "icons": [
         {
-            "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9IiMxOTc2ZDIiLz4KPHRleHQgeD0iOTYiIHk9IjExMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9Ijg4IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4KSLPC90ZXh0Pgo8L3N2Zz4K",
-            "sizes": "192x192",
-            "type": "image/svg+xml",
-            "purpose": "any maskable"
-        },
-        {
-            "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iNjQiIGZpbGw9IiMxOTc2ZDIiLz4KPHRleHQgeD0iMjU2IiB5PSIyOTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMjQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7gpIs8L3RleHQ+Cjwvc3ZnPgo=",
-            "sizes": "512x512",
-            "type": "image/svg+xml",
-            "purpose": "any maskable"
+          "src": "icons/shortcut-send.png",
+          "sizes": "96x96"
         }
-    ],
-    "categories": ["finance", "business", "productivity"],
-    "lang": "en",
-    "prefer_related_applications": false
+      ]
+    },
+    {
+      "name": "View Transactions",
+      "short_name": "Transactions",
+      "description": "Check your transaction history",
+      "url": "/dashboard.html?action=transactions",
+      "icons": [
+        {
+          "src": "icons/shortcut-transactions.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "My Profile",
+      "short_name": "Profile",
+      "description": "View and edit your profile",
+      "url": "/dashboard.html?action=profile",
+      "icons": [
+        {
+          "src": "icons/shortcut-profile.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  
+  "permissions": [
+    "notifications",
+    "storage"
+  ],
+  
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  
+  "handle_links": "preferred",
+  
+  "capture_links": "none",
+  
+  "file_handlers": [],
+  
+  "share_target": {
+    "action": "/share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  
+  "iarc_rating_id": "",
+  
+  "features": [
+    "Cross Platform",
+    "fast",
+    "simple",
+    "secure"
+  ],
+  
+  "author": "Transparent Transactions Team",
+  
+  "precomposed_icons": [
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192"
+    }
+  ]
 }
