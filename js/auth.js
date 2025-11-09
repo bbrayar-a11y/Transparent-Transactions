@@ -1,44 +1,30 @@
-// auth.js - Simplified Authentication for Transparent Transactions
-// Builds on database.js foundation
-
+// auth.js - DEBUG VERSION with enhanced logging
 class AuthManager {
     constructor() {
         this.currentUser = null;
         this.isInitialized = false;
         this.isDatabaseReady = false;
-        this.otpExpiryTime = 2 * 60 * 1000; // 2 minutes
+        this.otpExpiryTime = 2 * 60 * 1000;
         this.maxOtpAttempts = 3;
-        
-        // Initialize when class is created
         this.init();
     }
 
     async init() {
+        console.log('🟡 Auth Manager INIT started');
         if (this.isInitialized) {
             console.log('✅ Auth Manager already initialized');
             return;
         }
 
-        console.log('🔐 Auth Manager initializing...');
-        
         try {
-            // Wait for database with longer timeout
-            await this.waitForDatabase(25, 1000); // 25 seconds max
-            
-            // Load existing session if any
+            await this.waitForDatabase(25, 1000);
             await this.loadCurrentUser();
-            
-            // Setup event listeners
             this.setupEventListeners();
-            
             this.isInitialized = true;
             console.log('✅ Auth Manager initialized successfully');
-            
         } catch (error) {
             console.error('❌ Auth Manager initialization failed:', error);
-            // Mark as initialized anyway to allow user to try
             this.isInitialized = true;
-            console.log('🔄 Auth Manager: Continuing despite initialization issues...');
         }
     }
 
@@ -49,14 +35,11 @@ class AuthManager {
                 console.log('✅ Database connection established');
                 return;
             }
-            
             console.log(`⏳ Waiting for database... (attempt ${attempt}/${maxRetries})`);
-            
             if (attempt === maxRetries) {
-                console.warn('⚠️ Database not available after maximum retries, but continuing...');
+                console.warn('⚠️ Database not available after maximum retries');
                 return;
             }
-            
             await new Promise(resolve => setTimeout(resolve, retryDelay));
         }
     }
@@ -64,238 +47,82 @@ class AuthManager {
     async checkDatabaseReady() {
         try {
             if (!window.databaseManager) {
+                console.log('🟡 databaseManager not found');
                 return false;
             }
-            
-            // Try a simple database operation to verify readiness
             await window.databaseManager.executeTransaction('settings', 'readonly', (store) => {
                 return store.count();
             });
-            
             return true;
         } catch (error) {
+            console.log('🟡 Database check failed:', error);
             return false;
         }
     }
 
-    // USER REGISTRATION & LOGIN
-
-    async registerUser(userData) {
-        if (!this.isInitialized) {
-            throw new Error('Auth system not ready');
-        }
-
-        const validation = this.validatePhoneNumber(userData.phone);
-        if (!validation.valid) {
-            throw new Error(validation.message);
-        }
-
-        try {
-            // Check if user already exists
-            const existingUser = await window.databaseManager.getUser(validation.cleaned);
-            if (existingUser) {
-                throw new Error('User already exists with this phone number');
-            }
-
-            // Create user profile
-            const userProfile = {
-                phone: validation.cleaned,
-                fullName: userData.fullName || '',
-                email: userData.email || '',
-                isActive: true,
-                createdAt: new Date().toISOString(),
-                trustScore: 100,
-                balance: 0
-            };
-
-            await window.databaseManager.saveUser(userProfile);
-            console.log('✅ User registered:', validation.cleaned);
-
-            // Automatically log in after registration
-            return await this.login(validation.cleaned, userProfile);
-
-        } catch (error) {
-            console.error('❌ Registration failed:', error);
-            throw error;
-        }
-    }
-
-    async login(phoneNumber, userProfile = null) {
-        if (!this.isInitialized) {
-            throw new Error('Auth system not ready');
-        }
-
-        try {
-            // Get user profile if not provided
-            let profile = userProfile;
-            if (!profile) {
-                profile = await window.databaseManager.getUser(phoneNumber);
-                if (!profile) {
-                    throw new Error('User not found');
-                }
-            }
-
-            // Create user session
-            const userSession = {
-                phone: phoneNumber,
-                isAuthenticated: true,
-                loginTime: new Date().toISOString(),
-                lastActive: new Date().toISOString(),
-                sessionId: this.generateSessionId(),
-                profile: profile
-            };
-
-            // Store session in localStorage for quick access
-            localStorage.setItem('currentUser', JSON.stringify(userSession));
-            this.currentUser = userSession;
-
-            // Record login activity
-            await this.recordLoginActivity(phoneNumber);
-
-            // Trigger auth state change
-            this.triggerAuthStateChange('login', userSession);
-
-            console.log('✅ User logged in:', phoneNumber);
-            
-            return {
-                success: true,
-                user: userSession
-            };
-
-        } catch (error) {
-            console.error('❌ Login failed:', error);
-            throw error;
-        }
-    }
-
-    async logout() {
-        if (!this.currentUser) {
-            return { success: true, message: 'No user to logout' };
-        }
-
-        const userPhone = this.currentUser.phone;
-        
-        try {
-            // Record logout activity
-            await this.recordLogoutActivity(userPhone);
-        } catch (error) {
-            console.error('❌ Error recording logout activity:', error);
-        } finally {
-            // Clear session data
-            this.clearUserSession();
-            console.log('👋 User logged out:', userPhone);
-        }
-        
-        return {
-            success: true,
-            message: 'Logged out successfully'
-        };
-    }
-
-    // SESSION MANAGEMENT
-
     async loadCurrentUser() {
         try {
             const userData = localStorage.getItem('currentUser');
-            
             if (userData) {
                 const session = JSON.parse(userData);
-                
-                // Verify user still exists in database
                 if (session.phone) {
                     const dbUser = await window.databaseManager.getUser(session.phone);
-                    
                     if (dbUser) {
-                        // Update session with latest profile data
                         session.profile = dbUser;
                         this.currentUser = session;
                         console.log('✅ User session loaded:', session.phone);
                     } else {
-                        // User not found in database, clear session
                         console.warn('⚠️ User not found in database, clearing session');
                         this.clearUserSession();
                     }
                 }
             }
-            
         } catch (error) {
             console.error('❌ Error loading user session:', error);
             this.currentUser = null;
         }
     }
 
-    async validateSession() {
-        if (!this.currentUser) {
-            return { valid: false, reason: 'No active session' };
-        }
-
-        // Check if session is older than 24 hours
-        const sessionAge = Date.now() - new Date(this.currentUser.loginTime).getTime();
-        const maxSessionAge = 24 * 60 * 60 * 1000; // 24 hours
-
-        if (sessionAge > maxSessionAge) {
-            console.log('🕒 Session expired, logging out...');
-            await this.logout();
-            return { valid: false, reason: 'Session expired' };
-        }
-
-        // Verify user still exists in database
-        try {
-            const dbUser = await window.databaseManager.getUser(this.currentUser.phone);
-            if (!dbUser) {
-                await this.logout();
-                return { valid: false, reason: 'User not found in database' };
-            }
-
-            // Update session with latest profile data
-            this.currentUser.profile = dbUser;
-            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
-
-            return { valid: true, user: this.currentUser };
-            
-        } catch (error) {
-            console.error('❌ Error validating session:', error);
-            return { valid: false, reason: 'Validation error' };
-        }
+    setupEventListeners() {
+        document.addEventListener('authStateChange', (event) => {
+            this.handleAuthStateChange(event.detail);
+        });
+        document.addEventListener('click', () => {
+            this.updateUserActivity();
+        });
     }
 
-    clearUserSession() {
-        localStorage.removeItem('currentUser');
-        this.currentUser = null;
-
-        // Trigger auth state change
-        this.triggerAuthStateChange('logout', null);
-    }
-
-    // OTP SYSTEM - WITH USER EXISTENCE CHECK
-
+    // OTP SYSTEM - WITH ENHANCED DEBUGGING
     async sendOTP(phoneNumber) {
+        console.log('🟡 sendOTP called with:', phoneNumber);
+        
         if (!this.isInitialized) {
+            console.error('❌ Auth system not ready in sendOTP');
             throw new Error('Auth system not ready');
         }
 
         const validation = this.validatePhoneNumber(phoneNumber);
         if (!validation.valid) {
+            console.error('❌ Phone validation failed:', validation.message);
             throw new Error(validation.message);
         }
 
-        // Check if user already exists - if yes, auto-login instead of sending OTP
+        console.log('🟡 Checking if user exists...');
         const existingUser = await window.databaseManager.getUser(validation.cleaned);
+        console.log('🟡 User existence check result:', existingUser);
+
         if (existingUser) {
             console.log('✅ User exists, auto-logging in:', validation.cleaned);
             return await this.login(validation.cleaned, existingUser);
         }
 
+        console.log('🟡 New user, generating OTP...');
         return new Promise((resolve, reject) => {
-            console.log(`📱 Generating OTP for new user: ${phoneNumber}...`);
-
-            // Simulate API call delay
             setTimeout(async () => {
                 try {
-                    // Generate OTP
                     const otp = this.generateOTP();
+                    console.log('🟡 Generated OTP:', otp);
                     
-                    // Store OTP data with correct structure
                     const otpData = {
                         phone: phoneNumber,
                         otp: otp,
@@ -305,13 +132,13 @@ class AuthManager {
                         expiresAt: new Date(Date.now() + this.otpExpiryTime).toISOString()
                     };
                     
+                    console.log('🟡 Saving OTP data:', otpData);
                     await window.databaseManager.saveSetting(`otp_${phoneNumber}`, otpData);
                     
-                    // Verify the OTP was stored correctly
+                    // Verify storage
                     const verifyStored = await window.databaseManager.getSetting(`otp_${phoneNumber}`);
-                    console.log('🔍 OTP stored verification:', verifyStored);
+                    console.log('🔍 OTP storage verification:', verifyStored);
                     
-                    // Display OTP on screen for testing
                     this.displayOTPOnScreen(phoneNumber, otp);
                     
                     resolve({
@@ -334,57 +161,59 @@ class AuthManager {
     }
 
     async verifyOTP(phoneNumber, enteredOTP, userData = null) {
+        console.log('🟡 verifyOTP called with:', { phoneNumber, enteredOTP, userData });
+        
         if (!this.isInitialized) {
             throw new Error('Auth system not ready');
         }
 
         try {
-            // Get OTP data - FIXED: Handle different return formats
+            console.log('🟡 Retrieving OTP from database...');
             const otpResult = await window.databaseManager.getSetting(`otp_${phoneNumber}`);
+            console.log('🔍 RAW OTP retrieval result:', otpResult);
             
-            // Debug log to see what's actually returned
-            console.log('🔍 OTP retrieval result:', otpResult);
-            
-            // Handle different possible return formats
             let otpData;
             if (!otpResult) {
+                console.error('❌ OTP result is null/undefined');
                 throw new Error('OTP not found. Please request a new OTP.');
             } else if (otpResult.value) {
-                // If data is wrapped in .value property
                 otpData = otpResult.value;
+                console.log('🟡 OTP data extracted from .value property');
             } else {
-                // If data is returned directly
                 otpData = otpResult;
+                console.log('🟡 OTP data used directly');
             }
 
-            // Check if we have valid OTP data
+            console.log('🔍 Processed OTP data:', otpData);
+
             if (!otpData || !otpData.otp) {
                 console.error('❌ Invalid OTP data structure:', otpData);
                 throw new Error('OTP not found. Please request a new OTP.');
             }
 
-            console.log('🔍 OTP data retrieved:', otpData);
-
-            // Check if OTP is expired
+            // Check expiration
             const currentTime = Date.now();
             const otpAge = currentTime - otpData.timestamp;
+            console.log(`🟡 OTP age: ${otpAge}ms, expiry: ${this.otpExpiryTime}ms`);
             
             if (otpAge > this.otpExpiryTime) {
-                // Remove expired OTP
+                console.log('❌ OTP expired');
                 await window.databaseManager.deleteSetting(`otp_${phoneNumber}`);
                 throw new Error('OTP has expired. Please request a new OTP.');
             }
 
-            // Check attempt limits
+            // Check attempts
             if (otpData.attempts >= this.maxOtpAttempts) {
+                console.log('❌ Too many OTP attempts');
                 throw new Error('Too many failed attempts. Please request a new OTP.');
             }
 
-            // Check if OTP matches
-            console.log(`🔍 Comparing: Entered OTP "${enteredOTP}" vs Stored OTP "${otpData.otp}"`);
+            // Verify OTP
+            console.log(`🔍 OTP comparison: "${enteredOTP}" === "${otpData.otp}"`);
             
             if (otpData.otp === enteredOTP) {
-                // OTP verified successfully - create new user
+                console.log('✅ OTP matched, creating user...');
+                
                 const userProfile = {
                     phone: phoneNumber,
                     fullName: userData?.fullName || '',
@@ -395,19 +224,12 @@ class AuthManager {
                     balance: 0
                 };
 
-                // Save new user
                 await window.databaseManager.saveUser(userProfile);
-                
-                // Clear OTP data
                 await window.databaseManager.deleteSetting(`otp_${phoneNumber}`);
-                
-                // Remove OTP display
                 this.removeOTPDisplay();
 
-                // Auto-login the new user
                 const loginResult = await this.login(phoneNumber, userProfile);
-                
-                console.log('✅ New user created and logged in:', phoneNumber);
+                console.log('✅ New user created and logged in');
                 
                 return {
                     success: true,
@@ -417,7 +239,7 @@ class AuthManager {
                 };
                 
             } else {
-                // Invalid OTP - increment attempts
+                console.log('❌ OTP mismatch');
                 const updatedOtpData = {
                     ...otpData,
                     attempts: otpData.attempts + 1
@@ -426,9 +248,9 @@ class AuthManager {
                 await window.databaseManager.saveSetting(`otp_${phoneNumber}`, updatedOtpData);
                 
                 const attemptsLeft = this.maxOtpAttempts - (otpData.attempts + 1);
+                console.log(`🟡 Attempts left: ${attemptsLeft}`);
                 
                 if (attemptsLeft <= 0) {
-                    // Too many failed attempts - clear OTP
                     await window.databaseManager.deleteSetting(`otp_${phoneNumber}`);
                     this.removeOTPDisplay();
                     throw new Error('Too many failed attempts. Please request a new OTP.');
@@ -442,7 +264,132 @@ class AuthManager {
         }
     }
 
-    // Check if user exists (public method for UI)
+    async login(phoneNumber, userProfile = null) {
+        console.log('🟡 login called with:', phoneNumber);
+        try {
+            let profile = userProfile;
+            if (!profile) {
+                profile = await window.databaseManager.getUser(phoneNumber);
+                if (!profile) {
+                    console.error('❌ User not found in database during login');
+                    throw new Error('User not found');
+                }
+            }
+
+            const userSession = {
+                phone: phoneNumber,
+                isAuthenticated: true,
+                loginTime: new Date().toISOString(),
+                lastActive: new Date().toISOString(),
+                sessionId: this.generateSessionId(),
+                profile: profile
+            };
+
+            localStorage.setItem('currentUser', JSON.stringify(userSession));
+            this.currentUser = userSession;
+            await this.recordLoginActivity(phoneNumber);
+            this.triggerAuthStateChange('login', userSession);
+
+            console.log('✅ User logged in successfully:', phoneNumber);
+            return { success: true, user: userSession };
+
+        } catch (error) {
+            console.error('❌ Login failed:', error);
+            throw error;
+        }
+    }
+
+    async logout() {
+        if (!this.currentUser) {
+            return { success: true, message: 'No user to logout' };
+        }
+
+        const userPhone = this.currentUser.phone;
+        try {
+            await this.recordLogoutActivity(userPhone);
+        } catch (error) {
+            console.error('❌ Error recording logout activity:', error);
+        } finally {
+            this.clearUserSession();
+            console.log('👋 User logged out:', userPhone);
+        }
+        
+        return { success: true, message: 'Logged out successfully' };
+    }
+
+    clearUserSession() {
+        localStorage.removeItem('currentUser');
+        this.currentUser = null;
+        this.triggerAuthStateChange('logout', null);
+    }
+
+    async registerUser(userData) {
+        if (!this.isInitialized) {
+            throw new Error('Auth system not ready');
+        }
+
+        const validation = this.validatePhoneNumber(userData.phone);
+        if (!validation.valid) {
+            throw new Error(validation.message);
+        }
+
+        try {
+            const existingUser = await window.databaseManager.getUser(validation.cleaned);
+            if (existingUser) {
+                throw new Error('User already exists with this phone number');
+            }
+
+            const userProfile = {
+                phone: validation.cleaned,
+                fullName: userData.fullName || '',
+                email: userData.email || '',
+                isActive: true,
+                createdAt: new Date().toISOString(),
+                trustScore: 100,
+                balance: 0
+            };
+
+            await window.databaseManager.saveUser(userProfile);
+            console.log('✅ User registered:', validation.cleaned);
+            return await this.login(validation.cleaned, userProfile);
+
+        } catch (error) {
+            console.error('❌ Registration failed:', error);
+            throw error;
+        }
+    }
+
+    async validateSession() {
+        if (!this.currentUser) {
+            return { valid: false, reason: 'No active session' };
+        }
+
+        const sessionAge = Date.now() - new Date(this.currentUser.loginTime).getTime();
+        const maxSessionAge = 24 * 60 * 60 * 1000;
+
+        if (sessionAge > maxSessionAge) {
+            console.log('🕒 Session expired, logging out...');
+            await this.logout();
+            return { valid: false, reason: 'Session expired' };
+        }
+
+        try {
+            const dbUser = await window.databaseManager.getUser(this.currentUser.phone);
+            if (!dbUser) {
+                await this.logout();
+                return { valid: false, reason: 'User not found in database' };
+            }
+
+            this.currentUser.profile = dbUser;
+            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+            return { valid: true, user: this.currentUser };
+            
+        } catch (error) {
+            console.error('❌ Error validating session:', error);
+            return { valid: false, reason: 'Validation error' };
+        }
+    }
+
     async checkUserExists(phoneNumber) {
         if (!this.isInitialized) {
             throw new Error('Auth system not ready');
@@ -454,14 +401,10 @@ class AuthManager {
         }
 
         const user = await window.databaseManager.getUser(validation.cleaned);
-        return {
-            exists: !!user,
-            user: user
-        };
+        return { exists: !!user, user: user };
     }
 
     // UTILITY METHODS
-
     isAuthenticated() {
         return this.currentUser && this.currentUser.isAuthenticated === true;
     }
@@ -472,25 +415,13 @@ class AuthManager {
 
     validatePhoneNumber(phone) {
         const cleaned = phone.replace(/\D/g, '');
-        
         if (cleaned.length !== 10) {
-            return {
-                valid: false,
-                message: 'Phone number must be 10 digits'
-            };
+            return { valid: false, message: 'Phone number must be 10 digits' };
         }
-
         if (!/^[6-9]\d{9}$/.test(cleaned)) {
-            return {
-                valid: false,
-                message: 'Please enter a valid Indian mobile number'
-            };
+            return { valid: false, message: 'Please enter a valid Indian mobile number' };
         }
-
-        return {
-            valid: true,
-            cleaned: cleaned
-        };
+        return { valid: true, cleaned: cleaned };
     }
 
     generateOTP() {
@@ -502,19 +433,6 @@ class AuthManager {
     }
 
     // EVENT SYSTEM
-
-    setupEventListeners() {
-        // Listen for auth state changes from other components
-        document.addEventListener('authStateChange', (event) => {
-            this.handleAuthStateChange(event.detail);
-        });
-
-        // Update user activity on user interactions
-        document.addEventListener('click', () => {
-            this.updateUserActivity();
-        });
-    }
-
     triggerAuthStateChange(action, userData) {
         const event = new CustomEvent('authStateChange', {
             detail: {
@@ -539,20 +457,16 @@ class AuthManager {
     }
 
     // UI METHODS
-
     updateAuthUI() {
         const authElements = document.querySelectorAll('[data-auth-state]');
-        
         authElements.forEach(element => {
             const requiredState = element.getAttribute('data-auth-state');
             const isVisible = this.isAuthenticated() ? 
                 (requiredState === 'authenticated') : 
                 (requiredState === 'unauthenticated');
-            
             element.style.display = isVisible ? '' : 'none';
         });
 
-        // Update user-specific content if authenticated
         if (this.isAuthenticated() && this.currentUser.profile) {
             const userElements = document.querySelectorAll('[data-user]');
             userElements.forEach(element => {
@@ -565,9 +479,7 @@ class AuthManager {
     }
 
     displayOTPOnScreen(phoneNumber, otp) {
-        // Remove any existing OTP display
         this.removeOTPDisplay();
-
         const otpContainer = document.createElement('div');
         otpContainer.id = 'otp-display-container';
         otpContainer.innerHTML = `
@@ -587,14 +499,11 @@ class AuthManager {
             </div>
         `;
 
-        // Add close button functionality
         otpContainer.querySelector('.close-otp').onclick = () => {
             this.removeOTPDisplay();
         };
-
         document.body.appendChild(otpContainer);
 
-        // Auto-remove after 5 minutes
         setTimeout(() => {
             this.removeOTPDisplay();
         }, 5 * 60 * 1000);
@@ -608,7 +517,6 @@ class AuthManager {
     }
 
     // ACTIVITY LOGGING
-
     async recordLoginActivity(phoneNumber) {
         try {
             const activity = {
@@ -617,9 +525,7 @@ class AuthManager {
                 timestamp: new Date().toISOString(),
                 userAgent: navigator.userAgent
             };
-
             await window.databaseManager.saveSetting(`activity_${phoneNumber}_${Date.now()}`, activity);
-            
         } catch (error) {
             console.error('❌ Error recording login activity:', error);
         }
@@ -632,9 +538,7 @@ class AuthManager {
                 type: 'logout',
                 timestamp: new Date().toISOString()
             };
-
             await window.databaseManager.saveSetting(`activity_${phoneNumber}_${Date.now()}`, activity);
-            
         } catch (error) {
             console.error('❌ Error recording logout activity:', error);
         }
