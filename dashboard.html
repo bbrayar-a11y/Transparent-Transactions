@@ -671,7 +671,26 @@
             }
         }, 60000);
     </script>
+    <script>
+    // Service Worker Registration for GitHub Pages
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        const swUrl = '/Transparent-Transactions/sw.js';
+        
+        navigator.serviceWorker.register(swUrl, {
+          scope: '/Transparent-Transactions/'
+        })
+        .then(function(registration) {
+          console.log('✅ ServiceWorker registration successful with scope:', registration.scope);
+        })
+        .catch(function(error) {
+          console.log('❌ ServiceWorker registration failed:', error);
+        });
+      });
+    }
+    </script>
 </body>
 </html>
+
 
 
