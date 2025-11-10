@@ -64,6 +64,5 @@ class DatabaseManager {
     }
 }
 
-// GLOBAL: Start DB init
 window.databaseManager = new DatabaseManager();
 window.databaseManager.init().catch(() => {});
