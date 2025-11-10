@@ -45,7 +45,16 @@
       console.log('UI enabled');
     });
 
+    // Input cleanup
+    ['phone', 'otp'].forEach(id => {
+      document.getElementById(id).addEventListener('input', e => {
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0, id === 'phone' ? 10 : 6);
+      });
+    });
+
+    // Send OTP
     sendBtn.onclick = async () => {
+      if (!window.authManager?.isInitialized) return;
       const phone = document.getElementById('phone').value.trim();
       const name = document.getElementById('name').value.trim();
       if (!phone || phone.length !== 10 || !name) {
@@ -62,30 +71,29 @@
           setTimeout(() => location.href = 'dashboard.html', 1000);
         }
       } catch (e) {
-        window.authManager.showMessage(e.message, 'error');
+        window.authManager.showMessage(e.message || 'Error', 'error');
       } finally {
         sendBtn.disabled = false;
       }
     };
 
+    // Verify OTP
     verifyBtn.onclick = async () => {
+      if (!window.authManager?.isInitialized) return;
       const otp = document.getElementById('otp').value.trim();
-      if (otp.length !== 6) return window.authManager.showMessage('Invalid OTP', 'error');
+      if (otp.length !== 6) {
+        window.authManager.showMessage('Invalid OTP', 'error');
+        return;
+      }
       try {
         await window.authManager.verifyOTP(document.getElementById('phone').value, otp, {
           fullName: document.getElementById('name').value
         });
         setTimeout(() => location.href = 'dashboard.html', 1000);
       } catch (e) {
-        window.authManager.showMessage(e.message, 'error');
+        window.authManager.showMessage(e.message || 'Verification failed', 'error');
       }
     };
-
-    ['phone', 'otp'].forEach(id => {
-      document.getElementById(id).addEventListener('input', e => {
-        e.target.value = e.target.value.replace(/\D/g, '').slice(0, id === 'phone' ? 10 : 6);
-      });
-    });
   </script>
 </body>
 </html>
