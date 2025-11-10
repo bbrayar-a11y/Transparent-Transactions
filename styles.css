@@ -1666,9 +1666,390 @@ input:focus-visible {
   .btn {
     display: none;
   }
+  /* ===== TRUSTCHAIN REBRANDING ADDITIONS ===== */
+
+/* Trust Network Visualization */
+.trust-visual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.community-circle {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  border: 2px dashed var(--primary-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(46, 139, 87, 0.1);
+  margin: 0 auto;
+}
+
+.central-user {
+  text-align: center;
+  z-index: 2;
+}
+
+.user-avatar {
+  font-size: var(--font-size-3xl);
+  margin-bottom: var(--space-2);
+}
+
+.user-label {
+  font-size: var(--font-size-sm);
+  color: var(--gray-800);
+  font-weight: 500;
+}
+
+.connection {
+  position: absolute;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all var(--transition-normal);
+}
+
+.connection-1 {
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.connection-2 {
+  bottom: 20px;
+  right: 20px;
+}
+
+.connection-3 {
+  bottom: 20px;
+  left: 20px;
+}
+
+.connected-user {
+  text-align: center;
+  background: var(--white);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--gray-200);
+}
+
+.trust-score {
+  font-size: var(--font-size-sm);
+  color: var(--primary-color);
+  font-weight: 600;
+  margin-top: var(--space-2);
+}
+
+.visual-caption {
+  margin-top: var(--space-6);
+  text-align: center;
+  color: var(--gray-600);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+}
+
+/* Revenue Section */
+.revenue-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: var(--white);
+  padding: var(--space-16) 0;
+}
+
+.revenue-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--space-6);
+  margin-bottom: var(--space-12);
+}
+
+.revenue-card {
+  background: rgba(255, 255, 255, 0.1);
+  padding: var(--space-8);
+  border-radius: var(--radius-xl);
+  text-align: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform var(--transition-normal);
+}
+
+.revenue-card:hover {
+  transform: translateY(-5px);
+}
+
+.revenue-icon {
+  font-size: var(--font-size-4xl);
+  margin-bottom: var(--space-4);
+}
+
+.revenue-amount {
+  font-size: var(--font-size-2xl);
+  font-weight: bold;
+  margin: var(--space-4) 0;
+  color: #FFD700;
+}
+
+.revenue-card h3 {
+  color: var(--white);
+  margin-bottom: var(--space-3);
+}
+
+.revenue-card p {
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+/* Commission Breakdown */
+.commission-breakdown {
+  background: rgba(255, 255, 255, 0.1);
+  padding: var(--space-8);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.commission-breakdown h3 {
+  color: var(--white);
+  text-align: center;
+  margin-bottom: var(--space-6);
+}
+
+.commission-levels {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.commission-level {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  transition: background-color var(--transition-fast);
+}
+
+.commission-level:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.commission-level.platform {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.level-number {
+  width: 40px;
+  height: 40px;
+  background: var(--primary-color);
+  color: var(--white);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.level-info {
+  flex: 1;
+}
+
+.level-title {
+  font-weight: 500;
+  color: var(--white);
+  margin-bottom: var(--space-1);
+}
+
+.level-amount {
+  font-weight: bold;
+  color: #FFD700;
+  font-size: var(--font-size-lg);
+}
+
+/* Security Notice */
+.security-notice {
+  background: var(--warning-color);
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+  border: 1px solid #ffeaa7;
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin: var(--space-6) 0;
+  text-align: center;
+}
+
+.security-notice h4 {
+  color: #856404;
+  margin-bottom: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.security-notice p {
+  color: #856404;
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+/* Privacy Badge */
+.privacy-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-8);
+  background-color: var(--white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 2px solid var(--primary-color);
+}
+
+.badge-icon {
+  font-size: var(--font-size-4xl);
+  margin-bottom: var(--space-4);
+  color: var(--primary-color);
+}
+
+.badge-title {
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: var(--space-1);
+}
+
+.badge-subtitle {
+  color: var(--gray-600);
+  font-size: var(--font-size-sm);
+}
+
+/* Logged In Section */
+.logged-in-section {
+  text-align: center;
+  padding: var(--space-10);
+}
+
+.logged-in-section .user-avatar {
+  font-size: var(--font-size-4xl);
+  margin-bottom: var(--space-4);
+}
+
+/* Enhanced CTA Features */
+.cta-features {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  margin-top: var(--space-6);
+}
+
+.cta-feature {
+  font-size: var(--font-size-sm);
+  opacity: 0.9;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ===== RESPONSIVE ENHANCEMENTS ===== */
+@media (max-width: 768px) {
+  .community-circle {
+    width: 250px;
+    height: 250px;
+  }
   
+  .connection-2,
+  .connection-3 {
+    bottom: 10px;
+  }
+  
+  .connection-2 {
+    right: 10px;
+  }
+  
+  .connection-3 {
+    left: 10px;
+  }
+  
+  .revenue-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .commission-levels {
+    grid-template-columns: 1fr;
+  }
+  
+  .security-notice {
+    margin: var(--space-4) 0;
+    padding: var(--space-4);
+  }
+  
+  .trust-score {
+    font-size: var(--font-size-xs);
+  }
+}
+
+@media (max-width: 480px) {
+  .community-circle {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .user-avatar {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .connected-user {
+    padding: var(--space-3);
+  }
+  
+  .revenue-card {
+    padding: var(--space-6);
+  }
+  
+  .commission-breakdown {
+    padding: var(--space-6);
+  }
+}
+
+/* Animation for Trust Network */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.connection.animated {
+  animation: fadeInScale 0.6s ease forwards;
+}
+
+/* Ensure section headers are consistent */
+.section-header h2 {
+  text-align: center;
+}
+
+/* Additional utility classes for TrustChain */
+.text-center {
+  text-align: center;
+}
+
+.mb-0 {
+  margin-bottom: 0;
+}
+
+.opacity-90 {
+  opacity: 0.9;
+}
   body {
     color: #000;
     background: #fff;
   }
 }
+
