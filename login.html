@@ -18,6 +18,7 @@
         #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; }
         .loading-spinner { width: 48px; height: 48px; border: 4px solid #f3f3f3; border-top: 4px solid #2E8B57; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         .security-notice { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 15px 0; }
+        .referral-notice { background: #e8f5e8; border: 2px solid #2E8B57; border-radius: 10px; padding: 15px; text-align: center; margin: 15px 0; }
         .redirect-countdown { font-weight: bold; color: #2E8B57; }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -37,6 +38,12 @@
             <div class="security-notice">
                 <h4>🔒 One Account Per Device</h4>
                 <p>For financial security and data privacy, each device can have only one TrustChain account. Please logout existing user to create a new account.</p>
+            </div>
+
+            <!-- Referral Context Banner -->
+            <div id="referralBanner" class="referral-notice" style="display: none;">
+                <div style="font-size: 1.2rem; margin-bottom: 5px;">🎯 Joining via Invitation</div>
+                <p style="margin: 0; color: #2d5016;">You're creating your TrustChain account through a trusted referral</p>
             </div>
 
             <div class="auth-container">
@@ -135,6 +142,20 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🔐 TrustChain Login loaded');
             
+            // Referral system detection
+            const urlParams = new URLSearchParams(window.location.search);
+            const referralCode = urlParams.get('ref');
+            const referralOTP = urlParams.get('otp');
+
+            if (referralCode) {
+                console.log('🔗 Referral detected:', referralCode);
+                localStorage.setItem('pendingReferral', referralCode);
+                
+                if (referralOTP) {
+                    localStorage.setItem('pendingReferralOTP', referralOTP);
+                }
+            }
+            
             // Check if user is already logged in
             checkExistingSession();
             
@@ -161,6 +182,15 @@
                 console.log('🔍 No existing session found');
             }
             return false;
+        }
+
+        function checkAndShowReferralContext() {
+            const referralCode = localStorage.getItem('pendingReferral');
+            const referralBanner = document.getElementById('referralBanner');
+            
+            if (referralCode && referralBanner) {
+                referralBanner.style.display = 'block';
+            }
         }
 
         function setupEventListeners() {
@@ -213,6 +243,7 @@
                 if (!checkExistingSession()) {
                     showMessage('TrustChain is ready! Create your account to start building financial trust.', 'success', 'message');
                     showRegistrationSection();
+                    checkAndShowReferralContext();
                 }
             } else {
                 console.log('⚠️ System not ready yet, retrying...');
@@ -255,8 +286,13 @@
                 return;
             }
 
-            // Store registration data
-            currentRegistrationData = { fullName, phone, email };
+            // Store registration data WITH referral
+            currentRegistrationData = { 
+                fullName, 
+                phone, 
+                email,
+                referralCode: localStorage.getItem('pendingReferral')
+            };
 
             // Show loading state
             setButtonLoading('registerBtn', true);
@@ -321,11 +357,19 @@
                 
                 if (result.success) {
                     const userName = currentRegistrationData.fullName || 'TrustChain User';
+                    const hasReferral = localStorage.getItem('pendingReferral');
                     
-                    if (result.isNewUser) {
-                        showMessage(`🎉 Welcome ${userName}! Your TrustChain account is ready. Building your financial trust network...`, 'success', 'otpMessage');
+                    if (hasReferral) {
+                        showMessage(`🎉 Welcome ${userName}! You've joined via trusted referral. Building your network...`, 'success', 'otpMessage');
+                        // Clear referral data after successful registration
+                        localStorage.removeItem('pendingReferral');
+                        localStorage.removeItem('pendingReferralOTP');
                     } else {
-                        showMessage(`✅ Welcome back ${userName}! Your trust network is active.`, 'success', 'otpMessage');
+                        if (result.isNewUser) {
+                            showMessage(`🎉 Welcome ${userName}! Your TrustChain account is ready. Building your financial trust network...`, 'success', 'otpMessage');
+                        } else {
+                            showMessage(`✅ Welcome back ${userName}! Your trust network is active.`, 'success', 'otpMessage');
+                        }
                     }
                     
                     // Enhanced redirect with countdown
@@ -404,7 +448,15 @@
         function showOTPSection() {
             hideAllSections();
             document.getElementById('otpSection').classList.add('active');
-            document.getElementById('otpInput').value = '';
+            
+            // Pre-fill OTP if available from referral
+            const referralOTP = localStorage.getItem('pendingReferralOTP');
+            if (referralOTP) {
+                document.getElementById('otpInput').value = referralOTP;
+            } else {
+                document.getElementById('otpInput').value = '';
+            }
+            
             document.getElementById('otpInput').focus();
             clearMessages();
         }
@@ -432,6 +484,8 @@
 
         function logoutUser() {
             localStorage.removeItem('currentUser');
+            localStorage.removeItem('pendingReferral');
+            localStorage.removeItem('pendingReferralOTP');
             showMessage('✅ Logged out successfully. You can now create a new account.', 'success', 'message');
             showRegistrationSection();
         }
