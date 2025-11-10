@@ -455,5 +455,13 @@ if ('serviceWorker' in navigator) {
   console.log('❌ Service workers are not supported in this browser');
 }
 </script>
+    <script>
+// Global error handler to catch any initialization errors
+window.addEventListener('error', function(e) {
+    console.error('🛑 GLOBAL ERROR:', e.error);
+    console.error('🛑 Error at:', e.filename, 'line:', e.lineno);
+});
+</script>
 </body>
 </html>
+
