@@ -1,68 +1,134 @@
-// js/database.js
+// database.js - Fixed initialization
 class DatabaseManager {
     constructor() {
         this.db = null;
         this.dbName = 'TransparentTransactionsDB';
         this.dbVersion = 3;
         this.isInitialized = false;
+        
+        // Initialize immediately
+        this.init();
     }
 
     async init() {
         if (this.isInitialized) return;
-        console.log('Initializing database...');
+
         try {
-            this.db = await this.openDB();
+            this.db = await this.openDatabase();
+            await this.createStores();
             this.isInitialized = true;
-            console.log('Database ready');
-        } catch (err) {
-            console.error('DB init failed:', err);
-            this.showError('Database failed. Please reload.');
-            throw err;
+            console.log('✅ Database initialized successfully');
+            
+            // NOW create auth manager after DB is ready
+            this.initializeAuthManager();
+            
+        } catch (error) {
+            console.error('❌ Database initialization failed:', error);
+            throw error;
         }
     }
 
-    openDB() {
+    initializeAuthManager() {
+        // Load and initialize auth manager only after DB is ready
+        if (typeof AuthManager !== 'undefined') {
+            window.authManager = new AuthManager();
+            console.log('✅ Auth Manager created after DB ready');
+        } else {
+            console.error('❌ AuthManager class not found');
+        }
+    }
+
+    async openDatabase() {
         return new Promise((resolve, reject) => {
-            const req = indexedDB.open(this.dbName, this.dbVersion);
-            req.onerror = () => reject(req.error);
-            req.onsuccess = () => resolve(req.result);
-            req.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                ['users', 'settings', 'transactions', 'contacts'].forEach(name => {
-                    if (!db.objectStoreNames.contains(name)) {
-                        const store = name === 'users' || name === 'settings'
-                            ? db.createObjectStore(name, { keyPath: name === 'users' ? 'phone' : 'key' })
-                            : db.createObjectStore(name, { keyPath: 'id', autoIncrement: true });
-                        if (name === 'users') store.createIndex('phone', 'phone', { unique: true });
-                    }
-                });
+            const request = indexedDB.open(this.dbName, this.dbVersion);
+            
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => resolve(request.result);
+            
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                this.createStoresInUpgrade(db);
             };
         });
     }
 
-    execute(mode, store, op) {
-        return new Promise((resolve, reject) => {
-            const tx = this.db.transaction([store], mode);
-            const s = tx.objectStore(store);
-            const r = op(s);
-            r.onsuccess = () => resolve(r.result);
-            r.onerror = () => reject(r.error);
-            tx.onerror = () => reject(tx.error);
+    createStoresInUpgrade(db) {
+        if (!db.objectStoreNames.contains('users')) {
+            const userStore = db.createObjectStore('users', { keyPath: 'phone' });
+            userStore.createIndex('phone', 'phone', { unique: true });
+        }
+        
+        if (!db.objectStoreNames.contains('settings')) {
+            const settingsStore = db.createObjectStore('settings', { keyPath: 'key' });
+            settingsStore.createIndex('key', 'key', { unique: true });
+        }
+        
+        if (!db.objectStoreNames.contains('transactions')) {
+            const txStore = db.createObjectStore('transactions', { 
+                keyPath: 'id', 
+                autoIncrement: true 
+            });
+            txStore.createIndex('phone', 'phone', { unique: false });
+            txStore.createIndex('timestamp', 'timestamp', { unique: false });
+        }
+    }
+
+    async createStores() {
+        // Verify all stores exist and are accessible
+        const storeNames = ['users', 'settings', 'transactions'];
+        for (const storeName of storeNames) {
+            await this.executeTransaction(storeName, 'readonly', (store) => {
+                return store.count();
+            });
+        }
+    }
+
+    // ... keep all existing methods exactly the same (getUser, saveUser, etc.)
+    async getUser(phone) {
+        return this.executeTransaction('users', 'readonly', (store) => {
+            return store.get(phone);
         });
     }
 
-    async saveUser(u) { return this.execute('readwrite', 'users', s => s.put(u)); }
-    async getUser(p) { return this.execute('readonly', 'users', s => s.get(p)); }
+    async saveUser(userData) {
+        return this.executeTransaction('users', 'readwrite', (store) => {
+            return store.put(userData);
+        });
+    }
 
-    async saveSetting(k, v) { return this.execute('readwrite', 'settings', s => s.put({ key: k, value: v })); }
-    async getSetting(k) { return this.execute('readonly', 'settings', s => s.get(k)); }
-    async deleteSetting(k) { return this.execute('readwrite', 'settings', s => s.delete(k)); }
+    async getSetting(key) {
+        return this.executeTransaction('settings', 'readonly', (store) => {
+            return store.get(key);
+        });
+    }
 
-    showError(msg) {
-        const el = document.getElementById('db-error');
-        if (el) { el.textContent = msg; el.style.display = 'block'; }
+    async saveSetting(key, value) {
+        const setting = { key, value };
+        return this.executeTransaction('settings', 'readwrite', (store) => {
+            return store.put(setting);
+        });
+    }
+
+    async deleteSetting(key) {
+        return this.executeTransaction('settings', 'readwrite', (store) => {
+            return store.delete(key);
+        });
+    }
+
+    executeTransaction(storeName, mode, operation) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([storeName], mode);
+            const store = transaction.objectStore(storeName);
+            
+            const request = operation(store);
+            
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+            
+            transaction.onerror = () => reject(transaction.error);
+        });
     }
 }
 
+// Create database manager immediately - this starts the initialization chain
 window.databaseManager = new DatabaseManager();
-window.databaseManager.init().catch(() => {});
