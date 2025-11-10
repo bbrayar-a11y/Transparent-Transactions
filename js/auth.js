@@ -7,14 +7,16 @@ class AuthManager {
     }
 
     async init() {
+        // Wait for DB to be fully ready
         while (!window.databaseManager?.isInitialized) {
             await new Promise(r => setTimeout(r, 50));
         }
         this.isInitialized = true;
-        console.log('AuthManager ready');
+        console.log('AuthManager initialized');
     }
 
     async sendOTP(phone) {
+        if (!this.isInitialized) throw new Error('Auth system not ready');
         const clean = this.validate(phone);
         if (!clean) throw new Error('Invalid 10-digit Indian number');
 
@@ -31,6 +33,8 @@ class AuthManager {
     }
 
     async verifyOTP(phone, otp, { fullName }) {
+        if (!this.isInitialized) throw new Error('Auth system not ready');
+
         const result = await window.databaseManager.getSetting(`otp_${phone}`);
         if (!result?.value) throw new Error('OTP not found or expired');
 
@@ -64,7 +68,7 @@ class AuthManager {
         const el = document.createElement('div');
         el.id = 'otp-box';
         el.innerHTML = `
-            <div style="position:fixed;top:16px;right:16px;background:#2E8B57;color:white;padding:16px;border-radius:8px;font-family:system-ui;z-index:9999;">
+            <div style="position:fixed;top:16px;right:16px;background:#2E8B57;color:white;padding:16px;border-radius:8px;z-index:9999;font-family:system-ui;">
                 <strong>OTP: ${o}</strong><br><small>${p}</small>
                 <button onclick="this.closest('#otp-box').remove()" style="float:right;background:none;border:none;color:white;font-size:18px;cursor:pointer;">×</button>
             </div>`;
@@ -76,11 +80,13 @@ class AuthManager {
     }
 
     showMessage(msg, type = 'info') {
+        const container = document.querySelector('.phone-form');
+        if (!container) return;
         const el = document.createElement('div');
         el.textContent = msg;
         el.style = `margin:10px 0;padding:12px;border-radius:8px;text-align:center;font-weight:bold;
             ${type === 'error' ? 'background:#ffebee;color:#c62828;' : 'background:#e8f5e9;color:#2e7d32;'}`;
-        document.querySelector('.phone-form')?.appendChild(el);
+        container.appendChild(el);
         setTimeout(() => el.remove(), 4000);
     }
 }
@@ -92,6 +98,6 @@ class AuthManager {
     }
     window.authManager = new AuthManager();
     await window.authManager.init();
-    console.log('Auth system ready');
+    console.log('Auth system fully ready');
     document.dispatchEvent(new Event('authReady'));
 })();
