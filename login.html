@@ -1,104 +1,444 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Transparent Transactions</title>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family: system-ui; background:#f5f7fa; padding:20px; }
-    .container { max-width:400px; margin:auto; background:white; padding:30px; border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,0.1); }
-    h1 { text-align:center; color:#2E8B57; margin-bottom:8px; font-size:24px; }
-    .form-input { width:100%; padding:14px; margin:12px 0; border:1px solid #ddd; border-radius:8px; font-size:16px; }
-    .btn { width:100%; padding:14px; margin:12px 0; border:none; border-radius:8px; font-weight:bold; cursor:pointer; }
-    .btn-primary { background:#2E8B57; color:white; }
-    .btn-success { background:#28a745; color:white; }
-    #db-error { display:none; background:#ffebee; color:#c62828; padding:20px; margin:20px 0; border-radius:8px; text-align:center; }
-    #otpSection { display:none; margin-top:20px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Transparent Transactions</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        .auth-section { display: none; }
+        .auth-section.active { display: block; }
+        .btn-loading { display: none; }
+        .message { display: none; padding: 12px; border-radius: 8px; margin: 15px 0; font-weight: 500; }
+        .message.success { background: rgba(40, 167, 69, 0.1); color: #28A745; border: 1px solid rgba(40, 167, 69, 0.2); }
+        .message.error { background: rgba(220, 53, 69, 0.1); color: #DC3545; border: 1px solid rgba(220, 53, 69, 0.2); }
+        .message.warning { background: rgba(255, 193, 7, 0.1); color: #FFC107; border: 1px solid rgba(255, 193, 7, 0.2); }
+        .message.info { background: rgba(23, 162, 184, 0.1); color: #17A2B8; border: 1px solid rgba(23, 162, 184, 0.2); }
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; }
+        .loading-spinner { width: 48px; height: 48px; border: 4px solid #f3f3f3; border-top: 4px solid #2E8B57; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Transparent Transactions</h1>
-    <div id="db-error">Database error. <button onclick="location.reload()">Reload</button></div>
-    <div class="phone-form">
-      <input type="text" id="name" placeholder="Full Name" class="form-input" />
-      <input type="tel" id="phone" placeholder="Phone (10 digits)" class="form-input" maxlength="10" />
-      <button id="send" class="btn btn-primary" disabled>Initializing...</button>
+    <div class="container">
+        <header>
+            <h1>Transparent Transactions</h1>
+            <p class="tagline">Create Your Account</p>
+        </header>
+
+        <main>
+            <div class="auth-container">
+                <!-- Quick Registration Section -->
+                <section id="registrationSection" class="auth-section active">
+                    <h3>Quick Registration</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Fill in your details to get started</p>
+                    
+                    <div class="form-group">
+                        <input type="text" id="fullName" placeholder="Full Name" class="form-input" value="Test User">
+                    </div>
+                    
+                    <div class="form-group">
+                        <input type="tel" id="phoneNumber" placeholder="Phone Number (10 digits)" class="form-input" maxlength="10" value="9876543210">
+                    </div>
+                    
+                    <div class="form-group">
+                        <input type="email" id="email" placeholder="Email Address" class="form-input" value="test@example.com">
+                    </div>
+                    
+                    <button id="registerBtn" class="btn btn-primary" style="width: 100%;">
+                        <span class="btn-text">🚀 Create Account & Go to Dashboard</span>
+                        <span class="btn-loading">⏳ Creating...</span>
+                    </button>
+                    
+                    <div id="message" class="message"></div>
+                </section>
+
+                <!-- OTP Verification Section -->
+                <section id="otpSection" class="auth-section">
+                    <h3>Verify Your Phone</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Enter the OTP sent to your phone</p>
+                    
+                    <div class="form-group">
+                        <input type="text" id="otpInput" placeholder="Enter 6-digit OTP" class="form-input" maxlength="6">
+                        <small style="color: #666; display: block; margin-top: 5px;">Check the OTP display on screen</small>
+                    </div>
+                    
+                    <button id="verifyOtpBtn" class="btn btn-primary" style="width: 100%;">
+                        <span class="btn-text">✅ Verify OTP</span>
+                        <span class="btn-loading">⏳ Verifying...</span>
+                    </button>
+                    
+                    <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                        <button id="resendOtpBtn" class="btn btn-link" style="color: #2E8B57;">↻ Resend OTP</button>
+                        <button id="backToRegBtn" class="btn btn-link" style="color: #666;">← Back</button>
+                    </div>
+
+                    <div id="otpMessage" class="message"></div>
+                </section>
+            </div>
+
+            <!-- Demo Info -->
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-top: 30px;">
+                <h4>💡 Demo Information</h4>
+                <p>Pre-filled with test data. Click "Create Account" to proceed.</p>
+                <p>OTP will be displayed on screen for testing.</p>
+            </div>
+        </main>
     </div>
-    <div id="otpSection">
-      <input type="text" id="otp" placeholder="Enter 6-digit OTP" class="form-input" maxlength="6" />
-      <button id="verify" class="btn btn-success">Verify OTP</button>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <p>Processing...</p>
     </div>
-  </div>
 
-  <script src="js/database.js"></script>
-  <script src="js/auth.js"></script>
-  <script>
-    const sendBtn = document.getElementById('send');
-    const otpSec = document.getElementById('otpSection');
-    const verifyBtn = document.getElementById('verify');
+    <!-- Scripts in correct order -->
+    <script src="js/database.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <script>
+        // Current registration state
+        let currentRegistrationData = null;
+        let isSystemReady = false;
 
-    // CREATE authManager AFTER DB IS READY
-    const initAuth = async () => {
-      while (!window.databaseManager?.isInitialized) {
-        await new Promise(r => setTimeout(r, 50));
-      }
-      window.authManager = new AuthManager();
-      await window.authManager.init();
-      console.log('Auth system ready');
-      sendBtn.disabled = false;
-      sendBtn.textContent = 'Continue';
-    };
-
-    initAuth();
-
-    ['phone', 'otp'].forEach(id => {
-      document.getElementById(id).addEventListener('input', e => {
-        e.target.value = e.target.value.replace(/\D/g, '').slice(0, id === 'phone' ? 10 : 6);
-      });
-    });
-
-    sendBtn.onclick = async () => {
-      if (!window.authManager?.isInitialized) return;
-      const phone = document.getElementById('phone').value.trim();
-      const name = document.getElementById('name').value.trim();
-      if (!phone || phone.length !== 10 || !name) {
-        window.authManager.showMessage('Invalid input', 'error');
-        return;
-      }
-      sendBtn.disabled = true;
-      try {
-        const res = await window.authManager.sendOTP(phone);
-        if (res.action === 'otp-sent') {
-          otpSec.style.display = 'block';
-          document.getElementById('otp').focus();
-        } else {
-          setTimeout(() => location.href = 'dashboard.html', 1000);
-        }
-      } catch (e) {
-        window.authManager.showMessage(e.message || 'Error', 'error');
-      } finally {
-        sendBtn.disabled = false;
-      }
-    };
-
-    verifyBtn.onclick = async () => {
-      if (!window.authManager?.isInitialized) return;
-      const otp = document.getElementById('otp').value.trim();
-      if (otp.length !== 6) {
-        window.authManager.showMessage('Invalid OTP', 'error');
-        return;
-      }
-      try {
-        await window.authManager.verifyOTP(document.getElementById('phone').value, otp, {
-          fullName: document.getElementById('name').value
+        // Simple initialization - just wait for scripts to load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔐 Login page loaded');
+            
+            // Setup event listeners immediately
+            setupEventListeners();
+            
+            // Check system readiness after a short delay
+            setTimeout(checkSystemReadiness, 1000);
         });
-        setTimeout(() => location.href = 'dashboard.html', 1000);
-      } catch (e) {
-        window.authManager.showMessage(e.message || 'Verification failed', 'error');
+
+        function setupEventListeners() {
+            console.log('🔧 Setting up event listeners...');
+            
+            // Registration button
+            document.getElementById('registerBtn').addEventListener('click', handleRegistration);
+            
+            // OTP verification button
+            document.getElementById('verifyOtpBtn').addEventListener('click', verifyOTP);
+            
+            // OTP actions
+            document.getElementById('resendOtpBtn').addEventListener('click', resendOTP);
+            document.getElementById('backToRegBtn').addEventListener('click', backToRegistration);
+            
+            // Enter key support
+            document.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const activeSection = document.querySelector('.auth-section.active');
+                    if (activeSection.id === 'registrationSection') {
+                        handleRegistration();
+                    } else if (activeSection.id === 'otpSection') {
+                        verifyOTP();
+                    }
+                }
+            });
+            
+            // Input validation
+            document.getElementById('phoneNumber').addEventListener('input', function(e) {
+                this.value = this.value.replace(/\D/g, '').slice(0, 10);
+            });
+            
+            document.getElementById('otpInput').addEventListener('input', function(e) {
+                this.value = this.value.replace(/\D/g, '').slice(0, 6);
+            });
+        }
+
+        function checkSystemReadiness() {
+            console.log('🔍 Checking system readiness...');
+            console.log('Database manager:', !!window.databaseManager);
+            console.log('Auth manager:', !!window.authManager);
+            console.log('Auth manager initialized:', window.authManager?.isInitialized);
+            
+            // Check if essential components are available
+            if (window.databaseManager && window.authManager) {
+                isSystemReady = true;
+                console.log('✅ System is ready!');
+                showMessage('System ready! You can now create an account.', 'success', 'message');
+            } else {
+                console.log('⚠️ System not ready yet, retrying...');
+                // Try again in 2 seconds
+                setTimeout(checkSystemReadiness, 2000);
+            }
+        }
+
+        // REGISTRATION FLOW - UPDATED FOR AUTO-LOGIN
+
+        async function handleRegistration() {
+            console.log('🔄 Registration attempted');
+            console.log('System ready:', isSystemReady);
+            console.log('Auth manager:', !!window.authManager);
+            
+            if (!isSystemReady) {
+                showMessage('🔄 Please wait... System is still loading.', 'warning', 'message');
+                return;
+            }
+
+            const fullName = document.getElementById('fullName').value.trim();
+            const phone = document.getElementById('phoneNumber').value.trim();
+            const email = document.getElementById('email').value.trim();
+            
+            // Validate inputs
+            if (!fullName) {
+                showMessage('Please enter your full name', 'error', 'message');
+                return;
+            }
+
+            if (!phone || phone.length !== 10) {
+                showMessage('Please enter a valid 10-digit phone number', 'error', 'message');
+                return;
+            }
+
+            if (!email || !email.includes('@')) {
+                showMessage('Please enter a valid email address', 'error', 'message');
+                return;
+            }
+
+            // Store registration data
+            currentRegistrationData = { fullName, phone, email };
+
+            // Show loading state
+            setButtonLoading('registerBtn', true);
+            showMessage('Checking phone number...', 'info', 'message');
+
+            try {
+                console.log('📱 Attempting to send OTP...');
+                const result = await window.authManager.sendOTP(phone);
+                
+                console.log('📱 OTP response:', result);
+                
+                // Handle different response types
+                if (result.action === 'auto-login') {
+                    // Existing user - auto-logged in
+                    showMessage(`Welcome back, ${result.user.profile.fullName || result.user.phone}! Redirecting...`, 'success', 'message');
+                    console.log('✅ Auto-login successful for existing user');
+                    
+                    // Redirect to dashboard
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                    
+                } else if (result.action === 'otp-sent') {
+                    // New user - show OTP section
+                    showMessage('OTP sent successfully! Check the display on screen.', 'success', 'message');
+                    showOTPSection();
+                } else {
+                    // Fallback for older response format
+                    if (result.success) {
+                        showMessage('OTP sent successfully! Check the display on screen.', 'success', 'message');
+                        showOTPSection();
+                    } else {
+                        throw new Error(result.message);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('❌ OTP send failed:', error);
+                showMessage('Failed to send OTP: ' + error.message, 'error', 'message');
+            } finally {
+                setButtonLoading('registerBtn', false);
+            }
+        }
+
+        async function verifyOTP() {
+            const otp = document.getElementById('otpInput').value.trim();
+            
+            if (!otp || otp.length !== 6) {
+                showMessage('Please enter a 6-digit OTP', 'error', 'otpMessage');
+                return;
+            }
+
+            if (!currentRegistrationData) {
+                showMessage('Registration data missing. Please start over.', 'error', 'otpMessage');
+                return;
+            }
+
+            setButtonLoading('verifyOtpBtn', true);
+            showMessage('Verifying OTP...', 'info', 'otpMessage');
+
+            try {
+                const result = await window.authManager.verifyOTP(currentRegistrationData.phone, otp, currentRegistrationData);
+                
+                if (result.success) {
+                    if (result.isNewUser) {
+                        showMessage('✅ Account created successfully! Redirecting...', 'success', 'otpMessage');
+                    } else {
+                        showMessage('✅ Login successful! Redirecting...', 'success', 'otpMessage');
+                    }
+                    
+                    // Redirect to dashboard
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                    
+                } else {
+                    throw new Error(result.message);
+                }
+                
+            } catch (error) {
+                console.error('❌ OTP verification failed:', error);
+                showMessage('OTP verification failed: ' + error.message, 'error', 'otpMessage');
+            } finally {
+                setButtonLoading('verifyOtpBtn', false);
+            }
+        }
+
+        // OTP ACTIONS
+
+        async function resendOTP() {
+            if (!currentRegistrationData || !currentRegistrationData.phone) {
+                showMessage('No phone number found. Please start over.', 'error', 'otpMessage');
+                return;
+            }
+
+            setButtonLoading('resendOtpBtn', true);
+            showMessage('Resending OTP...', 'info', 'otpMessage');
+
+            try {
+                const result = await window.authManager.sendOTP(currentRegistrationData.phone);
+                
+                // Handle auto-login case during resend
+                if (result.action === 'auto-login') {
+                    showMessage('Welcome back! Redirecting...', 'success', 'otpMessage');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                } else if (result.success) {
+                    showMessage('OTP resent successfully!', 'success', 'otpMessage');
+                } else {
+                    throw new Error(result.message);
+                }
+                
+            } catch (error) {
+                console.error('❌ OTP resend failed:', error);
+                showMessage('Failed to resend OTP: ' + error.message, 'error', 'otpMessage');
+            } finally {
+                setButtonLoading('resendOtpBtn', false);
+            }
+        }
+
+        // SECTION NAVIGATION
+
+        function showOTPSection() {
+            document.getElementById('registrationSection').classList.remove('active');
+            document.getElementById('otpSection').classList.add('active');
+            document.getElementById('otpInput').value = '';
+            document.getElementById('otpInput').focus();
+            clearMessages();
+        }
+
+        function backToRegistration() {
+            document.getElementById('otpSection').classList.remove('active');
+            document.getElementById('registrationSection').classList.add('active');
+            currentRegistrationData = null;
+            clearMessages();
+        }
+
+        // UTILITY FUNCTIONS
+
+        function showMessage(text, type, elementId = 'message') {
+            const messageElement = document.getElementById(elementId);
+            messageElement.textContent = text;
+            messageElement.className = `message ${type}`;
+            messageElement.style.display = 'block';
+        }
+
+        function clearMessages() {
+            const messages = document.querySelectorAll('.message');
+            messages.forEach(msg => {
+                msg.style.display = 'none';
+                msg.textContent = '';
+            });
+        }
+
+        function setButtonLoading(buttonId, isLoading) {
+            const button = document.getElementById(buttonId);
+            const btnText = button.querySelector('.btn-text');
+            const btnLoading = button.querySelector('.btn-loading');
+            
+            if (isLoading) {
+                btnText.style.display = 'none';
+                btnLoading.style.display = 'inline';
+                button.disabled = true;
+            } else {
+                btnText.style.display = 'inline';
+                btnLoading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+
+        function showLoadingOverlay(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.style.display = show ? 'flex' : 'none';
+        }
+    </script>
+    <script>
+    // Service Worker Registration for GitHub Pages
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        const swUrl = '/Transparent-Transactions/sw.js';
+        
+        navigator.serviceWorker.register(swUrl, {
+          scope: '/Transparent-Transactions/'
+        })
+        .then(function(registration) {
+          console.log('✅ ServiceWorker registration successful with scope:', registration.scope);
+        })
+        .catch(function(error) {
+          console.log('❌ ServiceWorker registration failed:', error);
+        });
+      });
+    }
+    </script>
+    <script>
+// Service Worker Registration with Multiple Fallback Paths
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    // Try multiple paths to handle different deployment scenarios
+    const swPaths = [
+      '/Transparent-Transactions/sw.js',
+      './sw.js',
+      'sw.js',
+      '/sw.js'
+    ];
+    
+    console.log('🛠️ Attempting service worker registration...');
+    
+    let registered = false;
+    
+    swPaths.forEach(swUrl => {
+      if (!registered) {
+        navigator.serviceWorker.register(swUrl, {
+          scope: '/Transparent-Transactions/'
+        })
+        .then(function(registration) {
+          console.log('✅ ServiceWorker registered successfully:', swUrl);
+          console.log('Scope:', registration.scope);
+          registered = true;
+        })
+        .catch(function(error) {
+          console.log('❌ ServiceWorker registration failed for', swUrl, error);
+        });
       }
-    };
-  </script>
+    });
+    
+    // If none registered after 5 seconds, log final status
+    setTimeout(() => {
+      if (!registered) {
+        console.log('⚠️ No service worker registration succeeded');
+      }
+    }, 5000);
+  });
+} else {
+  console.log('❌ Service workers are not supported in this browser');
+}
+</script>
 </body>
 </html>
