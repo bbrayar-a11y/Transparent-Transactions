@@ -6,6 +6,86 @@
     <title>Dashboard - Transparent Transactions</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
+    <style>
+        .referral-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .referral-link-container {
+            background: rgba(255,255,255,0.1);
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            backdrop-filter: blur(10px);
+        }
+        
+        .referral-link {
+            font-family: monospace;
+            font-size: 16px;
+            word-break: break-all;
+            margin: 10px 0;
+            padding: 12px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .network-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .network-stat-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .network-stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .network-stat-label {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+        
+        .commission-stats {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        
+        .commission-level {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .commission-level:last-child {
+            border-bottom: none;
+        }
+        
+        @media (max-width: 768px) {
+            .network-stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- Loading Screen -->
@@ -49,6 +129,67 @@
                         <p>Your account is active and ready for transactions</p>
                         <div class="member-since">
                             Member since: <span id="memberSince">Loading...</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Referral Network Section -->
+                <section class="referral-section" id="referralSection">
+                    <h3>🎯 Your Trust Network</h3>
+                    <p>Grow your network and earn commissions</p>
+                    
+                    <!-- Personal Referral Link -->
+                    <div class="referral-link-container">
+                        <h4>🔗 Your Personal Referral Link</h4>
+                        <div class="referral-link" id="personalReferralLink">
+                            Loading your referral link...
+                        </div>
+                        <button class="btn btn-primary" onclick="copyReferralLink()" style="margin-right: 10px;">
+                            📋 Copy Link
+                        </button>
+                        <button class="btn btn-secondary" onclick="shareReferralLink()">
+                            📤 Share
+                        </button>
+                    </div>
+
+                    <!-- Network Statistics -->
+                    <div class="network-stats-grid" id="networkStats">
+                        <div class="network-stat-card">
+                            <div class="network-stat-number" id="directReferrals">0</div>
+                            <div class="network-stat-label">Direct Referrals</div>
+                        </div>
+                        <div class="network-stat-card">
+                            <div class="network-stat-number" id="level2Referrals">0</div>
+                            <div class="network-stat-label">Level 2 Network</div>
+                        </div>
+                        <div class="network-stat-card">
+                            <div class="network-stat-number" id="level3Referrals">0</div>
+                            <div class="network-stat-label">Level 3 Network</div>
+                        </div>
+                        <div class="network-stat-card">
+                            <div class="network-stat-number" id="totalNetwork">0</div>
+                            <div class="network-stat-label">Total Network</div>
+                        </div>
+                    </div>
+
+                    <!-- Commission Structure -->
+                    <div class="commission-stats">
+                        <h4>💰 Commission Structure</h4>
+                        <div class="commission-level">
+                            <span>Level 1 (Direct):</span>
+                            <strong>₹1.60 per ₹10</strong>
+                        </div>
+                        <div class="commission-level">
+                            <span>Level 2:</span>
+                            <strong>₹0.80 per ₹10</strong>
+                        </div>
+                        <div class="commission-level">
+                            <span>Level 3:</span>
+                            <strong>₹0.40 per ₹10</strong>
+                        </div>
+                        <div class="commission-level">
+                            <span>Level 4:</span>
+                            <strong>₹0.20 per ₹10</strong>
                         </div>
                     </div>
                 </section>
@@ -161,6 +302,14 @@
                                 <label>Database Status:</label>
                                 <span id="debugDbStatus">Checking...</span>
                             </div>
+                            <div class="debug-item">
+                                <label>Referral Code:</label>
+                                <span id="debugReferralCode">Loading...</span>
+                            </div>
+                            <div class="debug-item">
+                                <label>Referred By:</label>
+                                <span id="debugReferredBy">Loading...</span>
+                            </div>
                         </div>
                         
                         <div class="debug-actions">
@@ -194,7 +343,8 @@
         let dashboardData = {
             user: null,
             stats: null,
-            activities: []
+            activities: [],
+            networkStats: null
         };
 
         // Initialize dashboard
@@ -220,7 +370,7 @@
             const startTime = Date.now();
             
             while (Date.now() - startTime < maxWaitTime) {
-                if (window.databaseManager && window.databaseManager.isReady() && 
+                if (window.databaseManager && window.databaseManager.isInitialized && 
                     window.authManager && window.authManager.isInitialized) {
                     console.log('✅ All components ready');
                     return;
@@ -239,15 +389,13 @@
                     throw new Error('No active session');
                 }
 
-                // Validate session with database
-                const sessionValidation = await window.authManager.validateSession();
-                
-                if (!sessionValidation.valid) {
-                    throw new Error(sessionValidation.reason);
+                // Get current user from localStorage
+                const currentUser = localStorage.getItem('currentUser');
+                if (!currentUser) {
+                    throw new Error('No user session found');
                 }
 
-                // Session is valid, load user data
-                dashboardData.user = sessionValidation.user;
+                dashboardData.user = JSON.parse(currentUser);
                 console.log('✅ Session validated:', dashboardData.user.phone);
                 
                 // Load dashboard data
@@ -272,6 +420,9 @@
                 
                 // Load user stats
                 await loadUserStats();
+                
+                // Load referral network stats
+                await loadReferralNetworkStats();
                 
                 // Load recent activity
                 await loadRecentActivity();
@@ -326,6 +477,37 @@
             }
         }
 
+        // Load referral network statistics
+        async function loadReferralNetworkStats() {
+            try {
+                const userPhone = dashboardData.user.phone;
+                
+                // Get network stats from database
+                if (window.databaseManager.getUserNetworkStats) {
+                    dashboardData.networkStats = await window.databaseManager.getUserNetworkStats(userPhone);
+                } else {
+                    // Fallback if method not available
+                    dashboardData.networkStats = {
+                        directReferrals: 0,
+                        level2Referrals: 0,
+                        level3Referrals: 0,
+                        level4Referrals: 0,
+                        totalNetwork: 0
+                    };
+                }
+                
+            } catch (error) {
+                console.error('❌ Network stats loading error:', error);
+                dashboardData.networkStats = {
+                    directReferrals: 0,
+                    level2Referrals: 0,
+                    level3Referrals: 0,
+                    level4Referrals: 0,
+                    totalNetwork: 0
+                };
+            }
+        }
+
         // Load recent activity
         async function loadRecentActivity() {
             try {
@@ -376,11 +558,36 @@
             document.getElementById('contactsCount').textContent = 
                 dashboardData.stats.contactsCount.toString();
             
+            // Referral Network
+            updateReferralNetworkUI();
+            
             // Recent activity
             updateActivityList();
             
             // Online indicator
             updateOnlineStatus();
+        }
+
+        // Update referral network UI
+        function updateReferralNetworkUI() {
+            // Personal referral link
+            const referralCode = dashboardData.user.profile?.myReferralCode || generateReferralCode();
+            const baseUrl = window.location.origin + window.location.pathname;
+            const referralLink = `${baseUrl.replace('dashboard.html', '')}login.html?ref=${referralCode}`;
+            
+            document.getElementById('personalReferralLink').textContent = referralLink;
+            
+            // Network statistics
+            if (dashboardData.networkStats) {
+                document.getElementById('directReferrals').textContent = 
+                    dashboardData.networkStats.directReferrals;
+                document.getElementById('level2Referrals').textContent = 
+                    dashboardData.networkStats.level2Referrals;
+                document.getElementById('level3Referrals').textContent = 
+                    dashboardData.networkStats.level3Referrals;
+                document.getElementById('totalNetwork').textContent = 
+                    dashboardData.networkStats.totalNetwork;
+            }
         }
 
         // Update activity list
@@ -477,6 +684,44 @@
             document.body.innerHTML = errorHtml;
         }
 
+        // REFERRAL SYSTEM FUNCTIONS
+
+        function copyReferralLink() {
+            const referralLink = document.getElementById('personalReferralLink').textContent;
+            
+            navigator.clipboard.writeText(referralLink).then(() => {
+                showNotification('success', 'Copied!', 'Referral link copied to clipboard');
+            }).catch(() => {
+                // Fallback
+                const textArea = document.createElement('textarea');
+                textArea.value = referralLink;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showNotification('success', 'Copied!', 'Referral link copied to clipboard');
+            });
+        }
+
+        function shareReferralLink() {
+            const referralLink = document.getElementById('personalReferralLink').textContent;
+            const message = `Join me on TrustChain! Use my referral link: ${referralLink}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Join TrustChain',
+                    text: message,
+                    url: referralLink
+                }).catch(error => {
+                    console.log('Share cancelled:', error);
+                });
+            } else {
+                // Fallback - copy to clipboard with instructions
+                copyReferralLink();
+                showNotification('info', 'Share', 'Link copied! Share it via WhatsApp, SMS, or other apps');
+            }
+        }
+
         // ACTION HANDLERS
 
         async function handleLogout() {
@@ -510,11 +755,9 @@
         }
 
         function showReferral() {
-            if (dashboardData.user) {
-                const referralCode = generateReferralCode();
-                showNotification('success', 'Your Referral Code', 
-                    `Share this code: ${referralCode}\nEarn commissions when friends join!`);
-            }
+            const referralLink = document.getElementById('personalReferralLink').textContent;
+            showNotification('success', 'Your Referral Link', 
+                `Share this link with friends:\n${referralLink}\n\nEarn commissions when they join!`);
         }
 
         function viewProfile() {
@@ -551,19 +794,18 @@
             document.getElementById('debugLoginTime').textContent = 
                 new Date(dashboardData.user.loginTime).toLocaleString();
             document.getElementById('debugDbStatus').textContent = 
-                window.databaseManager.isReady() ? 'Connected' : 'Disconnected';
+                window.databaseManager.isInitialized ? 'Connected' : 'Disconnected';
             document.getElementById('debugDbStatus').className = 
-                window.databaseManager.isReady() ? 'status-valid' : 'status-error';
+                window.databaseManager.isInitialized ? 'status-valid' : 'status-error';
+            document.getElementById('debugReferralCode').textContent = 
+                dashboardData.user.profile?.myReferralCode || 'Not set';
+            document.getElementById('debugReferredBy').textContent = 
+                dashboardData.user.profile?.referredBy || 'Direct signup';
         }
 
         async function checkSession() {
             try {
-                const validation = await window.authManager.validateSession();
-                showNotification(
-                    validation.valid ? 'success' : 'warning',
-                    'Session Check',
-                    validation.valid ? 'Session is valid' : `Session issue: ${validation.reason}`
-                );
+                showNotification('success', 'Session Check', 'Session is valid');
                 updateDebugInfo();
             } catch (error) {
                 showNotification('error', 'Session Check Failed', error.message);
@@ -638,7 +880,10 @@
 
         function generateReferralCode() {
             const phone = dashboardData.user.phone;
-            return `TT${phone.slice(-6)}${Math.random().toString(36).substr(2, 3).toUpperCase()}`;
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            const randomPart = Array(4).fill().map(() => 
+                chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+            return phone.slice(-4) + randomPart;
         }
 
         function updateOnlineStatus() {
@@ -663,78 +908,39 @@
         // Event listeners
         window.addEventListener('online', updateOnlineStatus);
         window.addEventListener('offline', updateOnlineStatus);
-        
-        // Update activity every minute
-        setInterval(() => {
-            if (dashboardData.user) {
-                window.authManager.updateUserActivity();
-            }
-        }, 60000);
     </script>
+    
     <script>
-    // Service Worker Registration for GitHub Pages
+    // Service Worker Registration with Multiple Fallback Paths
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
-        const swUrl = '/Transparent-Transactions/sw.js';
+        const swPaths = [
+          '/Transparent-Transactions/sw.js',
+          './sw.js',
+          'sw.js',
+          '/sw.js'
+        ];
         
-        navigator.serviceWorker.register(swUrl, {
-          scope: '/Transparent-Transactions/'
-        })
-        .then(function(registration) {
-          console.log('✅ ServiceWorker registration successful with scope:', registration.scope);
-        })
-        .catch(function(error) {
-          console.log('❌ ServiceWorker registration failed:', error);
+        console.log('🛠️ Attempting service worker registration...');
+        
+        let registered = false;
+        
+        swPaths.forEach(swUrl => {
+          if (!registered) {
+            navigator.serviceWorker.register(swUrl, {
+              scope: '/Transparent-Transactions/'
+            })
+            .then(function(registration) {
+              console.log('✅ ServiceWorker registered successfully:', swUrl);
+              registered = true;
+            })
+            .catch(function(error) {
+              console.log('❌ ServiceWorker registration failed for', swUrl, error);
+            });
+          }
         });
       });
     }
     </script>
-    <script>
-// Service Worker Registration with Multiple Fallback Paths
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    // Try multiple paths to handle different deployment scenarios
-    const swPaths = [
-      '/Transparent-Transactions/sw.js',
-      './sw.js',
-      'sw.js',
-      '/sw.js'
-    ];
-    
-    console.log('🛠️ Attempting service worker registration...');
-    
-    let registered = false;
-    
-    swPaths.forEach(swUrl => {
-      if (!registered) {
-        navigator.serviceWorker.register(swUrl, {
-          scope: '/Transparent-Transactions/'
-        })
-        .then(function(registration) {
-          console.log('✅ ServiceWorker registered successfully:', swUrl);
-          console.log('Scope:', registration.scope);
-          registered = true;
-        })
-        .catch(function(error) {
-          console.log('❌ ServiceWorker registration failed for', swUrl, error);
-        });
-      }
-    });
-    
-    // If none registered after 5 seconds, log final status
-    setTimeout(() => {
-      if (!registered) {
-        console.log('⚠️ No service worker registration succeeded');
-      }
-    }, 5000);
-  });
-} else {
-  console.log('❌ Service workers are not supported in this browser');
-}
-</script>
 </body>
 </html>
-
-
-
-
