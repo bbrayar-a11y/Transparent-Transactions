@@ -1,25 +1,105 @@
-// js/auth.js - COMPLETE WITH REFERRAL SYSTEM & ALL METHODS
+// js/auth.js - COMPLETE WITH STORAGE DETECTIVE INTEGRATION
 class AuthManager {
     constructor() {
         this.isInitialized = false;
         this.otpExpiry = 120000; // 2 minutes
         this.maxPinAttempts = 3;
         this.pinLockDuration = 5 * 60 * 1000; // 5 minutes
+        this.storageStrategy = 'standard'; // Default
     }
 
     async init() {
+        console.log('🟡 Auth Manager INIT started');
+        
+        // Wait for Storage Detective results
+        await this.waitForStorageDetective();
+        
+        // Set storage strategy based on detection
+        this.setStorageStrategy();
+        
         // Wait for database
         while (!window.databaseManager?.isInitialized) {
             await new Promise(r => setTimeout(r, 50));
         }
+        
         this.isInitialized = true;
-        console.log('AuthManager initialized');
+        console.log('✅ Auth Manager initialized successfully');
+        console.log('💾 Storage strategy:', this.storageStrategy);
+    }
+
+    // === STORAGE DETECTIVE INTEGRATION ===
+    async waitForStorageDetective() {
+        const maxWait = 10000; // 10 seconds max
+        const startTime = Date.now();
+        
+        while (Date.now() - startTime < maxWait) {
+            if (window.storageCapabilities) {
+                console.log('✅ Storage Detective ready:', window.storageCapabilities.strategy);
+                return;
+            }
+            
+            // Wait for storageReady event or timeout
+            try {
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => reject(new Error('Storage Detective timeout')), 2000);
+                    document.addEventListener('storageReady', () => {
+                        clearTimeout(timeout);
+                        resolve();
+                    }, { once: true });
+                });
+                break;
+            } catch (error) {
+                console.log('⏳ Waiting for Storage Detective...');
+                await new Promise(r => setTimeout(r, 500));
+            }
+        }
+        
+        if (!window.storageCapabilities) {
+            console.warn('⚠️ Storage Detective not available, using fallback strategy');
+            window.storageCapabilities = {
+                strategy: 'standard',
+                score: 50
+            };
+        }
+    }
+
+    setStorageStrategy() {
+        this.storageStrategy = window.storageCapabilities?.strategy || 'standard';
+        
+        // Log storage capabilities for debugging
+        console.log('🕵️ Storage Report:', {
+            strategy: this.storageStrategy,
+            score: window.storageCapabilities?.score,
+            browser: window.storageCapabilities?.capabilities?.browser
+        });
+    }
+
+    // === STORAGE-AWARE SESSION MANAGEMENT ===
+    getStorage() {
+        switch (this.storageStrategy) {
+            case 'full-persistence':
+            case 'standard':
+                try {
+                    return localStorage;
+                } catch (e) {
+                    return sessionStorage; // Fallback
+                }
+            case 'session-only':
+                return sessionStorage;
+            case 'temporary':
+            case 'emergency':
+                // Memory fallback or sessionStorage
+                return sessionStorage;
+            default:
+                return localStorage;
+        }
     }
 
     // === CHECK IF USER IS AUTHENTICATED ===
     isAuthenticated() {
         try {
-            const currentUser = localStorage.getItem('currentUser');
+            const storage = this.getStorage();
+            const currentUser = storage.getItem('currentUser');
             if (!currentUser) return false;
             
             const userData = JSON.parse(currentUser);
@@ -41,12 +121,7 @@ class AuthManager {
             const user = await window.databaseManager.getUser(clean);
             if (user) {
                 console.log("FOUNDER LOGIN:", clean);
-                localStorage.setItem('currentUser', JSON.stringify({
-                    phone: clean,
-                    profile: user,
-                    isAuthenticated: true,
-                    loginTime: new Date().toISOString()
-                }));
+                this.loginUser(clean, user);
                 this.showMessage("Founder access granted.", "success");
                 return { action: 'auto-login' };
             }
@@ -109,10 +184,11 @@ class AuthManager {
         // NEW USER WITH REFERRAL DATA
         const referralCode = userData?.referralCode || null;
         
+        // SAFE PROFILE CREATION
         const profile = {
             phone: clean,
-            fullName: userData?.fullName?.trim() || 'User',
-            email: userData?.email?.trim() || '',
+            fullName: (userData?.fullName || '').trim() || 'User',
+            email: (userData?.email || '').trim() || '',
             balance: 0,
             createdAt: new Date().toISOString(),
             securityPin: null,
@@ -149,8 +225,8 @@ class AuthManager {
         
         const profile = {
             phone: clean,
-            fullName: userData?.fullName?.trim() || 'User',
-            email: userData?.email?.trim() || '',
+            fullName: (userData?.fullName || '').trim() || 'User',
+            email: (userData?.email || '').trim() || '',
             balance: 0,
             createdAt: new Date().toISOString(),
             securityPin: obfuscated,
@@ -255,21 +331,48 @@ class AuthManager {
         return { success: true };
     }
 
-    // === LOGIN HELPER ===
+    // === STORAGE-AWARE LOGIN HELPER ===
     loginUser(phone, profile) {
+        // SAFETY CHECK - ensure profile exists
+        if (!profile) {
+            console.warn('⚠️ No profile provided, creating fallback');
+            profile = {
+                phone: phone,
+                fullName: 'User',
+                balance: 0,
+                createdAt: new Date().toISOString()
+            };
+        }
+
         const session = {
             phone,
             profile,
             isAuthenticated: true,
-            loginTime: new Date().toISOString()
+            loginTime: new Date().toISOString(),
+            storageStrategy: this.storageStrategy // Track which storage we're using
         };
-        localStorage.setItem('currentUser', JSON.stringify(session));
+
+        const storage = this.getStorage();
+        try {
+            storage.setItem('currentUser', JSON.stringify(session));
+            console.log('✅ User logged in with storage:', this.storageStrategy);
+        } catch (error) {
+            console.error('❌ Storage write failed, trying fallback:', error);
+            // Try sessionStorage as fallback
+            try {
+                sessionStorage.setItem('currentUser', JSON.stringify(session));
+                console.log('✅ User logged in with sessionStorage fallback');
+            } catch (fallbackError) {
+                console.error('❌ All storage failed, user session not persisted');
+            }
+        }
     }
 
     // === SESSION VALIDATION ===
     async validateSession() {
         try {
-            const currentUser = localStorage.getItem('currentUser');
+            const storage = this.getStorage();
+            const currentUser = storage.getItem('currentUser');
             if (!currentUser) {
                 return { valid: false, reason: 'No session found' };
             }
@@ -293,8 +396,16 @@ class AuthManager {
 
     // === LOGOUT ===
     async logout() {
-        localStorage.removeItem('currentUser');
-        return { success: true };
+        try {
+            const storage = this.getStorage();
+            storage.removeItem('currentUser');
+            // Also clear sessionStorage as backup
+            sessionStorage.removeItem('currentUser');
+            return { success: true };
+        } catch (error) {
+            console.error('Logout error:', error);
+            return { success: false, error: error.message };
+        }
     }
 
     // === UTILS ===
@@ -337,22 +448,42 @@ class AuthManager {
     // === ACTIVITY TRACKING ===
     async updateUserActivity() {
         // Update last active timestamp
-        const currentUser = localStorage.getItem('currentUser');
-        if (currentUser) {
-            const userData = JSON.parse(currentUser);
-            userData.lastActive = new Date().toISOString();
-            localStorage.setItem('currentUser', JSON.stringify(userData));
+        try {
+            const storage = this.getStorage();
+            const currentUser = storage.getItem('currentUser');
+            if (currentUser) {
+                const userData = JSON.parse(currentUser);
+                userData.lastActive = new Date().toISOString();
+                storage.setItem('currentUser', JSON.stringify(userData));
+            }
+        } catch (error) {
+            console.log('Activity update failed:', error);
         }
     }
 }
 
-// === AUTO-INIT ===
+// === STORAGE-AWARE AUTO-INIT ===
 (async () => {
-    while (!window.databaseManager?.isInitialized) {
-        await new Promise(r => setTimeout(r, 50));
+    console.log('🔧 Auth system initializing...');
+    
+    try {
+        // Wait for database first (it has its own storage detection)
+        while (!window.databaseManager?.isInitialized) {
+            await new Promise(r => setTimeout(r, 50));
+        }
+        
+        // Then create and initialize auth manager
+        window.authManager = new AuthManager();
+        await window.authManager.init();
+        
+        console.log('✅ Auth system ready with storage strategy');
+        document.dispatchEvent(new Event('authReady'));
+        
+    } catch (error) {
+        console.error('❌ Auth system initialization failed:', error);
+        // Create emergency auth manager anyway
+        window.authManager = new AuthManager();
+        window.authManager.isInitialized = true;
+        console.log('🆘 Auth system in emergency mode');
     }
-    window.authManager = new AuthManager();
-    await window.authManager.init();
-    console.log('Auth system ready');
-    document.dispatchEvent(new Event('authReady'));
 })();
