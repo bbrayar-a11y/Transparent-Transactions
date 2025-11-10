@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Transparent Transactions</title>
+    <title>Login - TrustChain</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <style>
@@ -17,6 +17,8 @@
         .message.info { background: rgba(23, 162, 184, 0.1); color: #17A2B8; border: 1px solid rgba(23, 162, 184, 0.2); }
         #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; }
         .loading-spinner { width: 48px; height: 48px; border: 4px solid #f3f3f3; border-top: 4px solid #2E8B57; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        .security-notice { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 15px 0; }
+        .redirect-countdown { font-weight: bold; color: #2E8B57; }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -26,16 +28,22 @@
 <body>
     <div class="container">
         <header>
-            <h1>Transparent Transactions</h1>
-            <p class="tagline">Create Your Account</p>
+            <h1>TrustChain</h1>
+            <p class="tagline">Build Trust Through Mutual Consent</p>
         </header>
 
         <main>
+            <!-- Security Notice -->
+            <div class="security-notice">
+                <h4>🔒 One Account Per Device</h4>
+                <p>For financial security and data privacy, each device can have only one TrustChain account. Please logout existing user to create a new account.</p>
+            </div>
+
             <div class="auth-container">
                 <!-- Quick Registration Section -->
-                <section id="registrationSection" class="auth-section active">
-                    <h3>Quick Registration</h3>
-                    <p style="color: #666; margin-bottom: 20px;">Fill in your details to get started</p>
+                <section id="registrationSection" class="auth-section">
+                    <h3>Create Your TrustChain Account</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Join our privacy-first financial trust network</p>
                     
                     <div class="form-group">
                         <input type="text" id="fullName" placeholder="Full Name" class="form-input" value="Test User">
@@ -50,7 +58,7 @@
                     </div>
                     
                     <button id="registerBtn" class="btn btn-primary" style="width: 100%;">
-                        <span class="btn-text">🚀 Create Account & Go to Dashboard</span>
+                        <span class="btn-text">🚀 Create TrustChain Account</span>
                         <span class="btn-loading">⏳ Creating...</span>
                     </button>
                     
@@ -59,33 +67,50 @@
 
                 <!-- OTP Verification Section -->
                 <section id="otpSection" class="auth-section">
-                    <h3>Verify Your Phone</h3>
-                    <p style="color: #666; margin-bottom: 20px;">Enter the OTP sent to your phone</p>
+                    <h3>Verify Your Identity</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Enter any 6-digit code to continue</p>
                     
                     <div class="form-group">
-                        <input type="text" id="otpInput" placeholder="Enter 6-digit OTP" class="form-input" maxlength="6">
-                        <small style="color: #666; display: block; margin-top: 5px;">Check the OTP display on screen</small>
+                        <input type="text" id="otpInput" placeholder="Enter 6-digit code" class="form-input" maxlength="6">
+                        <small style="color: #666; display: block; margin-top: 5px;">You can use any 6 numbers for testing</small>
                     </div>
                     
                     <button id="verifyOtpBtn" class="btn btn-primary" style="width: 100%;">
-                        <span class="btn-text">✅ Verify OTP</span>
+                        <span class="btn-text">✅ Verify & Continue</span>
                         <span class="btn-loading">⏳ Verifying...</span>
                     </button>
                     
                     <div style="display: flex; justify-content: space-between; margin-top: 15px;">
-                        <button id="resendOtpBtn" class="btn btn-link" style="color: #2E8B57;">↻ Resend OTP</button>
-                        <button id="backToRegBtn" class="btn btn-link" style="color: #666;">← Back</button>
+                        <button id="resendOtpBtn" class="btn btn-link" style="color: #2E8B57;">↻ Try Different Code</button>
+                        <button id="backToRegBtn" class="btn btn-link" style="color: #666;">← Back to Details</button>
                     </div>
 
                     <div id="otpMessage" class="message"></div>
                 </section>
+
+                <!-- Already Logged In Section -->
+                <section id="loggedInSection" class="auth-section">
+                    <div style="text-align: center; padding: 40px 20px;">
+                        <div style="font-size: 4rem; margin-bottom: 20px;">👤</div>
+                        <h3>You're Already Logged In</h3>
+                        <p style="color: #666; margin-bottom: 25px;">Your TrustChain account is active on this device.</p>
+                        
+                        <button id="goToDashboardBtn" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">
+                            🏠 Go to Dashboard
+                        </button>
+                        
+                        <button id="logoutBtn" class="btn" style="width: 100%; background: #6c757d;">
+                            🔓 Logout & Create New Account
+                        </button>
+                    </div>
+                </section>
             </div>
 
-            <!-- Demo Info -->
+            <!-- Trust Building Info -->
             <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-top: 30px;">
-                <h4>💡 Demo Information</h4>
-                <p>Pre-filled with test data. Click "Create Account" to proceed.</p>
-                <p>OTP will be displayed on screen for testing.</p>
+                <h4>💡 Build Financial Trust in Your Community</h4>
+                <p>TrustChain helps you record P2P agreements, build trust scores, and create transparent financial relationships - all while keeping your data private on your device.</p>
+                <p><strong>Privacy First:</strong> Your financial data never leaves your phone.</p>
             </div>
         </main>
     </div>
@@ -104,17 +129,39 @@
         // Current registration state
         let currentRegistrationData = null;
         let isSystemReady = false;
+        let redirectCountdown = 3;
 
-        // Simple initialization - just wait for scripts to load
+        // Enhanced initialization with session check
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔐 Login page loaded');
+            console.log('🔐 TrustChain Login loaded');
             
-            // Setup event listeners immediately
+            // Check if user is already logged in
+            checkExistingSession();
+            
+            // Setup event listeners
             setupEventListeners();
             
-            // Check system readiness after a short delay
+            // Check system readiness
             setTimeout(checkSystemReadiness, 1000);
         });
+
+        // Check for existing user session
+        function checkExistingSession() {
+            try {
+                const currentUser = localStorage.getItem('currentUser');
+                if (currentUser) {
+                    const userData = JSON.parse(currentUser);
+                    if (userData.isAuthenticated) {
+                        console.log('✅ User already logged in:', userData.phone);
+                        showLoggedInSection();
+                        return true;
+                    }
+                }
+            } catch (error) {
+                console.log('🔍 No existing session found');
+            }
+            return false;
+        }
 
         function setupEventListeners() {
             console.log('🔧 Setting up event listeners...');
@@ -128,6 +175,10 @@
             // OTP actions
             document.getElementById('resendOtpBtn').addEventListener('click', resendOTP);
             document.getElementById('backToRegBtn').addEventListener('click', backToRegistration);
+            
+            // Logged in section buttons
+            document.getElementById('goToDashboardBtn').addEventListener('click', goToDashboard);
+            document.getElementById('logoutBtn').addEventListener('click', logoutUser);
             
             // Enter key support
             document.addEventListener('keypress', function(e) {
@@ -153,32 +204,32 @@
 
         function checkSystemReadiness() {
             console.log('🔍 Checking system readiness...');
-            console.log('Database manager:', !!window.databaseManager);
-            console.log('Auth manager:', !!window.authManager);
-            console.log('Auth manager initialized:', window.authManager?.isInitialized);
             
-            // Check if essential components are available
             if (window.databaseManager && window.authManager) {
                 isSystemReady = true;
                 console.log('✅ System is ready!');
-                showMessage('System ready! You can now create an account.', 'success', 'message');
+                
+                // Only show success message if not already logged in
+                if (!checkExistingSession()) {
+                    showMessage('TrustChain is ready! Create your account to start building financial trust.', 'success', 'message');
+                    showRegistrationSection();
+                }
             } else {
-    console.log('⚠️ System not ready yet, retrying... (attempt will timeout)');
-    // Try again in 2 seconds, but only up to 5 times
-    if (retryCount < 5) {
-        setTimeout(() => checkSystemReadiness(retryCount + 1), 2000);
-    } else {
-        showMessage('System failed to initialize. Please refresh the page.', 'error', 'message');
-    }
+                console.log('⚠️ System not ready yet, retrying...');
+                setTimeout(checkSystemReadiness, 2000);
+            }
         }
 
-        // REGISTRATION FLOW - UPDATED FOR AUTO-LOGIN
-
+        // Enhanced registration with single user check
         async function handleRegistration() {
             console.log('🔄 Registration attempted');
-            console.log('System ready:', isSystemReady);
-            console.log('Auth manager:', !!window.authManager);
             
+            // Check if user already logged in
+            if (checkExistingSession()) {
+                showMessage('❌ Please logout existing user first to create new account.', 'error', 'message');
+                return;
+            }
+
             if (!isSystemReady) {
                 showMessage('🔄 Please wait... System is still loading.', 'warning', 'message');
                 return;
@@ -217,25 +268,20 @@
                 
                 console.log('📱 OTP response:', result);
                 
-                // Handle different response types
                 if (result.action === 'auto-login') {
                     // Existing user - auto-logged in
-                    showMessage(`Welcome back, ${result.user.profile.fullName || result.user.phone}! Redirecting...`, 'success', 'message');
+                    showMessage(`✅ Welcome back, ${result.user.profile.fullName || result.user.phone}! Redirecting to dashboard...`, 'success', 'message');
                     console.log('✅ Auto-login successful for existing user');
                     
-                    // Redirect to dashboard
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1500);
+                    startRedirectCountdown(1500);
                     
                 } else if (result.action === 'otp-sent') {
                     // New user - show OTP section
-                    showMessage('OTP sent successfully! Check the display on screen.', 'success', 'message');
+                    showMessage('✅ Verification code ready! Enter any 6-digit code to continue.', 'success', 'message');
                     showOTPSection();
                 } else {
-                    // Fallback for older response format
                     if (result.success) {
-                        showMessage('OTP sent successfully! Check the display on screen.', 'success', 'message');
+                        showMessage('✅ Verification code ready! Enter any 6-digit code to continue.', 'success', 'message');
                         showOTPSection();
                     } else {
                         throw new Error(result.message);
@@ -244,18 +290,18 @@
                 
             } catch (error) {
                 console.error('❌ OTP send failed:', error);
-                showMessage('Failed to send OTP: ' + error.message, 'error', 'message');
+                showMessage('Failed to send verification: ' + error.message, 'error', 'message');
             } finally {
                 setButtonLoading('registerBtn', false);
             }
         }
 
-        // DEBUG VERSION - OTP VERIFICATION WITH DETAILED LOGGING
+        // Enhanced OTP verification with better success feedback
         async function verifyOTP() {
             const otp = document.getElementById('otpInput').value.trim();
             
             if (!otp || otp.length !== 6) {
-                showMessage('Please enter a 6-digit OTP', 'error', 'otpMessage');
+                showMessage('Please enter a 6-digit code', 'error', 'otpMessage');
                 return;
             }
 
@@ -264,52 +310,62 @@
                 return;
             }
 
-            console.log('🔍 DEBUG: Starting OTP verification...');
-            console.log('🔍 DEBUG: Phone:', currentRegistrationData.phone);
-            console.log('🔍 DEBUG: OTP entered:', otp);
+            console.log('🔍 Starting OTP verification...');
             
             setButtonLoading('verifyOtpBtn', true);
-            showMessage('Verifying OTP...', 'info', 'otpMessage');
+            showMessage('Verifying your code...', 'info', 'otpMessage');
 
             try {
-                console.log('🔍 DEBUG: Calling authManager.verifyOTP...');
                 const result = await window.authManager.verifyOTP(currentRegistrationData.phone, otp, currentRegistrationData);
-                console.log('🔍 DEBUG: OTP verification RESULT:', result);
+                console.log('🔍 OTP verification RESULT:', result);
                 
                 if (result.success) {
-                    console.log('🔍 DEBUG: OTP SUCCESS - isNewUser:', result.isNewUser);
+                    const userName = currentRegistrationData.fullName || 'TrustChain User';
+                    
                     if (result.isNewUser) {
-                        showMessage('✅ Account created successfully! Redirecting...', 'success', 'otpMessage');
+                        showMessage(`🎉 Welcome ${userName}! Your TrustChain account is ready. Building your financial trust network...`, 'success', 'otpMessage');
                     } else {
-                        showMessage('✅ Login successful! Redirecting...', 'success', 'otpMessage');
+                        showMessage(`✅ Welcome back ${userName}! Your trust network is active.`, 'success', 'otpMessage');
                     }
                     
-                    console.log('🔍 DEBUG: Starting redirect timeout...');
-                    // Redirect to dashboard
-                    setTimeout(() => {
-                        console.log('🔍 DEBUG: Executing redirect to dashboard...');
-                        window.location.href = 'dashboard.html';
-                    }, 1500);
+                    // Enhanced redirect with countdown
+                    startEnhancedRedirect(userName);
                     
                 } else {
-                    console.log('🔍 DEBUG: OTP failed in result:', result.message);
                     throw new Error(result.message);
                 }
                 
             } catch (error) {
-                console.error('🔍 DEBUG: OTP verification CATCH BLOCK TRIGGERED');
-                console.error('🔍 DEBUG: Error name:', error.name);
-                console.error('🔍 DEBUG: Error message:', error.message);
-                console.error('🔍 DEBUG: Error stack:', error.stack);
-                showMessage('OTP verification failed: ' + error.message, 'error', 'otpMessage');
+                console.error('🔍 OTP verification failed:', error);
+                showMessage('Verification failed: ' + error.message, 'error', 'otpMessage');
             } finally {
-                console.log('🔍 DEBUG: Finally block - resetting button');
                 setButtonLoading('verifyOtpBtn', false);
             }
         }
 
-        // OTP ACTIONS
+        // Enhanced redirect with countdown
+        function startEnhancedRedirect(userName) {
+            let countdown = 3;
+            const countdownInterval = setInterval(() => {
+                const message = `🎉 Welcome ${userName}! Redirecting to your dashboard in ${countdown}...`;
+                showMessage(message, 'success', 'otpMessage');
+                
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
+                    window.location.href = 'dashboard.html';
+                }
+                countdown--;
+            }, 1000);
+        }
 
+        // Simple redirect countdown
+        function startRedirectCountdown(delay) {
+            setTimeout(() => {
+                window.location.href = 'dashboard.html';
+            }, delay);
+        }
+
+        // OTP ACTIONS
         async function resendOTP() {
             if (!currentRegistrationData || !currentRegistrationData.phone) {
                 showMessage('No phone number found. Please start over.', 'error', 'otpMessage');
@@ -317,50 +373,70 @@
             }
 
             setButtonLoading('resendOtpBtn', true);
-            showMessage('Resending OTP...', 'info', 'otpMessage');
+            showMessage('Generating new code...', 'info', 'otpMessage');
 
             try {
                 const result = await window.authManager.sendOTP(currentRegistrationData.phone);
                 
-                // Handle auto-login case during resend
                 if (result.action === 'auto-login') {
-                    showMessage('Welcome back! Redirecting...', 'success', 'otpMessage');
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1500);
+                    showMessage('✅ Welcome back! Redirecting to dashboard...', 'success', 'otpMessage');
+                    startRedirectCountdown(1500);
                 } else if (result.success) {
-                    showMessage('OTP resent successfully!', 'success', 'otpMessage');
+                    showMessage('✅ New code ready! Enter any 6-digit code.', 'success', 'otpMessage');
                 } else {
                     throw new Error(result.message);
                 }
                 
             } catch (error) {
                 console.error('❌ OTP resend failed:', error);
-                showMessage('Failed to resend OTP: ' + error.message, 'error', 'otpMessage');
+                showMessage('Failed to generate new code: ' + error.message, 'error', 'otpMessage');
             } finally {
                 setButtonLoading('resendOtpBtn', false);
             }
         }
 
         // SECTION NAVIGATION
+        function showRegistrationSection() {
+            hideAllSections();
+            document.getElementById('registrationSection').classList.add('active');
+        }
 
         function showOTPSection() {
-            document.getElementById('registrationSection').classList.remove('active');
+            hideAllSections();
             document.getElementById('otpSection').classList.add('active');
             document.getElementById('otpInput').value = '';
             document.getElementById('otpInput').focus();
             clearMessages();
         }
 
+        function showLoggedInSection() {
+            hideAllSections();
+            document.getElementById('loggedInSection').classList.add('active');
+        }
+
+        function hideAllSections() {
+            document.querySelectorAll('.auth-section').forEach(section => {
+                section.classList.remove('active');
+            });
+        }
+
         function backToRegistration() {
-            document.getElementById('otpSection').classList.remove('active');
-            document.getElementById('registrationSection').classList.add('active');
+            showRegistrationSection();
             currentRegistrationData = null;
             clearMessages();
         }
 
-        // UTILITY FUNCTIONS
+        function goToDashboard() {
+            window.location.href = 'dashboard.html';
+        }
 
+        function logoutUser() {
+            localStorage.removeItem('currentUser');
+            showMessage('✅ Logged out successfully. You can now create a new account.', 'success', 'message');
+            showRegistrationSection();
+        }
+
+        // UTILITY FUNCTIONS
         function showMessage(text, type, elementId = 'message') {
             const messageElement = document.getElementById(elementId);
             messageElement.textContent = text;
@@ -397,75 +473,38 @@
             overlay.style.display = show ? 'flex' : 'none';
         }
     </script>
+
+    <!-- Service Worker Registration -->
     <script>
-    // Service Worker Registration for GitHub Pages
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
-        const swUrl = '/Transparent-Transactions/sw.js';
+        const swPaths = [
+          '/Transparent-Transactions/sw.js',
+          './sw.js',
+          'sw.js',
+          '/sw.js'
+        ];
         
-        navigator.serviceWorker.register(swUrl, {
-          scope: '/Transparent-Transactions/'
-        })
-        .then(function(registration) {
-          console.log('✅ ServiceWorker registration successful with scope:', registration.scope);
-        })
-        .catch(function(error) {
-          console.log('❌ ServiceWorker registration failed:', error);
+        console.log('🛠️ Attempting service worker registration...');
+        
+        let registered = false;
+        
+        swPaths.forEach(swUrl => {
+          if (!registered) {
+            navigator.serviceWorker.register(swUrl, {
+              scope: '/Transparent-Transactions/'
+            })
+            .then(function(registration) {
+              console.log('✅ ServiceWorker registered successfully:', swUrl);
+              registered = true;
+            })
+            .catch(function(error) {
+              console.log('❌ ServiceWorker registration failed for', swUrl, error);
+            });
+          }
         });
       });
     }
     </script>
-    <script>
-// Service Worker Registration with Multiple Fallback Paths
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    // Try multiple paths to handle different deployment scenarios
-    const swPaths = [
-      '/Transparent-Transactions/sw.js',
-      './sw.js',
-      'sw.js',
-      '/sw.js'
-    ];
-    
-    console.log('🛠️ Attempting service worker registration...');
-    
-    let registered = false;
-    
-    swPaths.forEach(swUrl => {
-      if (!registered) {
-        navigator.serviceWorker.register(swUrl, {
-          scope: '/Transparent-Transactions/'
-        })
-        .then(function(registration) {
-          console.log('✅ ServiceWorker registered successfully:', swUrl);
-          console.log('Scope:', registration.scope);
-          registered = true;
-        })
-        .catch(function(error) {
-          console.log('❌ ServiceWorker registration failed for', swUrl, error);
-        });
-      }
-    });
-    
-    // If none registered after 5 seconds, log final status
-    setTimeout(() => {
-      if (!registered) {
-        console.log('⚠️ No service worker registration succeeded');
-      }
-    }, 5000);
-  });
-} else {
-  console.log('❌ Service workers are not supported in this browser');
-}
-</script>
-    <script>
-// Global error handler to catch any initialization errors
-window.addEventListener('error', function(e) {
-    console.error('🛑 GLOBAL ERROR:', e.error);
-    console.error('🛑 Error at:', e.filename, 'line:', e.lineno);
-});
-</script>
 </body>
 </html>
-
-
