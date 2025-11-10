@@ -8,12 +8,12 @@
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family: system-ui; background:#f5f7fa; padding:20px; }
     .container { max-width:400px; margin:auto; background:white; padding:30px; border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,0.1); }
-    h1 { text-align:center; color:#2E8B57; margin-bottom:8px; }
+    h1 { text-align:center; color:#2E8B57; margin-bottom:8px; font-size:24px; }
     .form-input { width:100%; padding:14px; margin:12px 0; border:1px solid #ddd; border-radius:8px; font-size:16px; }
     .btn { width:100%; padding:14px; margin:12px 0; border:none; border-radius:8px; font-weight:bold; cursor:pointer; }
     .btn-primary { background:#2E8B57; color:white; }
     .btn-success { background:#28a745; color:white; }
-    #db-error { display:none; background:#ffebee; color:#c62828; padding:20px; margin:20px 0; border-radius:8px; text-align:center; }
+    #db-error { display:none; background:#ffebee; color:#c62828; padding:20px; margin:20px 0; border-radius:8px; text-align:center; border:1px solid #ffcdd2; }
     #otpSection { display:none; margin-top:20px; }
   </style>
 </head>
@@ -27,8 +27,8 @@
       <button id="send" class="btn btn-primary" disabled>Initializing...</button>
     </div>
     <div id="otpSection">
-      <input type="text" id="otp" placeholder="Enter OTP" class="form-input" maxlength="6" />
-      <button id="verify" class="btn btn-success">Verify</button>
+      <input type="text" id="otp" placeholder="Enter 6-digit OTP" class="form-input" maxlength="6" />
+      <button id="verify" class="btn btn-success">Verify OTP</button>
     </div>
   </div>
 
@@ -38,18 +38,20 @@
     const otpSec = document.getElementById('otpSection');
     const verifyBtn = document.getElementById('verify');
 
-    const ready = setInterval(() => {
-      if (window.authManager?.isInitialized) {
-        clearInterval(ready);
-        sendBtn.disabled = false;
-        sendBtn.textContent = 'Continue';
-      }
-    }, 100);
+    // Wait for authReady event
+    document.addEventListener('authReady', () => {
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Continue';
+      console.log('UI enabled');
+    });
 
     sendBtn.onclick = async () => {
       const phone = document.getElementById('phone').value.trim();
       const name = document.getElementById('name').value.trim();
-      if (!phone || phone.length !== 10 || !name) return window.authManager.showMessage('Invalid input', 'error');
+      if (!phone || phone.length !== 10 || !name) {
+        window.authManager.showMessage('Invalid input', 'error');
+        return;
+      }
       sendBtn.disabled = true;
       try {
         const res = await window.authManager.sendOTP(phone);
@@ -70,7 +72,9 @@
       const otp = document.getElementById('otp').value.trim();
       if (otp.length !== 6) return window.authManager.showMessage('Invalid OTP', 'error');
       try {
-        await window.authManager.verifyOTP(document.getElementById('phone').value, otp, { fullName: document.getElementById('name').value });
+        await window.authManager.verifyOTP(document.getElementById('phone').value, otp, {
+          fullName: document.getElementById('name').value
+        });
         setTimeout(() => location.href = 'dashboard.html', 1000);
       } catch (e) {
         window.authManager.showMessage(e.message, 'error');
