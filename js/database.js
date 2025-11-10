@@ -9,16 +9,13 @@ class DatabaseManager {
 
     async init() {
         if (this.isInitialized) return;
-        console.log('Initializing database...');
         try {
             this.db = await this.openDB();
-            await this.verifyStores();
             this.isInitialized = true;
             console.log('Database ready');
         } catch (err) {
             console.error('DB init failed:', err);
-            this.showError('Database failed to load. Please reload.');
-            throw err;
+            this.showError('Database failed. Please reload.');
         }
     }
 
@@ -29,81 +26,41 @@ class DatabaseManager {
             req.onsuccess = () => resolve(req.result);
             req.onupgradeneeded = (e) => {
                 const db = e.target.result;
-                if (!db.objectStoreNames.contains('users')) {
-                    const store = db.createObjectStore('users', { keyPath: 'phone' });
-                    store.createIndex('phone', 'phone', { unique: true });
-                }
-                if (!db.objectStoreNames.contains('settings')) {
-                    db.createObjectStore('settings', { keyPath: 'key' });
-                }
-                if (!db.objectStoreNames.contains('transactions')) {
-                    const store = db.createObjectStore('transactions', { keyPath: 'id', autoIncrement: true });
-                    store.createIndex('fromPhone', 'fromPhone');
-                    store.createIndex('toPhone', 'toPhone');
-                }
-                if (!db.objectStoreNames.contains('contacts')) {
-                    db.createObjectStore('contacts', { keyPath: 'id', autoIncrement: true });
-                }
+                ['users', 'settings', 'transactions', 'contacts'].forEach(name => {
+                    if (!db.objectStoreNames.contains(name)) {
+                        const store = name === 'users' || name === 'settings'
+                            ? db.createObjectStore(name, { keyPath: name === 'users' ? 'phone' : 'key' })
+                            : db.createObjectStore(name, { keyPath: 'id', autoIncrement: true });
+                        if (name === 'users') store.createIndex('phone', 'phone', { unique: true });
+                    }
+                });
             };
         });
     }
 
-    async verifyStores() {
-        const stores = ['users', 'settings', 'transactions', 'contacts'];
-        for (const name of stores) {
-            await this.execute('readonly', name, s => s.count());
-        }
-    }
-
-    execute(mode, storeName, operation) {
+    execute(mode, store, op) {
         return new Promise((resolve, reject) => {
-            const tx = this.db.transaction([storeName], mode);
-            const store = tx.objectStore(storeName);
-            const req = operation(store);
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = () => reject(req.error);
+            const tx = this.db.transaction([store], mode);
+            const s = tx.objectStore(store);
+            const r = op(s);
+            r.onsuccess = () => resolve(r.result);
+            r.onerror = () => reject(r.error);
             tx.onerror = () => reject(tx.error);
         });
     }
 
-    // USER
-    async saveUser(user) {
-        return this.execute('readwrite', 'users', s => s.put(user));
-    }
-    async getUser(phone) {
-        return this.execute('readonly', 'users', s => s.get(phone));
-    }
+    async saveUser(u) { return this.execute('readwrite', 'users', s => s.put(u)); }
+    async getUser(p) { return this.execute('readonly', 'users', s => s.get(p)); }
 
-    // SETTINGS
-    async saveSetting(key, value) {
-        return this.execute('readwrite', 'settings', s => s.put({ key, value }));
-    }
-    async getSetting(key) {
-        return this.execute('readonly', 'settings', s => s.get(key));
-    }
-    async deleteSetting(key) {
-        return this.execute('readwrite', 'settings', s => s.delete(key));
-    }
-
-    // TRANSACTIONS
-    async createTransaction(data) {
-        return this.execute('readwrite', 'transactions', s => s.add(data));
-    }
-
-    // CONTACTS
-    async addContact(contact) {
-        return this.execute('readwrite', 'contacts', s => s.add(contact));
-    }
+    async saveSetting(k, v) { return this.execute('readwrite', 'settings', s => s.put({ key: k, value: v })); }
+    async getSetting(k) { return this.execute('readonly', 'settings', s => s.get(k)); }
+    async deleteSetting(k) { return this.execute('readwrite', 'settings', s => s.delete(k)); }
 
     showError(msg) {
         const el = document.getElementById('db-error');
-        if (el) {
-            el.textContent = msg;
-            el.style.display = 'block';
-        }
+        if (el) { el.textContent = msg; el.style.display = 'block'; }
     }
 }
 
-// GLOBAL: Start DB init
 window.databaseManager = new DatabaseManager();
-window.databaseManager.init().catch(() => {});
+window.databaseManager.init();
