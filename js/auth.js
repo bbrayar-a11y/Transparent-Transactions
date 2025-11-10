@@ -8,15 +8,15 @@ class AuthManager {
 
     async init() {
         while (!window.databaseManager?.isInitialized) {
-            await new Promise(r => setTimeout(r, 100));
+            await new Promise(r => setTimeout(r, 50));
         }
         this.isInitialized = true;
-        console.log('Auth ready');
+        console.log('AuthManager ready');
     }
 
     async sendOTP(phone) {
         const clean = this.validate(phone);
-        if (!clean) throw new Error('Invalid phone');
+        if (!clean) throw new Error('Invalid 10-digit Indian number');
 
         const user = await window.databaseManager.getUser(clean);
         if (user) {
@@ -32,11 +32,9 @@ class AuthManager {
 
     async verifyOTP(phone, otp, { fullName }) {
         const result = await window.databaseManager.getSetting(`otp_${phone}`);
-        if (!result) throw new Error('OTP not found');
+        if (!result?.value) throw new Error('OTP not found or expired');
 
         const data = result.value;
-        if (!data) throw new Error('Invalid OTP data');
-
         if (Date.now() - data.ts > this.otpExpiry) {
             await window.databaseManager.deleteSetting(`otp_${phone}`);
             throw new Error('OTP expired');
@@ -58,17 +56,18 @@ class AuthManager {
 
     validate(p) {
         const c = p.replace(/\D/g, '');
-        return c entertainment.length === 10 && /^[6-9]/.test(c) ? c : null;
+        return c.length === 10 && /^[6-9]/.test(c) ? c : null;
     }
 
     showOTP(p, o) {
         this.hideOTP();
         const el = document.createElement('div');
         el.id = 'otp-box';
-        el.innerHTML = `<div style="position:fixed;top:16px;right:16px;background:#2E8B57;color:white;padding:16px;border-radius:8px;font-family:system-ui;z-index:9999;">
-            <strong>OTP: $$ {o}</strong><br><small> $${p}</small>
-            <button onclick="this.closest('#otp-box').remove()" style="float:right;background:none;border:none;color:white;font-size:18px;cursor:pointer;">×</button>
-        </div>`;
+        el.innerHTML = `
+            <div style="position:fixed;top:16px;right:16px;background:#2E8B57;color:white;padding:16px;border-radius:8px;font-family:system-ui;z-index:9999;">
+                <strong>OTP: ${o}</strong><br><small>${p}</small>
+                <button onclick="this.closest('#otp-box').remove()" style="float:right;background:none;border:none;color:white;font-size:18px;cursor:pointer;">×</button>
+            </div>`;
         document.body.appendChild(el);
     }
 
@@ -86,14 +85,13 @@ class AuthManager {
     }
 }
 
-// AUTO-INIT
+// AUTO-INIT — WITH authReady EVENT
 (async () => {
-    await new Promise(r => {
-        const i = setInterval(() => {
-            if (window.databaseManager?.isInitialized) { clearInterval(i); r(); }
-        }, 50);
-    });
+    while (!window.databaseManager?.isInitialized) {
+        await new Promise(r => setTimeout(r, 50));
+    }
     window.authManager = new AuthManager();
     await window.authManager.init();
-    console.log('Auth system live');
+    console.log('Auth system ready');
+    document.dispatchEvent(new Event('authReady'));
 })();
