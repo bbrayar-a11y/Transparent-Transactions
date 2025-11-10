@@ -9,13 +9,15 @@ class DatabaseManager {
 
     async init() {
         if (this.isInitialized) return;
+        console.log('Initializing database...');
         try {
             this.db = await this.openDB();
             this.isInitialized = true;
             console.log('Database ready');
         } catch (err) {
             console.error('DB init failed:', err);
-            this.showError('Database failed. Please reload.');
+            this.showError('Database failed to load. Please reload.');
+            throw err;
         }
     }
 
@@ -62,5 +64,6 @@ class DatabaseManager {
     }
 }
 
+// GLOBAL: Start DB init
 window.databaseManager = new DatabaseManager();
-window.databaseManager.init();
+window.databaseManager.init().catch(() => {});
