@@ -3,225 +3,115 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Transparent Transactions | Login</title>
+  <title>Transparent Transactions</title>
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="icon" href="icons/icon-192x192.png" />
-
-  <!-- PWA Install Prompt -->
-  <script>
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      document.getElementById('installBtn').style.display = 'block';
-    });
-
-    function installApp() {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(() => {
-          document.getElementById('installBtn').style.display = 'none';
-          deferredPrompt = null;
-        });
-      }
-    }
-  </script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: system-ui, sans-serif; background:#f5f7fa; padding:20px; }
+    .container { max-width:400px; margin:auto; background:white; padding:30px; border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,0.1); }
+    h1 { text-align:center; color:#2E8B57; margin-bottom:8px; font-size:24px; }
+    p { text-align:center; color:#666; font-size:14px; margin-bottom:20px; }
+    .form-input { width:100%; padding:14px; margin:12px 0; border:1px solid #ddd; border-radius:8px; font-size:16px; }
+    .btn { width:100%; padding:14px; margin:12px 0; border:none; border-radius:8px; font-weight:bold; font-size:16px; cursor:pointer; }
+    .btn-primary { background:#2E8B57; color:white; }
+    .btn-success { background:#28a745; color:white; }
+    #db-error { display:none; background:#ffebee; color:#c62828; padding:20px; margin:20px 0; border-radius:8px; text-align:center; border:1px solid #ffcdd2; }
+    #otpSection { display:none; margin-top:20px; }
+  </style>
 </head>
 <body>
   <div class="container">
-    <!-- App Header -->
-    <header class="header">
-      <h1>Transparent Transactions</h1>
-      <p class="tagline">Privacy-first. Offline-first. Revenue-ready.</p>
-    </header>
+    <h1>Transparent Transactions</h1>
+    <p>Privacy-first • Offline-first • Revenue-ready</p>
 
-    <!-- Install Button (PWA) -->
-    <button id="installBtn" class="btn btn-primary" style="display:none; margin: 16px auto;" onclick="installApp()">
-      Install App
-    </button>
-
-    <!-- DB Error Fallback -->
-    <div id="db-error" style="display:none; background:#ffebee; color:#c62828; padding:20px; margin:20px; border-radius:8px; border:1px solid #ffcdd2; text-align:center;">
+    <div id="db-error">
       <strong>Database Error</strong><br>
-      The app could not connect to local storage.<br><br>
-      <button onclick="location.reload()" style="padding:8px 16px; background:#c62828; color:white; border:none; border-radius:4px; cursor:pointer;">
-        Reload Page
-      </button>
+      Please reload the page.
+      <button onclick="location.reload()" style="margin-top:10px;padding:8px 16px;background:#c62828;color:white;border:none;border-radius:4px;cursor:pointer;">Reload</button>
     </div>
 
-    <!-- Phone Form -->
     <div class="phone-form">
-      <h2>Create Account or Login</h2>
       <input type="text" id="fullName" placeholder="Full Name" class="form-input" />
-      <input type="tel" id="phone" placeholder="Phone Number (10 digits)" class="form-input" maxlength="10" />
-      <button id="sendOtpBtn" class="btn btn-primary">Create Account / Login</button>
+      <input type="tel" id="phone" placeholder="Phone (10 digits)" class="form-input" maxlength="10" />
+      <button id="sendBtn" class="btn btn-primary" disabled>Initializing...</button>
     </div>
 
-    <!-- OTP Section -->
-    <div id="otpSection" style="display:none; margin-top:20px;">
-      <h3>Enter OTP</h3>
-      <input type="text" id="otp" placeholder="6-digit OTP" class="form-input" maxlength="6" />
-      <button id="verifyOtpBtn" class="btn btn-success">Verify OTP</button>
-      <button id="resendOtpBtn" class="btn btn-link">Resend OTP</button>
-    </div>
-
-    <!-- Loading Indicator -->
-    <div id="loading" style="display:none; text-align:center; padding:20px;">
-      <p>Initializing secure database...</p>
+    <div id="otpSection">
+      <input type="text" id="otp" placeholder="Enter 6-digit OTP" class="form-input" maxlength="6" />
+      <button id="verifyBtn" class="btn btn-success">Verify OTP</button>
     </div>
   </div>
 
-  <!-- ONLY LOAD database.js — auth.js is loaded by it -->
+  <!-- LOAD ONLY database.js -->
   <script src="js/database.js"></script>
 
-  <!-- App Logic -->
   <script>
-    // Show loading until auth is ready
-    document.getElementById('loading').style.display = 'block';
+    const sendBtn = document.getElementById('sendBtn');
+    const otpSection = document.getElementById('otpSection');
+    const verifyBtn = document.getElementById('verifyBtn');
 
-    // Wait for authManager to be ready
-    const waitForAuth = setInterval(() => {
-      if (window.authManager && window.authManager.isInitialized) {
-        clearInterval(waitForAuth);
-        document.getElementById('loading').style.display = 'none';
-        initLoginUI();
+    // Enable button when auth is ready
+    const readyCheck = setInterval(() => {
+      if (window.authManager?.isInitialized) {
+        clearInterval(readyCheck);
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Create Account / Login';
+        console.log('UI enabled');
       }
     }, 100);
 
-    // Handle DB errors
-    window.addEventListener('unhandledrejection', (e) => {
-      if (e.reason?.message?.includes('Database') || e.reason?.message?.includes('indexedDB')) {
-        document.getElementById('db-error').style.display = 'block';
-        document.getElementById('loading').style.display = 'none';
+    sendBtn.onclick = async () => {
+      const phone = document.getElementById('phone').value.trim();
+      const name = document.getElementById('fullName').value.trim();
+      if (!phone || phone.length !== 10 || !name) {
+        window.authManager.showMessage('Enter valid name and 10-digit phone', 'error');
+        return;
       }
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'Sending...';
+      try {
+        const res = await window.authManager.sendOTP(phone);
+        if (res.action === 'otp-sent') {
+          otpSection.style.display = 'block';
+          document.getElementById('otp').focus();
+        } else {
+          window.authManager.showMessage('Welcome back!', 'success');
+          setTimeout(() => location.href = 'dashboard.html', 1500);
+        }
+      } catch (err) {
+        window.authManager.showMessage(err.message, 'error');
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Create Account / Login';
+      }
+    };
+
+    verifyBtn.onclick = async () => {
+      const otp = document.getElementById('otp').value.trim();
+      if (otp.length !== 6) return window.authManager.showMessage('Enter 6-digit OTP', 'error');
+      verifyBtn.disabled = true;
+      try {
+        await window.authManager.verifyOTP(
+          document.getElementById('phone').value,
+          otp,
+          { fullName: document.getElementById('fullName').value }
+        );
+        window.authManager.showMessage('Success! Redirecting...', 'success');
+        setTimeout(() => location.href = 'dashboard.html', 1500);
+      } catch (err) {
+        window.authManager.showMessage(err.message, 'error');
+      } finally {
+        verifyBtn.disabled = false;
+      }
+    };
+
+    // Input cleanup
+    document.getElementById('phone').addEventListener('input', e => {
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
     });
-
-    function initLoginUI() {
-      const phoneInput = document.getElementById('phone');
-      const nameInput = document.getElementById('fullName');
-      const sendBtn = document.getElementById('sendOtpBtn');
-      const otpSection = document.getElementById('otpSection');
-      const otpInput = document.getElementById('otp');
-      const verifyBtn = document.getElementById('verifyOtpBtn');
-      const resendBtn = document.getElementById('resendOtpBtn');
-
-      let currentPhone = '';
-
-      // Auto-focus phone
-      phoneInput.focus();
-
-      // Send OTP
-      sendBtn.onclick = async () => {
-        const phone = phoneInput.value.trim();
-        const name = nameInput.value.trim();
-
-        if (!phone || phone.length !== 10) {
-          window.authManager.showMessage('Enter a valid 10-digit phone', 'error');
-          return;
-        }
-        if (!name) {
-          window.authManager.showMessage('Enter your full name', 'error');
-          return;
-        }
-
-        sendBtn.disabled = true;
-        sendBtn.textContent = 'Sending...';
-
-        try {
-          const result = await window.authManager.sendOTP(phone);
-          window.authManager.handleSendOTPResponse(result);
-
-          if (result.action === 'otp-sent') {
-            currentPhone = phone;
-            otpSection.style.display = 'block';
-            otpInput.focus();
-          } else if (result.action === 'auto-login') {
-            setTimeout(() => location.href = 'dashboard.html', 1500);
-          }
-        } catch (err) {
-          window.authManager.showMessage(err.message || 'Failed to send OTP', 'error');
-        } finally {
-          sendBtn.disabled = false;
-          sendBtn.textContent = 'Create Account / Login';
-        }
-      };
-
-      // Verify OTP
-      verifyBtn.onclick = async () => {
-        const otp = otpInput.value.trim();
-        if (otp.length !== 6) {
-          window.authManager.showMessage('Enter 6-digit OTP', 'error');
-          return;
-        }
-
-        verifyBtn.disabled = true;
-        verifyBtn.textContent = 'Verifying...';
-
-        try {
-          const result = await window.authManager.verifyOTP(currentPhone, otp, {
-            fullName: nameInput.value.trim()
-          });
-
-          if (result.success) {
-            window.authManager.showMessage('Success! Redirecting...', 'success');
-            setTimeout(() => location.href = 'dashboard.html', 1500);
-          }
-        } catch (err) {
-          window.authManager.showMessage(err.message, 'error');
-        } finally {
-          verifyBtn.disabled = false;
-          verifyBtn.textContent = 'Verify OTP';
-        }
-      };
-
-      // Resend OTP
-      resendBtn.onclick = () => {
-        otpSection.style.display = 'none';
-        otpInput.value = '';
-        sendBtn.click();
-      };
-
-      // Input formatting
-      phoneInput.addEventListener('input', (e) => {
-        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
-      });
-      otpInput.addEventListener('input', (e) => {
-        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
-      });
-    }
-
-    // Service Worker Registration
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/Transparent-Transactions/sw.js')
-          .then(reg => console.log('SW registered:', reg.scope))
-          .catch(err => console.log('SW failed:', err));
-      });
-    }
+    document.getElementById('otp').addEventListener('input', e => {
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    });
   </script>
-
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family: system-ui, sans-serif; background: #f5f7fa; color: #1a1a1a; }
-    .container { max-width: 400px; margin: 40px auto; padding: 20px; }
-    .header { text-align: center; margin-bottom: 30px; }
-    .header h1 { font-size: 24px; color: #2E8B57; }
-    .tagline { font-size: 14px; color: #666; margin-top: 8px; }
-    .form-input {
-      width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px;
-      font-size: 16px; transition: border 0.2s;
-    }
-    .form-input:focus { outline: none; border-color: #2E8B57; }
-    .btn {
-      width: 100%; padding: 14px; margin: 10px 0; border: none; border-radius: 8px;
-      font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s;
-    }
-    .btn-primary { background: #2E8B57; color: white; }
-    .btn-primary:hover { background: #236342; }
-    .btn-success { background: #28a745; color: white; }
-    .btn-link { background: none; color: #2E8B57; font-size: 14px; text-decoration: underline; }
-    #installBtn { display: block; width: auto; padding: 10px 20px; font-size: 14px; }
-  </style>
 </body>
 </html>
