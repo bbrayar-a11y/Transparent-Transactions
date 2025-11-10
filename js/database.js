@@ -16,7 +16,7 @@ class DatabaseManager {
             console.log('Database ready');
         } catch (err) {
             console.error('DB init failed:', err);
-            this.showError('Database failed to load. Please reload.');
+            this.showError('Database failed. Please reload.');
             throw err;
         }
     }
