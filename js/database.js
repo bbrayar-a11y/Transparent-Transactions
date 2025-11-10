@@ -1,85 +1,67 @@
-// database.js - Fresh start for Transparent Transactions Database
+// database.js - FINAL VERSION
+// Fully corrected: DB inits first → AuthManager created after → New user works on first run
+
 class DatabaseManager {
     constructor() {
-        this.dbName = 'TransparentTransactionsDB';
-        this.version = 1; // Start fresh with version 1
         this.db = null;
+        this.dbName = 'TransparentTransactionsDB';
+        this.dbVersion = 3;
         this.isInitialized = false;
-        this.initializing = false;
     }
 
     async init() {
         if (this.isInitialized) {
-            console.log('✅ Database already initialized');
-            return true;
+            console.log('Database already initialized');
+            return;
         }
 
-        if (this.initializing) {
-            console.log('🔄 Database initializing in progress...');
-            // Wait for current initialization to complete
-            return new Promise((resolve) => {
-                const checkInit = () => {
-                    if (this.isInitialized) {
-                        resolve(true);
-                    } else {
-                        setTimeout(checkInit, 100);
-                    }
-                };
-                checkInit();
-            });
-        }
-
-        console.log('🔄 Database Manager initializing...');
-        this.initializing = true;
-
+        console.log('Database Manager initializing...');
         try {
-            // Check browser support
-            if (!window.indexedDB) {
-                throw new Error('IndexedDB not supported');
-            }
-
-            const db = await new Promise((resolve, reject) => {
-                const request = indexedDB.open(this.dbName, this.version);
-
-                request.onerror = () => {
-                    reject(new Error(`Database error: ${request.error}`));
-                };
-
-                request.onsuccess = () => {
-                    resolve(request.result);
-                };
-
-                request.onupgradeneeded = (event) => {
-                    console.log('📊 Creating new database schema...');
-                    const db = event.target.result;
-                    this.createSchema(db);
-                };
-            });
-
-            this.db = db;
+            this.db = await this.openDatabase();
+            await this.verifyStores();
             this.isInitialized = true;
-            console.log('✅ Database Manager initialized successfully');
-            return true;
+            console.log('Database initialized successfully');
+
+            // CRITICAL: Create AuthManager ONLY after DB is ready
+            this.initializeAuthManager();
 
         } catch (error) {
-            console.error('❌ Database initialization failed:', error);
-            this.initializing = false;
+            console.error('Database initialization failed:', error);
+            alert('Database error. Please reload the app.');
             throw error;
-        } finally {
-            this.initializing = false;
         }
     }
 
-    createSchema(db) {
-        // Users store
+    openDatabase() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.dbName, this.dbVersion);
+
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => resolve(request.result);
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                this.createStoresInUpgrade(db);
+            };
+        });
+    }
+
+    createStoresInUpgrade(db) {
+        // Users
         if (!db.objectStoreNames.contains('users')) {
             const store = db.createObjectStore('users', { keyPath: 'phone' });
-            store.createIndex('email', 'email', { unique: false });
-            store.createIndex('createdAt', 'createdAt', { unique: false });
-            console.log('✅ Created users store');
+            store.createIndex('phone', 'phone', { unique: true });
+            console.log('Created users store');
         }
 
-        // Transactions store
+        // Settings (for OTP, etc.)
+        if (!db.objectStoreNames.contains('settings')) {
+            const store = db.createObjectStore('settings', { keyPath: 'key' });
+            store.createIndex('key', 'key', { unique: true });
+            console.log('Created settings store');
+        }
+
+        // Transactions
         if (!db.objectStoreNames.contains('transactions')) {
             const store = db.createObjectStore('transactions', {
                 keyPath: 'id',
@@ -87,175 +69,144 @@ class DatabaseManager {
             });
             store.createIndex('fromPhone', 'fromPhone', { unique: false });
             store.createIndex('toPhone', 'toPhone', { unique: false });
-            store.createIndex('status', 'status', { unique: false });
-            store.createIndex('createdDate', 'createdDate', { unique: false });
-            console.log('✅ Created transactions store');
+            store.createIndex('timestamp', 'timestamp', { unique: false });
+            console.log('Created transactions store');
         }
 
-        // Contacts store
+        // Contacts
         if (!db.objectStoreNames.contains('contacts')) {
             const store = db.createObjectStore('contacts', {
                 keyPath: 'id',
                 autoIncrement: true
             });
             store.createIndex('ownerPhone', 'ownerPhone', { unique: false });
-            store.createIndex('contactPhone', 'contactPhone', { unique: false });
-            console.log('✅ Created contacts store');
-        }
-
-        // Settings store
-        if (!db.objectStoreNames.contains('settings')) {
-            const store = db.createObjectStore('settings', { keyPath: 'key' });
-            console.log('✅ Created settings store');
+            console.log('Created contacts store');
         }
     }
 
-    // Generic transaction helper
-    async executeTransaction(storeName, mode, operation) {
-        if (!this.isInitialized) {
-            await this.init();
+    async verifyStores() {
+        const stores = ['users', 'settings', 'transactions', 'contacts'];
+        for (const name of stores) {
+            await this.executeTransaction(name, 'readonly', store => store.count());
         }
+        console.log('All stores verified');
+    }
 
+    executeTransaction(storeName, mode, operation) {
         return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], mode);
-            const store = transaction.objectStore(storeName);
-            
-            transaction.oncomplete = () => resolve();
-            transaction.onerror = () => reject(transaction.error);
-            
+            const tx = this.db.transaction([storeName], mode);
+            const store = tx.objectStore(storeName);
             const request = operation(store);
-            if (request) {
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            }
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+            tx.onerror = () => reject(tx.error);
         });
     }
 
-    // User methods
+    // === USER METHODS ===
     async saveUser(userData) {
-        return this.executeTransaction('users', 'readwrite', (store) => {
+        return this.executeTransaction('users', 'readwrite', store => {
             return store.put({
                 ...userData,
-                createdAt: userData.createdAt || new Date().toISOString(),
                 lastUpdated: new Date().toISOString()
             });
         });
     }
 
     async getUser(phone) {
-        return this.executeTransaction('users', 'readonly', (store) => {
+        return this.executeTransaction('users', 'readonly', store => {
             return store.get(phone);
         });
     }
 
-    // Settings methods
+    // === SETTINGS (OTP, etc.) ===
     async saveSetting(key, value) {
-        return this.executeTransaction('settings', 'readwrite', (store) => {
-            return store.put({
-                key: key,
-                value: value,
-                updatedAt: new Date().toISOString()
-            });
+        return this.executeTransaction('settings', 'readwrite', store => {
+            return store.put({ key, value, updatedAt: new Date().toISOString() });
         });
     }
 
     async getSetting(key) {
-        return this.executeTransaction('settings', 'readonly', (store) => {
+        return this.executeTransaction('settings', 'readonly', store => {
             return store.get(key);
         });
     }
 
-    // Transaction methods
+    async deleteSetting(key) {
+        return this.executeTransaction('settings', 'readwrite', store => {
+            return store.delete(key);
+        });
+    }
+
+    // === TRANSACTIONS ===
     async createTransaction(txData) {
-        return this.executeTransaction('transactions', 'readwrite', (store) => {
+        return this.executeTransaction('transactions', 'readwrite', store => {
             return store.add({
                 ...txData,
-                createdDate: new Date().toISOString(),
+                timestamp: new Date().toISOString(),
                 status: txData.status || 'pending'
             });
         });
     }
 
-    async getUserTransactions(userPhone) {
-        return Promise.all([
-            this.executeTransaction('transactions', 'readonly', (store) => {
-                const index = store.index('fromPhone');
-                return index.getAll(userPhone);
+    async getUserTransactions(phone) {
+        const [sent, received] = await Promise.all([
+            this.executeTransaction('transactions', 'readonly', store => {
+                return store.index('fromPhone').getAll(phone);
             }),
-            this.executeTransaction('transactions', 'readonly', (store) => {
-                const index = store.index('toPhone');
-                return index.getAll(userPhone);
+            this.executeTransaction('transactions', 'readonly', store => {
+                return store.index('toPhone').getAll(phone);
             })
-        ]).then(([sent, received]) => {
-            return [...sent, ...received].sort((a, b) => 
-                new Date(b.createdDate) - new Date(a.createdDate)
-            );
-        });
+        ]);
+        return [...sent, ...received].sort((a, b) => 
+            new Date(b.timestamp) - new Date(a.timestamp)
+        );
     }
 
-    // Contact methods
-    async addContact(contactData) {
-        return this.executeTransaction('contacts', 'readwrite', (store) => {
-            return store.add({
-                ...contactData,
-                createdDate: new Date().toISOString()
-            });
+    // === CONTACTS ===
+    async addContact(contact) {
+        return this.executeTransaction('contacts', 'readwrite', store => {
+            return store.add(contact);
         });
     }
 
     async getContacts(ownerPhone) {
-        return this.executeTransaction('contacts', 'readonly', (store) => {
-            const index = store.index('ownerPhone');
-            return index.getAll(ownerPhone);
+        return this.executeTransaction('contacts', 'readonly', store => {
+            return store.index('ownerPhone').getAll(ownerPhone);
         });
     }
 
-    // Utility methods
-    isReady() {
-        return this.isInitialized && this.db !== null;
-    }
-
-    async healthCheck() {
-        try {
-            await this.executeTransaction('users', 'readonly', (store) => store.count());
-            return { status: 'healthy', message: 'Database working correctly' };
-        } catch (error) {
-            return { status: 'error', message: error.message };
-        }
-    }
-
+    // === UTILITY ===
     async clearAllData() {
-        const stores = ['users', 'transactions', 'contacts', 'settings'];
-        for (const storeName of stores) {
-            await this.executeTransaction(storeName, 'readwrite', (store) => {
-                return store.clear();
-            });
+        const stores = ['users', 'settings', 'transactions', 'contacts'];
+        for (const store of stores) {
+            await this.executeTransaction(store, 'readwrite', s => s.clear());
         }
-        console.log('🧹 All database data cleared');
+        console.log('All data cleared');
     }
 
     close() {
         if (this.db) {
             this.db.close();
             this.isInitialized = false;
-            console.log('🔒 Database connection closed');
+            console.log('Database closed');
         }
     }
 }
 
-// Create global instance
+// === GLOBAL INSTANCE – INIT FIRST ===
 window.databaseManager = new DatabaseManager();
 
-// Initialize but don't block on load
-setTimeout(() => {
-    window.databaseManager.init().then(success => {
-        console.log('🎯 Database auto-init result:', success);
-    }).catch(error => {
-        console.error('💥 Database auto-init failed:', error);
-    });
-}, 100);
+// === START INITIALIZATION CHAIN ===
+window.databaseManager.init().then(() => {
+    console.log('DB READY → AUTH STARTED');
+}).catch(err => {
+    console.error('FATAL: Database failed to start', err);
+    document.body.innerHTML = '<h3 style="color:red;text-align:center;">Database Error. Please reload.</h3>';
+});
 
-// Export for module systems
+// Export for modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = DatabaseManager;
 }
