@@ -3,7 +3,7 @@ class DatabaseManager {
     constructor() {
         this.db = null;
         this.dbName = 'TransparentTransactionsDB';
-        this.dbVersion = 3;
+        this.dbVersion = 4;
         this.isInitialized = false;
         
         // Initialize immediately
@@ -132,3 +132,4 @@ class DatabaseManager {
 
 // Create database manager immediately - this starts the initialization chain
 window.databaseManager = new DatabaseManager();
+
