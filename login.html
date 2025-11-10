@@ -163,10 +163,13 @@
                 console.log('✅ System is ready!');
                 showMessage('System ready! You can now create an account.', 'success', 'message');
             } else {
-                console.log('⚠️ System not ready yet, retrying...');
-                // Try again in 2 seconds
-                setTimeout(checkSystemReadiness, 2000);
-            }
+    console.log('⚠️ System not ready yet, retrying... (attempt will timeout)');
+    // Try again in 2 seconds, but only up to 5 times
+    if (retryCount < 5) {
+        setTimeout(() => checkSystemReadiness(retryCount + 1), 2000);
+    } else {
+        showMessage('System failed to initialize. Please refresh the page.', 'error', 'message');
+    }
         }
 
         // REGISTRATION FLOW - UPDATED FOR AUTO-LOGIN
@@ -464,4 +467,5 @@ window.addEventListener('error', function(e) {
 </script>
 </body>
 </html>
+
 
