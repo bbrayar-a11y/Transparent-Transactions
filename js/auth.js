@@ -1,4 +1,4 @@
-// js/auth.js - COMPLETE WITH REFERRAL ONBOARDING
+// js/auth.js - COMPLETE WITH REFERRAL SYSTEM & ALL METHODS
 class AuthManager {
     constructor() {
         this.isInitialized = false;
@@ -14,6 +14,20 @@ class AuthManager {
         }
         this.isInitialized = true;
         console.log('AuthManager initialized');
+    }
+
+    // === CHECK IF USER IS AUTHENTICATED ===
+    isAuthenticated() {
+        try {
+            const currentUser = localStorage.getItem('currentUser');
+            if (!currentUser) return false;
+            
+            const userData = JSON.parse(currentUser);
+            return userData.isAuthenticated === true;
+        } catch (error) {
+            console.log('Auth check error:', error);
+            return false;
+        }
     }
 
     // === SEND OTP ===
@@ -91,7 +105,7 @@ class AuthManager {
             }
         }
 
-        // === REFERRAL INTEGRATION START ===
+        // === REFERRAL INTEGRATION ===
         // NEW USER WITH REFERRAL DATA
         const referralCode = userData?.referralCode || null;
         
@@ -105,8 +119,8 @@ class AuthManager {
             isFounder: clean === "9999999999",
             // Referral tracking
             referralCode: referralCode,
-            referredBy: referralCode, // Track who referred this user
-            myReferralCode: this.generateReferralCode(clean), // Generate unique code for this user
+            referredBy: referralCode,
+            myReferralCode: this.generateReferralCode(clean),
             joinDate: new Date().toISOString()
         };
 
@@ -130,7 +144,7 @@ class AuthManager {
 
         const obfuscated = this.obfuscatePin(pin);
         
-        // === REFERRAL INTEGRATION START ===
+        // === REFERRAL INTEGRATION ===
         const referralCode = userData?.referralCode || null;
         
         const profile = {
@@ -173,7 +187,7 @@ class AuthManager {
                 referrals.push({
                     phone: userPhone,
                     joinedAt: new Date().toISOString(),
-                    level: 1 // Direct referral
+                    level: 1
                 });
                 
                 await window.databaseManager.saveUser({
@@ -252,6 +266,37 @@ class AuthManager {
         localStorage.setItem('currentUser', JSON.stringify(session));
     }
 
+    // === SESSION VALIDATION ===
+    async validateSession() {
+        try {
+            const currentUser = localStorage.getItem('currentUser');
+            if (!currentUser) {
+                return { valid: false, reason: 'No session found' };
+            }
+
+            const userData = JSON.parse(currentUser);
+            if (!userData.isAuthenticated) {
+                return { valid: false, reason: 'Session not authenticated' };
+            }
+
+            // Verify user still exists in database
+            const user = await window.databaseManager.getUser(userData.phone);
+            if (!user) {
+                return { valid: false, reason: 'User not found in database' };
+            }
+
+            return { valid: true, user: { ...userData, profile: user } };
+        } catch (error) {
+            return { valid: false, reason: 'Session validation error' };
+        }
+    }
+
+    // === LOGOUT ===
+    async logout() {
+        localStorage.removeItem('currentUser');
+        return { success: true };
+    }
+
     // === UTILS ===
     validatePhone(p) {
         const c = p.replace(/\D/g, '');
@@ -259,7 +304,7 @@ class AuthManager {
     }
 
     obfuscatePin(pin) {
-        return btoa(pin.split('').reverse().join('')); // Simple reversible obfuscation
+        return btoa(pin.split('').reverse().join(''));
     }
 
     showOTP(phone, otp) {
@@ -287,6 +332,17 @@ class AuthManager {
             ${type === 'error' ? 'background:#ffebee;color:#c62828;' : 'background:#e8f5e9;color:#2e7d32;'}`;
         container.appendChild(el);
         setTimeout(() => el.remove(), 4000);
+    }
+
+    // === ACTIVITY TRACKING ===
+    async updateUserActivity() {
+        // Update last active timestamp
+        const currentUser = localStorage.getItem('currentUser');
+        if (currentUser) {
+            const userData = JSON.parse(currentUser);
+            userData.lastActive = new Date().toISOString();
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+        }
     }
 }
 
