@@ -96,7 +96,7 @@
         <p>Processing...</p>
     </div>
 
-    <!-- SCRIPTS ORDER CHANGED: auth.js FIRST, then database.js -->
+    <!-- SCRIPTS ORDER: auth.js FIRST, then database.js -->
     <script src="js/auth.js"></script>
     <script src="js/database.js"></script>
     
@@ -247,6 +247,7 @@
             }
         }
 
+        // DEBUG VERSION - OTP VERIFICATION WITH DETAILED LOGGING
         async function verifyOTP() {
             const otp = document.getElementById('otpInput').value.trim();
             
@@ -260,32 +261,46 @@
                 return;
             }
 
+            console.log('🔍 DEBUG: Starting OTP verification...');
+            console.log('🔍 DEBUG: Phone:', currentRegistrationData.phone);
+            console.log('🔍 DEBUG: OTP entered:', otp);
+            
             setButtonLoading('verifyOtpBtn', true);
             showMessage('Verifying OTP...', 'info', 'otpMessage');
 
             try {
+                console.log('🔍 DEBUG: Calling authManager.verifyOTP...');
                 const result = await window.authManager.verifyOTP(currentRegistrationData.phone, otp, currentRegistrationData);
+                console.log('🔍 DEBUG: OTP verification RESULT:', result);
                 
                 if (result.success) {
+                    console.log('🔍 DEBUG: OTP SUCCESS - isNewUser:', result.isNewUser);
                     if (result.isNewUser) {
                         showMessage('✅ Account created successfully! Redirecting...', 'success', 'otpMessage');
                     } else {
                         showMessage('✅ Login successful! Redirecting...', 'success', 'otpMessage');
                     }
                     
+                    console.log('🔍 DEBUG: Starting redirect timeout...');
                     // Redirect to dashboard
                     setTimeout(() => {
+                        console.log('🔍 DEBUG: Executing redirect to dashboard...');
                         window.location.href = 'dashboard.html';
                     }, 1500);
                     
                 } else {
+                    console.log('🔍 DEBUG: OTP failed in result:', result.message);
                     throw new Error(result.message);
                 }
                 
             } catch (error) {
-                console.error('❌ OTP verification failed:', error);
+                console.error('🔍 DEBUG: OTP verification CATCH BLOCK TRIGGERED');
+                console.error('🔍 DEBUG: Error name:', error.name);
+                console.error('🔍 DEBUG: Error message:', error.message);
+                console.error('🔍 DEBUG: Error stack:', error.stack);
                 showMessage('OTP verification failed: ' + error.message, 'error', 'otpMessage');
             } finally {
+                console.log('🔍 DEBUG: Finally block - resetting button');
                 setButtonLoading('verifyOtpBtn', false);
             }
         }
