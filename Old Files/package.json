@@ -1,0 +1,38 @@
+{
+  "name": "trustledger",
+  "version": "1.0.0",
+  "description": "Transparent Transactions Platform",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest --verbose",
+    "test:security": "jest tests/security-audit.test.js --verbose",
+    "test:watch": "jest --watch",
+    "security-audit": "node tests/security-test.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-basic-auth": "^1.2.1",
+    "express-rate-limit": "^6.7.0",
+    "express-session": "^1.17.3",
+    "express-validator": "^6.14.2",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0",
+    "nodemon": "^3.0.1",
+    "supertest": "^6.3.3"
+  },
+  "keywords": [
+    "trust",
+    "transactions",
+    "ledger",
+    "security"
+  ],
+  "author": "TrustLedger Team",
+  "license": "MIT"
+}

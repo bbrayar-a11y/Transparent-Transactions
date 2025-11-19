@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustLedger - Arjun Test (Chrome)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f8ff;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .user-badge {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        .button {
+            background: #2196F3;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        .button:hover {
+            background: #1976D2;
+        }
+        .button.success {
+            background: #4CAF50;
+        }
+        .button.warning {
+            background: #ff9800;
+        }
+        .button.danger {
+            background: #f44336;
+        }
+        .button.info {
+            background: #607d8b;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f9f9f9;
+            border-left: 4px solid #2196F3;
+        }
+        .result.success {
+            border-left-color: #4CAF50;
+            background: #e8f5e8;
+        }
+        .result.error {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+        .result.warning {
+            border-left-color: #ff9800;
+            background: #fff8e1;
+        }
+        .result.info {
+            border-left-color: #607d8b;
+            background: #eceff1;
+        }
+        .transaction-id {
+            font-weight: bold;
+            color: #2196F3;
+            font-size: 18px;
+        }
+        .log-controls {
+            margin: 20px 0;
+            padding: 15px;
+            background: #e8f5e8;
+            border-radius: 5px;
+        }
+        .summary {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .step-group {
+            margin: 15px 0;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        .step-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="user-badge">🧑‍💼 ARJUN (Chrome) - Pioneer User</div>
+        <h1>TrustLedger Test Panel</h1>
+        
+        <!-- Log Controls -->
+        <div class="log-controls">
+            <button class="button" onclick="downloadLogs()">📥 Download Logs (JSON)</button>
+            <button class="button" onclick="downloadCSV()">📊 Download CSV</button>
+            <button class="button danger" onclick="clearLogs()">🗑️ Clear Logs</button>
+            <div id="logSummary" class="summary"></div>
+        </div>
+
+        <!-- Step 1: Database Check -->
+        <div class="step-group">
+            <div class="step-title">Step 1: Database & Server Check</div>
+            <button class="button info" onclick="testServer()">🖥️ Test Server Health</button>
+            <button class="button info" onclick="checkDatabase()">🗄️ Check Database</button>
+            <button class="button info" onclick="debugDatabase()">🐛 Debug Database</button>
+	<button class="button warning" onclick="checkTransactionsTable()">🔍 Check Transactions Table</button>
+	<button class="button success" onclick="fixDatabase()">🔧 Fix Database</button>        </div>
+
+        <!-- Step 2: User Setup -->
+        <div class="step-group">
+            <div class="step-title">Step 2: User Setup</div>
+            <button class="button" onclick="loginArjun()">🔐 Login as Arjun</button>
+            <button class="button warning" onclick="registerUsers()">👥 Register All Users</button>
+            <button class="button" onclick="checkUserExists(1)">👤 Check Arjun</button>
+            <button class="button" onclick="checkUserExists(2)">👤 Check Bharat</button>
+        </div>
+
+        <!-- Step 3: Transactions -->
+        <div class="step-group">
+            <div class="step-title">Step 3: Transactions</div>
+            <button class="button success" onclick="createTransaction()">💸 Send to Bharat (₹500)</button>
+            <button class="button success" onclick="createTransactionDemo()">🔄 Send (Demo Mode)</button>
+            <button class="button" onclick="checkPending()">📋 Check Pending</button>
+            <button class="button warning" onclick="debugTransaction()">🐛 Debug Transaction</button>
+        </div>
+
+        <!-- Transaction ID Display -->
+        <div id="transactionIdDisplay" style="margin: 20px 0; padding: 15px; background: #e3f2fd; border-radius: 5px; display: none;">
+            <h3>🎯 Transaction Created!</h3>
+            <p>Transaction ID: <span id="transactionId" class="transaction-id"></span></p>
+            <p><strong>Next Step:</strong> Switch to Firefox and open <code>bharat-test.html</code></p>
+        </div>
+
+        <!-- Results -->
+        <div id="results">
+            <h3>Test Results:</h3>
+            <div id="output"></div>
+        </div>
+    </div>
+
+    <!-- Include the logger library -->
+    <script src="test-logger.js"></script>
+
+    <script>
+        let currentTransactionId = null;
+
+        function updateSummary() {
+            const summary = testLogger.getSummary();
+            document.getElementById('logSummary').innerHTML = `
+                <strong>Session Summary:</strong> 
+                Total: ${summary.totalLogs} | 
+                ✅ Success: ${summary.successes} | 
+                ❌ Errors: ${summary.errors} | 
+                ⚠️ Warnings: ${summary.warnings} |
+                📈 Rate: ${summary.successRate}
+            `;
+        }
+
+        function log(message, type = 'info', data = null) {
+            const logEntry = testLogger.log(message, type, data);
+            
+            const output = document.getElementById('output');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = `
+                <strong>${new Date().toLocaleTimeString()}:</strong> ${message}
+                ${data ? `<br><small>${JSON.stringify(data)}</small>` : ''}
+            `;
+            output.appendChild(resultDiv);
+            output.scrollTop = output.scrollHeight;
+            
+            updateSummary();
+        }
+
+        function downloadLogs() {
+            testLogger.downloadLogs();
+            log('Logs downloaded as JSON file', 'success');
+        }
+
+        function downloadCSV() {
+            testLogger.downloadCSV();
+            log('Logs downloaded as CSV file', 'success');
+        }
+
+        function clearLogs() {
+            testLogger.clearLogs();
+            document.getElementById('output').innerHTML = '';
+            updateSummary();
+            log('All logs cleared', 'info');
+        }
+async function fixDatabase() {
+    log('Attempting to fix database by creating transactions table...');
+    try {
+        const response = await fetch('/api/fix-database', {
+            method: 'POST'
+        });
+        const data = await response.json();
+        log('Database fix result', data.success ? 'success' : 'error', data);
+        
+        if (data.success) {
+            log('✅ Database fixed! Now try creating a transaction again.', 'success');
+        }
+    } catch (error) {
+        log('Database fix failed', 'error', { error: error.message });
+    }
+}
+        // ======================
+        // DATABASE CHECK FUNCTIONS
+        // ======================
+
+        async function testServer() {
+            log('Testing server connectivity...');
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                log(`Server health check`, 'success', data);
+            } catch (error) {
+                log(`Server test failed`, 'error', { error: error.message });
+            }
+        }
+
+        async function checkDatabase() {
+            log('Checking database connection and tables...');
+            try {
+                const response = await fetch('/api/debug-test', { 
+                    method: 'POST' 
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('Database connection successful', 'success', data.tests);
+                } else {
+                    log('Database check failed', 'error', data);
+                }
+            } catch (error) {
+                log('Database check failed', 'error', { error: error.message });
+            }
+        }
+
+        async function debugDatabase() {
+            log('Running detailed database diagnostics...');
+            
+            // Test multiple endpoints to identify where it fails
+            const tests = [
+                { name: 'Health Check', url: '/api/health', method: 'GET' },
+                { name: 'Security Health', url: '/api/security/health', method: 'GET' },
+                { name: 'Database Debug', url: '/api/debug-test', method: 'POST' },
+                { name: 'Simple Registration', url: '/api/auth/register-simple', method: 'POST', 
+                  body: { name: 'testuser', email: 'test@trustledger.com', password: 'test123' } }
+            ];
+            
+            for (const test of tests) {
+                log(`Running: ${test.name}...`, 'info');
+                try {
+                    const options = {
+                        method: test.method,
+                        headers: { 'Content-Type': 'application/json' }
+                    };
+                    
+                    if (test.body) {
+                        options.body = JSON.stringify(test.body);
+                    }
+                    
+                    const response = await fetch(test.url, options);
+                    const data = await response.json();
+                    
+                    const status = response.ok ? 'success' : 'error';
+                    log(`${test.name} result`, status, data);
+                    
+                } catch (error) {
+                    log(`${test.name} failed`, 'error', { error: error.message });
+                }
+            }
+        }
+
+        // ======================
+        // USER MANAGEMENT
+        // ======================
+
+        async function loginArjun() {
+            log('Logging in as Arjun...');
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email: 'arjun@trustledger.com', 
+                        password: 'anypassword' 
+                    })
+                });
+                const data = await response.json();
+                if (data.user) {
+                    localStorage.setItem('currentUser', JSON.stringify(data.user));
+                    localStorage.setItem('currentUserId', data.user.id);
+                    log(`Logged in successfully`, 'success', data.user);
+                } else {
+                    log(`Login failed`, 'error', data);
+                }
+            } catch (error) {
+                log(`Login error`, 'error', { error: error.message });
+            }
+        }
+
+        async function registerUsers() {
+            log('Registering all demo users...');
+            
+            const users = [
+                { name: 'arjun', email: 'arjun@trustledger.com' },
+                { name: 'bharat', email: 'bharat@trustledger.com' },
+                { name: 'chetan', email: 'chetan@trustledger.com' }
+            ];
+            
+            for (const user of users) {
+                try {
+                    const response = await fetch('/api/auth/register-simple', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: user.name,
+                            email: user.email,
+                            password: 'test123'
+                        })
+                    });
+                    const data = await response.json();
+                    log(`Registered ${user.name}`, data.message ? 'success' : 'warning', data);
+                } catch (error) {
+                    log(`Failed to register ${user.name}`, 'error', { error: error.message });
+                }
+            }
+        }
+
+        async function checkUserExists(userId) {
+            log(`Checking if user ${userId} exists...`);
+            try {
+                const response = await fetch(`/api/users/${userId}`, {
+                    headers: { 'X-User-Id': userId }
+                });
+                const data = await response.json();
+                
+                if (data.user) {
+                    log(`User ${userId} exists`, 'success', data.user);
+                } else {
+                    log(`User ${userId} not found`, 'warning', data);
+                }
+            } catch (error) {
+                log(`User check failed for ${userId}`, 'error', { error: error.message });
+            }
+        }
+
+        // ======================
+        // TRANSACTION FUNCTIONS
+        // ======================
+
+        async function createTransaction() {
+            log('Creating transaction to Bharat...');
+            try {
+                const response = await fetch('/api/transactions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': '1'
+                    },
+                    body: JSON.stringify({
+                        fromUserId: 1,
+                        receiver_id: 2,
+                        amount: 500,
+                        description: "Project collaboration payment"
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.message && data.message.includes('waiting for confirmation')) {
+                    log(`Transaction created successfully`, 'success', data);
+                    
+                    if (data.transaction && data.transaction.id) {
+                        currentTransactionId = data.transaction.id;
+                        document.getElementById('transactionId').textContent = currentTransactionId;
+                        document.getElementById('transactionIdDisplay').style.display = 'block';
+                    }
+                } else {
+                    log(`Transaction creation failed`, 'error', data);
+                }
+            } catch (error) {
+                log(`Transaction error`, 'error', { error: error.message });
+            }
+        }
+
+        async function createTransactionDemo() {
+            log('Creating transaction (trying demo mode)...');
+            try {
+                const response = await fetch('/api/transactions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': '1'
+                    },
+                    body: JSON.stringify({
+                        fromUserId: 1,
+                        receiver_id: 2,
+                        amount: 100,
+                        description: "Test transaction - demo mode"
+                    })
+                });
+                const data = await response.json();
+                
+                // Check if it's using demo data fallback
+                if (data.storage && data.storage.includes('DEMO_DATA')) {
+                    log(`✅ Using DEMO DATA for transaction`, 'success', data);
+                    if (data.transaction && data.transaction.id) {
+                        currentTransactionId = data.transaction.id;
+                        document.getElementById('transactionId').textContent = currentTransactionId;
+                        document.getElementById('transactionIdDisplay').style.display = 'block';
+                    }
+                } else if (data.message) {
+                    log(`Transaction result`, data.error ? 'error' : 'success', data);
+                } else {
+                    log(`Unexpected response`, 'warning', data);
+                }
+            } catch (error) {
+                log(`Transaction error`, 'error', { error: error.message });
+            }
+        }
+
+        async function checkPending() {
+            log('Checking Bharat\'s pending transactions...');
+            try {
+                const response = await fetch('/api/transactions/pending/2', {
+                    headers: { 'X-User-Id': '2' }
+                });
+                const data = await response.json();
+                
+                if (data.pendingTransactions && data.pendingTransactions.length > 0) {
+                    const tx = data.pendingTransactions[0];
+                    log(`Found pending transaction`, 'success', tx);
+                    currentTransactionId = tx.id;
+                    document.getElementById('transactionId').textContent = currentTransactionId;
+                    document.getElementById('transactionIdDisplay').style.display = 'block';
+                } else {
+                    log('No pending transactions found', 'info');
+                }
+            } catch (error) {
+                log(`Pending check error`, 'error', { error: error.message });
+            }
+        }
+
+        async function debugTransaction() {
+            log('Debugging transaction with different payloads...');
+            
+            const testPayloads = [
+                {
+                    fromUserId: 1,
+                    receiver_id: 2,
+                    amount: 100,
+                    description: "Test 1 - Standard"
+                },
+                {
+                    fromUserId: "1",
+                    receiver_id: "2", 
+                    amount: "100",
+                    description: "Test 2 - Strings"
+                },
+                {
+                    fromUserId: 1,
+                    toUserId: 2,
+                    amount: 100,
+                    description: "Test 3 - toUserId"
+                },
+                {
+                    fromUserId: 1,
+                    to_user_id: 2,
+                    amount: 100,
+                    description: "Test 4 - to_user_id"
+                }
+            ];
+            
+            for (let i = 0; i < testPayloads.length; i++) {
+                log(`Trying payload ${i + 1}...`, 'info', testPayloads[i]);
+                try {
+                    const response = await fetch('/api/transactions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-User-Id': '1'
+                        },
+                        body: JSON.stringify(testPayloads[i])
+                    });
+                    const data = await response.json();
+                    log(`Payload ${i + 1} result`, data.error ? 'error' : 'success', data);
+                    
+                    if (data.message && data.message.includes('waiting')) {
+                        log(`✅ SUCCESS with payload ${i + 1}!`, 'success');
+                        break;
+                    }
+                } catch (error) {
+                    log(`Payload ${i + 1} error`, 'error', { error: error.message });
+                }
+            }
+        }
+
+        // Auto-test on page load
+        window.onload = function() {
+            log('🚀 Arjun Test Panel loaded - Ready for testing!', 'info');
+            updateSummary();
+            testServer();
+        };
+    </script>
+</body>
+</html>

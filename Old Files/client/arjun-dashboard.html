@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustLedger - Arjun Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f8ff;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .user-header {
+            background: linear(135deg, #2196F3, #64b5f6);
+            color: white;
+            padding: 40px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .pioneer-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            margin: 10px 0;
+            font-size: 1.1em;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.2);
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .action-card {
+            background: #f5f5f5;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .action-card:hover {
+            border-color: #2196F3;
+            transform: translateY(-2px);
+        }
+        .button {
+            background: #2196F3;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .button:hover {
+            background: #1976D2;
+            transform: translateY(-1px);
+        }
+        .button.success {
+            background: #4CAF50;
+        }
+        .button.warning {
+            background: #ff9800;
+        }
+        .section {
+            margin: 40px 0;
+            padding: 25px;
+            background: #f9f9f9;
+            border-radius: 10px;
+        }
+        .transaction-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        .transaction-card:hover {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .transaction-pending {
+            border-left: 4px solid #ff9800;
+            background: #fff8e1;
+        }
+        .transaction-confirmed {
+            border-left: 4px solid #4CAF50;
+            background: #e8f5e8;
+        }
+        .trust-network {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        .network-node {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            min-width: 150px;
+        }
+        .node-pioneer {
+            border: 3px solid #2196F3;
+            background: #e3f2fd;
+        }
+        .node-referred {
+            border: 2px solid #4CAF50;
+        }
+        .network-arrow {
+            font-size: 1.5em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- User Header -->
+        <div class="user-header">
+            <h1>👑 Arjun's Dashboard</h1>
+            <div class="pioneer-badge">🏆 PIONEER USER</div>
+            <p>Founding Member of TrustLedger Network</p>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="trustScore">1.0</div>
+                    <div>Trust Score</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalTransactions">0</div>
+                    <div>Total Transactions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="networkSize">3</div>
+                    <div>Network Size</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="referralCode">ARJ5000</div>
+                    <div>Referral Code</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="section">
+            <h2>🚀 Quick Actions</h2>
+            <div class="action-grid">
+                <div class="action-card">
+                    <h3>💸 Send Funds</h3>
+                    <p>Create a new transaction</p>
+                    <button class="button success" onclick="sendToBharat()">Send to Bharat</button>
+                </div>
+                <div class="action-card">
+                    <h3>📊 Network View</h3>
+                    <p>View trust network</p>
+                    <button class="button" onclick="showNetwork()">View Network</button>
+                </div>
+                <div class="action-card">
+                    <h3>🔄 Check Status</h3>
+                    <p>Refresh dashboard data</p>
+                    <button class="button" onclick="loadDashboard()">Refresh</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trust Network -->
+        <div class="section">
+            <h2>🔗 Trust Network</h2>
+            <div class="trust-network">
+                <div class="network-node node-pioneer">
+                    <div style="font-size: 2.5em;">👑</div>
+                    <strong>You (Arjun)</strong>
+                    <div>Pioneer</div>
+                    <div style="color: #2196F3; font-weight: bold;">Trust: <span id="currentTrust">1.0</span></div>
+                </div>
+                <div class="network-arrow">➡️</div>
+                <div class="network-node node-referred">
+                    <div style="font-size: 2em;">👨‍💻</div>
+                    <strong>Bharat</strong>
+                    <div>Referred by You</div>
+                    <div style="color: #4CAF50;">Trust: 1.0</div>
+                </div>
+                <div class="network-arrow">➡️</div>
+                <div class="network-node node-referred">
+                    <div style="font-size: 2em;">📱</div>
+                    <strong>Chetan</strong>
+                    <div>Referred by Bharat</div>
+                    <div style="color: #4CAF50;">Trust: 1.0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="section">
+            <h2>📊 Recent Activity</h2>
+            <div id="recentActivity">
+                <p>Loading recent activity...</p>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="section">
+            <h2>🛡️ System Status</h2>
+            <div id="systemStatus">
+                <div class="transaction-card transaction-confirmed">
+                    <div>
+                        <strong>✅ Security System Active</strong><br>
+                        <small>All security layers are operational</small>
+                    </div>
+                    <div style="color: #4CAF50;">Protected</div>
+                </div>
+                <div class="transaction-card transaction-confirmed">
+                    <div>
+                        <strong>✅ Database Connected</strong><br>
+                        <small>PostgreSQL is running smoothly</small>
+                    </div>
+                    <div style="color: #4CAF50;">Online</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let userData = null;
+
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                // Login first
+                const loginResponse = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email: 'arjun@trustledger.com', 
+                        password: 'anypassword' 
+                    })
+                });
+                const loginData = await loginResponse.json();
+                
+                if (loginData.user) {
+                    userData = loginData.user;
+                    updateUserProfile(loginData.user);
+                    
+                    // Load dashboard data
+                    const dashboardResponse = await fetch('/api/users/dashboard', {
+                        headers: { 'X-User-Id': '1' }
+                    });
+                    const dashboardData = await dashboardResponse.json();
+                    updateDashboard(dashboardData);
+                }
+            } catch (error) {
+                console.error('Dashboard load error:', error);
+                showResult('❌ Failed to load dashboard', 'error');
+            }
+        }
+
+        function updateUserProfile(user) {
+            document.getElementById('trustScore').textContent = user.trustScore;
+            document.getElementById('currentTrust').textContent = user.trustScore;
+            if (user.referralCode) {
+                document.getElementById('referralCode').textContent = user.referralCode;
+            }
+        }
+
+        function updateDashboard(data) {
+            if (data.user) {
+                document.getElementById('totalTransactions').textContent = data.user.totalTransactions || 0;
+            }
+            
+            // Update recent activity
+            updateRecentActivity(data.recentActivity || []);
+        }
+
+        function updateRecentActivity(activities) {
+            const container = document.getElementById('recentActivity');
+            
+            if (activities.length > 0) {
+                let html = '';
+                activities.forEach(activity => {
+                    html += `
+                        <div class="transaction-card">
+                            <div>
+                                <strong>${activity.type || 'Transaction'}</strong><br>
+                                <small>${activity.description || 'No description'}</small>
+                            </div>
+                            <div style="color: #666;">
+                                ${new Date().toLocaleDateString()}
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                    <div class="transaction-card">
+                        <div>
+                            <strong>Welcome to TrustLedger!</strong><br>
+                            <small>No transactions yet. Send your first transaction to get started.</small>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        async function sendToBharat() {
+            try {
+                const response = await fetch('/api/transactions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': '1'
+                    },
+                    body: JSON.stringify({
+                        fromUserId: 1,
+                        receiver_id: 2,
+                        amount: 500,
+                        description: "Project collaboration payment from Arjun"
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.message && data.message.includes('waiting for confirmation')) {
+                    showResult('✅ Transaction sent to Bharat! Waiting for confirmation.', 'success');
+                    // Reload dashboard after a delay
+                    setTimeout(loadDashboard, 2000);
+                } else {
+                    showResult('❌ Failed to send transaction', 'error');
+                }
+            } catch (error) {
+                showResult('❌ Error sending transaction', 'error');
+            }
+        }
+
+        function showNetwork() {
+            showResult('🔗 Trust Network: Arjun → Bharat → Chetan', 'info');
+        }
+
+        function showResult(message, type) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.style.padding = '15px';
+            div.style.margin = '10px 0';
+            div.style.borderRadius = '8px';
+            div.style.fontSize = '16px';
+            div.style.backgroundColor = type === 'success' ? '#e8f5e8' : 
+                                      type === 'error' ? '#ffebee' : '#e3f2fd';
+            div.style.borderLeft = type === 'success' ? '4px solid #4CAF50' : 
+                                 type === 'error' ? '4px solid #f44336' : '4px solid #2196F3';
+            div.textContent = message;
+            results.appendChild(div);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (div.parentNode) {
+                    div.parentNode.removeChild(div);
+                }
+            }, 5000);
+        }
+
+        // Load dashboard on page load
+        window.onload = loadDashboard;
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadDashboard, 30000);
+    </script>
+</body>
+</html>

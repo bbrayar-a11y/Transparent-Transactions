@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Network Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>🛜 Network Connection Test</h1>
+    
+    <div id="status">Testing...</div>
+    
+    <script>
+        async function testConnection() {
+            const status = document.getElementById('status');
+            const endpoints = [
+                'http://192.168.1.4:3000/api/health',
+                'http://localhost:3000/api/health'
+            ];
+            
+            for (let endpoint of endpoints) {
+                try {
+                    status.innerHTML = `Testing: ${endpoint}...`;
+                    const response = await fetch(endpoint);
+                    if (response.ok) {
+                        status.innerHTML = `<span class="success">✅ SUCCESS: ${endpoint} is accessible!</span>`;
+                        return;
+                    }
+                } catch (error) {
+                    status.innerHTML = `<span class="error">❌ FAILED: ${endpoint} - ${error.message}</span>`;
+                }
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+        
+        testConnection();
+    </script>
+</body>
+</html>

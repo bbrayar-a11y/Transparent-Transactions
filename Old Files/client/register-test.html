@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustLedger - Registration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        
+        .password-rules {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .test-data {
+            background: #e7f3ff;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👥 TrustLedger Registration Test</h1>
+        
+        <h3>Test User Registration:</h3>
+        
+        <div class="form-group">
+            <label>Name:</label>
+            <input type="text" id="name" placeholder="ArjunTest (letters only, 2-50 chars)" value="ArjunTest">
+            <div class="password-rules">Must be 2-50 characters, letters and spaces only</div>
+        </div>
+        
+        <div class="form-group">
+            <label>Email:</label>
+            <input type="email" id="email" placeholder="arjuntest@trustledger.com" value="arjuntest@trustledger.com">
+        </div>
+        
+        <div class="form-group">
+            <label>Password:</label>
+            <input type="password" id="password" value="Trust123">
+            <div class="password-rules">Must be 6+ characters with uppercase, lowercase, and number</div>
+        </div>
+        
+        <div class="form-group">
+            <label>Referral Code (optional):</label>
+            <input type="text" id="referralCode" placeholder="ARJ5000 or BHA7000">
+        </div>
+        
+        <button onclick="registerUser()">Register User</button>
+        <button onclick="loginUser()">Login</button>
+        <button onclick="testDashboard()">Test Dashboard</button>
+        <button onclick="clearForm()">Clear Form</button>
+        
+        <div id="result" class="result"></div>
+        
+        <div class="test-data">
+            <h3>🧪 Quick Test Data:</h3>
+            <p><strong>New User:</strong> ArjunTest / arjuntest@trustledger.com / Trust123</p>
+            <p><strong>With Referral:</strong> NewUser / new@trustledger.com / Secure123 + ARJ5000</p>
+        </div>
+        
+        <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 5px;">
+            <h3>📋 Test Scenarios:</h3>
+            <p><strong>Arjun (Pioneer):</strong> No referral code</p>
+            <p><strong>Bharat:</strong> Use Arjun's code: ARJ5000</p>
+            <p><strong>Chetan:</strong> Use Bharat's code: BHA7000</p>
+        </div>
+    </div>
+
+    <script>
+        // Pre-fill with test data
+        function fillTestData(scenario) {
+            if (scenario === 'pioneer') {
+                document.getElementById('name').value = 'ArjunTest';
+                document.getElementById('email').value = 'arjuntest@trustledger.com';
+                document.getElementById('password').value = 'Trust123';
+                document.getElementById('referralCode').value = '';
+            } else if (scenario === 'referral') {
+                document.getElementById('name').value = 'NewUser';
+                document.getElementById('email').value = 'newuser@trustledger.com';
+                document.getElementById('password').value = 'Secure123';
+                document.getElementById('referralCode').value = 'ARJ5000';
+            }
+            showMessage('✅ Test data filled!', 'info');
+        }
+        
+        function clearForm() {
+            document.getElementById('name').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('referralCode').value = '';
+            document.getElementById('result').innerHTML = '';
+            showMessage('📝 Form cleared!', 'info');
+        }
+        
+        function showMessage(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = message;
+        }
+
+        async function registerUser() {
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const referralCode = document.getElementById('referralCode').value;
+            
+            // Basic validation
+            if (!name || !email || !password) {
+                showMessage('❌ Please fill all required fields', 'error');
+                return;
+            }
+            
+            console.log('🔧 Sending registration:', { name, email, password: '***', referralCode });
+            
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: name,        // ✅ CORRECT: Using 'name' not 'username'
+                        email: email,
+                        password: password,
+                        referralCode: referralCode
+                    })
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('result');
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `<strong>✅ Registration Successful!</strong>\n\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    if (data.errors) {
+                        // Show detailed validation errors
+                        let errorHtml = `<strong>❌ Validation Failed:</strong>\n\n`;
+                        data.errors.forEach(error => {
+                            errorHtml += `• ${error.field}: ${error.message}\n`;
+                        });
+                        resultDiv.innerHTML = errorHtml;
+                    } else {
+                        resultDiv.innerHTML = `<strong>❌ Registration Failed:</strong>\n\n${JSON.stringify(data, null, 2)}`;
+                    }
+                }
+            } catch (error) {
+                document.getElementById('result').className = 'result error';
+                document.getElementById('result').innerHTML = `<strong>❌ Network Error:</strong> ${error.message}`;
+            }
+        }
+        
+        async function loginUser() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                showMessage('❌ Please enter email and password', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('result');
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `<strong>✅ Login Successful!</strong>\n\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `<strong>❌ Login Failed:</strong>\n\n${data.error || JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                document.getElementById('result').className = 'result error';
+                document.getElementById('result').innerHTML = `<strong>❌ Error:</strong> ${error.message}`;
+            }
+        }
+        
+        async function testDashboard() {
+            try {
+                const response = await fetch('/api/users/dashboard');
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('result');
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `<strong>📊 Dashboard Data:</strong>\n\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                document.getElementById('result').className = 'result error';
+                document.getElementById('result').innerHTML = `<strong>❌ Error:</strong> ${error.message}`;
+            }
+        }
+        
+        // Add quick test buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.margin = '10px 0';
+            buttonContainer.innerHTML = `
+                <button onclick="fillTestData('pioneer')" style="background: #28a745;">🧪 Pioneer Test</button>
+                <button onclick="fillTestData('referral')" style="background: #ffc107; color: black;">🧪 Referral Test</button>
+            `;
+            document.querySelector('.container').insertBefore(buttonContainer, document.getElementById('result'));
+        });
+    </script>
+</body>
+</html>

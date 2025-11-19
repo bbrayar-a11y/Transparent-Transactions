@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Transparent Transactions</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon-192x192.png" type="image/png">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .login-container { max-width: 400px; padding: 30px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center; }
+        h2 { color: #333; margin-bottom: 20px; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        .hidden { display: none; }
+        .info-text { font-size: 0.9em; color: #666; margin-top: -10px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h2>Transparent Transactions</h2>
+        
+        <div id="phone-section">
+            <p>Enter your phone number to continue</p>
+            <form id="phone-form">
+                <input type="tel" id="phone-number" placeholder="Phone Number (e.g., 9876543210)" maxlength="10" required>
+                <input type="text" id="referral-code" placeholder="Referral Code (Required)" required>
+                <p class="info-text">Ask a friend for their code, or use the system seed: <strong>SEEDTT001</strong></p>
+                <button type="submit">Send OTP</button>
+            </form>
+        </div>
+
+        <div id="otp-section" class="hidden">
+            <p>Enter the 6-digit OTP sent to your phone</p>
+            <p class="info-text">For this demo, the OTP is always: <strong>123456</strong></p>
+            <form id="otp-form">
+                <input type="text" id="otp-input" placeholder="6-digit OTP" maxlength="6" required>
+                <button type="submit">Verify & Login</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/database.js"></script>
+<script src="js/seed-data.js"></script>
+    <script src="js/auth.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,11 @@
+a) 	This is not a fund transfer App
+b)	The app doesn't handle users money
+c)	User's join using their friends referral link. (He can share his link for others to join)
+d)	Users create contacts from their phone book.
+e)	There are three types of transactions
+	e1)	Transaction Creation
+	e2)	Credit Transfer
+	e3)	Digital Agreement
+f)	All transactions get into ledger after 2way or 3way authentication.
+g)	User's trust core is generated based upon their transactions with their own friends subject to red flag detection
+h)	The apps revenue comes from generating trust report and publishing trust report. 

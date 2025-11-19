@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustLedger Multi-Device Testing</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00c9ff, #92fe9d);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: inline-block;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            background: linear-gradient(90deg, #00b09b, #96c93d);
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-weight: bold;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .card-header i {
+            font-size: 1.8rem;
+            margin-right: 15px;
+            background: linear-gradient(90deg, #00c9ff, #92fe9d);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .card-header h2 {
+            font-size: 1.5rem;
+        }
+        
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+        
+        .info-label {
+            color: #a0aec0;
+        }
+        
+        .url-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            margin-top: 5px;
+            word-break: break-all;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .btn {
+            display: inline-block;
+            background: linear-gradient(90deg, #00c9ff, #92fe9d);
+            color: #1a202c;
+            padding: 12px 25px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .testing-sequence {
+            grid-column: 1 / -1;
+        }
+        
+        .sequence-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            position: relative;
+        }
+        
+        .sequence-steps::before {
+            content: '';
+            position: absolute;
+            top: 40px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            z-index: 1;
+        }
+        
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            flex: 1;
+        }
+        
+        .step-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            margin-bottom: 15px;
+            font-size: 1.8rem;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .step.active .step-icon {
+            background: linear-gradient(90deg, #00c9ff, #92fe9d);
+            color: #1a202c;
+            border-color: #00c9ff;
+            box-shadow: 0 0 20px rgba(0, 201, 255, 0.5);
+        }
+        
+        .step-text {
+            text-align: center;
+            max-width: 150px;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .feature {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .feature:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-3px);
+        }
+        
+        .feature i {
+            font-size: 1.5rem;
+            margin-right: 15px;
+            color: #00c9ff;
+        }
+        
+        .files-section {
+            margin-top: 40px;
+        }
+        
+        .files-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .file-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .file-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-3px);
+        }
+        
+        .file-icon {
+            font-size: 2rem;
+            margin-right: 15px;
+            color: #00c9ff;
+        }
+        
+        .file-info h3 {
+            margin-bottom: 5px;
+        }
+        
+        .file-info p {
+            color: #a0aec0;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .sequence-steps {
+                flex-direction: column;
+                align-items: center;
+                gap: 30px;
+            }
+            
+            .sequence-steps::before {
+                display: none;
+            }
+            
+            .step {
+                flex-direction: row;
+                width: 100%;
+                text-align: left;
+            }
+            
+            .step-icon {
+                margin-right: 15px;
+                margin-bottom: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 TrustLedger Multi-Device Testing</h1>
+            <div class="status-badge">✅ SYSTEM READY</div>
+            <p>All databases fixed, dashboards created, and security systems active.</p>
+        </header>
+        
+        <div class="dashboard-grid">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-user-tie"></i>
+                    <h2>Arjun (Chrome - Pioneer)</h2>
+                </div>
+                <div class="user-info">
+                    <div class="info-row">
+                        <span class="info-label">Device:</span>
+                        <span>Desktop - Chrome</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Role:</span>
+                        <span>Pioneer</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">URL:</span>
+                    </div>
+                    <div class="url-box">http://localhost:3000/arjun-dashboard.html</div>
+                    <div class="info-row">
+                        <span class="info-label">Status:</span>
+                        <span style="color: #00c9ff;">Ready</span>
+                    </div>
+                    <a href="http://localhost:3000/arjun-dashboard.html" class="btn">Open Dashboard</a>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-user-friends"></i>
+                    <h2>Bharat (Firefox - Referred User)</h2>
+                </div>
+                <div class="user-info">
+                    <div class="info-row">
+                        <span class="info-label">Device:</span>
+                        <span>Desktop - Firefox</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Role:</span>
+                        <span>Referred User</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">URL:</span>
+                    </div>
+                    <div class="url-box">http://192.168.1.3:3000/bharat-dashboard.html</div>
+                    <div class="info-row">
+                        <span class="info-label">Status:</span>
+                        <span style="color: #00c9ff;">Ready</span>
+                    </div>
+                    <a href="http://192.168.1.3:3000/bharat-dashboard.html" class="btn">Open Dashboard</a>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-mobile-alt"></i>
+                    <h2>Chetan (Android - End User)</h2>
+                </div>
+                <div class="user-info">
+                    <div class="info-row">
+                        <span class="info-label">Device:</span>
+                        <span>Android Mobile</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Role:</span>
+                        <span>End User</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">URL:</span>
+                    </div>
+                    <div class="url-box">http://192.168.1.3:3000/chetan-dashboard.html</div>
+                    <div class="info-row">
+                        <span class="info-label">Status:</span>
+                        <span style="color: #00c9ff;">Ready</span>
+                    </div>
+                    <a href="http://192.168.1.3:3000/chetan-dashboard.html" class="btn">Open Dashboard</a>
+                </div>
+            </div>
+            
+            <div class="card testing-sequence">
+                <div class="card-header">
+                    <i class="fas fa-list-ol"></i>
+                    <h2>Testing Sequence</h2>
+                </div>
+                <div class="sequence-steps">
+                    <div class="step active">
+                        <div class="step-icon">
+                            <i class="fas fa-paper-plane"></i>
+                        </div>
+                        <div class="step-text">
+                            <h3>Step 1</h3>
+                            <p>Arjun sends ₹500 to Bharat</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="step-text">
+                            <h3>Step 2</h3>
+                            <p>Bharat confirms & sends ₹300 to Chetan</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="step-text">
+                            <h3>Step 3</h3>
+                            <p>Chetan confirms & trust scores update</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-icon">
+                            <i class="fas fa-link"></i>
+                        </div>
+                        <div class="step-text">
+                            <h3>Step 4</h3>
+                            <p>Verify complete chain works</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-check-circle"></i>
+                    <h2>What's Working</h2>
+                </div>
+                <div class="features-grid">
+                    <div class="feature">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Security system active</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-database"></i>
+                        <span>Database with transactions table</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Beautiful dashboards for all users</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-project-diagram"></i>
+                        <span>Trust network visualization</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>Transaction system ready</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-mobile-alt"></i>
+                        <span>Multi-device communication</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-key"></i>
+                    <h2>Credentials</h2>
+                </div>
+                <div class="user-info">
+                    <div class="info-row">
+                        <span class="info-label">Password Policy:</span>
+                        <span>Any password works</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Login System:</span>
+                        <span>Auto-login enabled</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Security Level:</span>
+                        <span style="color: #00c9ff;">Testing Mode</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="files-section">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-folder-open"></i>
+                    <h2>Files Available</h2>
+                </div>
+                <div class="files-grid">
+                    <div class="file-card">
+                        <div class="file-icon">
+                            <i class="fas fa-file-code"></i>
+                        </div>
+                        <div class="file-info">
+                            <h3>arjun-dashboard.html</h3>
+                            <p>Pioneer interface</p>
+                        </div>
+                    </div>
+                    <div class="file-card">
+                        <div class="file-icon">
+                            <i class="fas fa-file-code"></i>
+                        </div>
+                        <div class="file-info">
+                            <h3>bharat-dashboard.html</h3>
+                            <p>Middle user interface</p>
+                        </div>
+                    </div>
+                    <div class="file-card">
+                        <div class="file-icon">
+                            <i class="fas fa-file-code"></i>
+                        </div>
+                        <div class="file-info">
+                            <h3>chetan-dashboard.html</h3>
+                            <p>Mobile-optimized interface</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-row" style="margin-top: 20px;">
+                    <span class="info-label">Storage Location:</span>
+                    <span>/client folder</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulate testing sequence progress
+        document.addEventListener('DOMContentLoaded', function() {
+            const steps = document.querySelectorAll('.step');
+            let currentStep = 0;
+            
+            function updateStep() {
+                steps.forEach((step, index) => {
+                    if (index <= currentStep) {
+                        step.classList.add('active');
+                    } else {
+                        step.classList.remove('active');
+                    }
+                });
+                
+                currentStep++;
+                if (currentStep >= steps.length) {
+                    currentStep = 0;
+                    setTimeout(updateStep, 3000);
+                } else {
+                    setTimeout(updateStep, 2000);
+                }
+            }
+            
+            setTimeout(updateStep, 2000);
+        });
+    </script>
+</body>
+</html>

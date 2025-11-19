@@ -1,0 +1,455 @@
+<!-- client/android-access.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustLedger - Android Connection Helper</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .connection-test {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .testing { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; }
+        .success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+        .error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+        .warning { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; }
+        
+        .url-list {
+            margin: 25px 0;
+        }
+        
+        .url-item {
+            display: block;
+            padding: 15px;
+            margin: 10px 0;
+            background: #e9ecef;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #495057;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            font-family: monospace;
+            font-size: 14px;
+            word-break: break-all;
+        }
+        
+        .url-item:hover {
+            background: #007bff;
+            color: white;
+            border-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+            transform: translateY(-2px);
+        }
+        
+        .info-section {
+            background: #d1ecf1;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .info-section h3 {
+            color: #0c5460;
+            margin-bottom: 10px;
+        }
+        
+        .info-section ol {
+            margin-left: 20px;
+        }
+        
+        .info-section li {
+            margin-bottom: 8px;
+        }
+        
+        .debug-info {
+            background: #343a40;
+            color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 TrustLedger Android Connection</h1>
+            <p>Diagnostic tool to connect your Android device to the local server</p>
+        </div>
+
+        <div class="status-card">
+            <h3>Connection Status</h3>
+            <div id="connectionStatus" class="connection-test testing">
+                <span class="spinner"></span>Testing connection to server...
+            </div>
+        </div>
+
+        <div class="url-list">
+            <h3>📡 Access Points to Try:</h3>
+            <a href="http://192.168.1.4:3000" class="url-item" target="_blank">
+                http://192.168.1.4:3000
+            </a>
+            <a href="http://localhost:3000" class="url-item" target="_blank">
+                http://localhost:3000
+            </a>
+            <a href="http://127.0.0.1:3000" class="url-item" target="_blank">
+                http://127.0.0.1:3000
+            </a>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-primary" onclick="runFullConnectionTest()">
+                🔄 Full Connection Test
+            </button>
+            <button class="btn-secondary" onclick="showNetworkHelp()">
+                📶 Network Help
+            </button>
+            <button class="btn-secondary" onclick="showDebugInfo()">
+                🐛 Debug Info
+            </button>
+        </div>
+
+        <div id="networkHelp" class="info-section hidden">
+            <h3>Android Network Setup Guide:</h3>
+            <ol>
+                <li><strong>Same WiFi Network:</strong> Ensure both your phone and computer are connected to the same WiFi network</li>
+                <li><strong>Disable Mobile Data:</strong> Temporarily turn off mobile data to force WiFi connection</li>
+                <li><strong>Firewall Settings:</strong> Check that your computer firewall allows connections on port 3000</li>
+                <li><strong>Server Status:</strong> Verify the TrustLedger server is running on your computer</li>
+                <li><strong>IP Address:</strong> Use the IP address (192.168.1.4) not localhost</li>
+            </ol>
+        </div>
+
+        <div id="debugInfo" class="debug-info hidden">
+            <h4>Debug Information:</h4>
+            <div id="debugContent"></div>
+        </div>
+
+        <div class="info-section">
+            <h3>✅ Next Steps:</h3>
+            <p>Once connected, you'll be automatically redirected to the main TrustLedger dashboard where you can:</p>
+            <ul>
+                <li>Register as a new user</li>
+                <li>Generate referral codes</li>
+                <li>Create and confirm transactions</li>
+                <li>Build your trust network</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const TEST_ENDPOINTS = [
+            'http://192.168.1.4:3000/api/health',
+            'http://localhost:3000/api/health',
+            'http://127.0.0.1:3000/api/health'
+        ];
+
+        const MAIN_APP_URLS = [
+            'http://192.168.1.4:3000',
+            'http://localhost:3000',
+            'http://127.0.0.1:3000'
+        ];
+
+        // DOM elements
+        const connectionStatus = document.getElementById('connectionStatus');
+        const networkHelp = document.getElementById('networkHelp');
+        const debugInfo = document.getElementById('debugInfo');
+        const debugContent = document.getElementById('debugContent');
+
+        // Main connection test function
+        async function testConnection() {
+            connectionStatus.className = 'connection-test testing';
+            connectionStatus.innerHTML = '<span class="spinner"></span>Testing connection to server...';
+
+            let workingEndpoint = null;
+            const results = [];
+
+            for (const endpoint of TEST_ENDPOINTS) {
+                try {
+                    const startTime = Date.now();
+                    const response = await fetch(endpoint, {
+                        method: 'GET',
+                        mode: 'cors',
+                        cache: 'no-cache'
+                    });
+                    
+                    const responseTime = Date.now() - startTime;
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        results.push({
+                            endpoint,
+                            status: '✅ SUCCESS',
+                            responseTime: `${responseTime}ms`,
+                            data: data
+                        });
+                        
+                        if (!workingEndpoint) {
+                            workingEndpoint = endpoint.replace('/api/health', '');
+                            localStorage.setItem('trustledger-api-url', workingEndpoint);
+                            
+                            // Update status with success
+                            connectionStatus.className = 'connection-test success';
+                            connectionStatus.innerHTML = `
+                                ✅ Connected successfully to: ${workingEndpoint}<br>
+                                <small>Response time: ${responseTime}ms - Redirecting to dashboard...</small>
+                            `;
+                            
+                            // Redirect to main app after short delay
+                            setTimeout(() => {
+                                window.location.href = workingEndpoint + '/index.html';
+                            }, 2000);
+                        }
+                    } else {
+                        results.push({
+                            endpoint,
+                            status: '❌ FAILED',
+                            responseTime: `${responseTime}ms`,
+                            error: `HTTP ${response.status}`
+                        });
+                    }
+                } catch (error) {
+                    results.push({
+                        endpoint,
+                        status: '❌ ERROR',
+                        responseTime: 'N/A',
+                        error: error.message
+                    });
+                }
+            }
+
+            // If no connection succeeded
+            if (!workingEndpoint) {
+                connectionStatus.className = 'connection-test error';
+                connectionStatus.innerHTML = `
+                    ❌ Cannot connect to any server endpoints.<br>
+                    <small>See debug information for details or try manual access points above.</small>
+                `;
+            }
+
+            return results;
+        }
+
+        // Full diagnostic test
+        async function runFullConnectionTest() {
+            connectionStatus.className = 'connection-test testing';
+            connectionStatus.innerHTML = '<span class="spinner"></span>Running full diagnostic test...';
+
+            const results = await testConnection();
+            
+            if (!debugInfo.classList.contains('hidden')) {
+                updateDebugInfo(results);
+            }
+        }
+
+        // Show network help
+        function showNetworkHelp() {
+            networkHelp.classList.toggle('hidden');
+        }
+
+        // Show debug information
+        function showDebugInfo() {
+            debugInfo.classList.toggle('hidden');
+            if (!debugInfo.classList.contains('hidden')) {
+                runFullConnectionTest().then(updateDebugInfo);
+            }
+        }
+
+        // Update debug information
+        function updateDebugInfo(results) {
+            let debugHTML = '<strong>Connection Test Results:</strong><br><br>';
+            
+            results.forEach(result => {
+                debugHTML += `<strong>${result.endpoint}</strong><br>`;
+                debugHTML += `Status: ${result.status}<br>`;
+                debugHTML += `Response Time: ${result.responseTime}<br>`;
+                
+                if (result.error) {
+                    debugHTML += `Error: ${result.error}<br>`;
+                } else if (result.data) {
+                    debugHTML += `Data: ${JSON.stringify(result.data)}<br>`;
+                }
+                
+                debugHTML += '<br>';
+            });
+
+            // Add device information
+            debugHTML += '<strong>Device Information:</strong><br>';
+            debugHTML += `User Agent: ${navigator.userAgent}<br>`;
+            debugHTML += `Platform: ${navigator.platform}<br>`;
+            debugHTML += `Screen: ${screen.width}x${screen.height}<br>`;
+            debugHTML += `Touch Points: ${navigator.maxTouchPoints || 0}<br>`;
+            debugHTML += `Online: ${navigator.onLine ? 'Yes' : 'No'}<br>`;
+            debugHTML += `URL: ${window.location.href}<br>`;
+
+            debugContent.innerHTML = debugHTML;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Start connection test immediately
+            testConnection();
+            
+            // Add click handlers for URL items to test before redirecting
+            document.querySelectorAll('.url-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const url = this.href;
+                    connectionStatus.className = 'connection-test testing';
+                    connectionStatus.innerHTML = `<span class="spinner"></span>Testing ${url}...`;
+                    
+                    // Test the URL first
+                    fetch(url + '/api/health')
+                        .then(response => {
+                            if (response.ok) {
+                                connectionStatus.className = 'connection-test success';
+                                connectionStatus.innerHTML = `✅ ${url} is accessible! Redirecting...`;
+                                setTimeout(() => {
+                                    window.location.href = url;
+                                }, 1000);
+                            } else {
+                                throw new Error(`HTTP ${response.status}`);
+                            }
+                        })
+                        .catch(error => {
+                            connectionStatus.className = 'connection-test warning';
+                            connectionStatus.innerHTML = `
+                                ⚠️ ${url} might not be accessible.<br>
+                                <small>Error: ${error.message}. Trying anyway...</small>
+                            `;
+                            setTimeout(() => {
+                                window.location.href = url;
+                            }, 2000);
+                        });
+                });
+            });
+        });
+
+        // Online/offline detection
+        window.addEventListener('online', function() {
+            connectionStatus.className = 'connection-test warning';
+            connectionStatus.innerHTML = '📶 Internet connection restored. Retesting local server...';
+            setTimeout(testConnection, 1000);
+        });
+
+        window.addEventListener('offline', function() {
+            connectionStatus.className = 'connection-test warning';
+            connectionStatus.innerHTML = '⚠️ Internet connection lost. Local server should still work if on same WiFi.';
+        });
+    </script>
+</body>
+</html>
