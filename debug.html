@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Transparent Transactions</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-button { background: #2E8B57; color: white; border: none; padding: 10px 15px; margin: 5px; border-radius: 5px; cursor: pointer; }
+        .test-button:hover { background: #1f6b47; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+        .success { color: #28A745; }
+        .error { color: #DC3545; }
+        .warning { color: #FFC107; }
+        .info { color: #17A2B8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Transparent Transactions - Debug Tool</h1>
+        <p>Test each component individually to identify issues</p>
+
+        <!-- Component Status -->
+        <div class="test-section">
+            <h3>📊 Component Status</h3>
+            <button class="test-button" onclick="checkComponentStatus()">Check All Components</button>
+            <div id="statusLog" class="log"></div>
+        </div>
+
+        <!-- Database Tests -->
+        <div class="test-section">
+            <h3>🗄️ Database Tests</h3>
+            <button class="test-button" onclick="testDatabaseInit()">Test Database Initialization</button>
+            <button class="test-button" onclick="testDatabaseOperations()">Test Database Operations</button>
+            <button class="test-button" onclick="testDatabaseUsers()">Test User Operations</button>
+            <div id="databaseLog" class="log"></div>
+        </div>
+
+        <!-- Authentication Tests -->
+        <div class="test-section">
+            <h3>🔐 Authentication Tests</h3>
+            <button class="test-button" onclick="testAuthInit()">Test Auth Initialization</button>
+            <button class="test-button" onclick="testAuthOTP()">Test OTP System</button>
+            <button class="test-button" onclick="testAuthSession()">Test Session Management</button>
+            <div id="authLog" class="log"></div>
+        </div>
+
+        <!-- App Tests -->
+        <div class="test-section">
+            <h3>🚀 App Tests</h3>
+            <button class="test-button" onclick="testAppInit()">Test App Initialization</button>
+            <button class="test-button" onclick="testAppComponents()">Test App Components</button>
+            <div id="appLog" class="log"></div>
+        </div>
+
+        <!-- Service Worker Tests -->
+        <div class="test-section">
+            <h3>🛠️ Service Worker Tests</h3>
+            <button class="test-button" onclick="testServiceWorker()">Test Service Worker</button>
+            <button class="test-button" onclick="clearAllCaches()">Clear All Caches</button>
+            <div id="swLog" class="log"></div>
+        </div>
+
+        <!-- Quick Fixes -->
+        <div class="test-section">
+            <h3>🔧 Quick Fixes</h3>
+            <button class="test-button" onclick="clearLocalStorage()">Clear Local Storage</button>
+            <button class="test-button" onclick="clearAllData()">Clear All Data</button>
+            <button class="test-button" onclick="reloadApp()">Reload Application</button>
+        </div>
+    </div>
+<script>
+// STOP AUTO-INITIALIZATION FOR DEBUGGING
+window.preventAutoInit = true;
+console.log('🛑 Auto-initialization prevented for debugging');
+</script>
+    <!-- Load the same scripts as your main app -->
+    <script src="js/database.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // Logging utility
+        function logTo(elementId, message, type = 'info') {
+            const logElement = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `<div class="${type}">[${timestamp}] ${message}</div>`;
+            logElement.innerHTML += logEntry;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // COMPONENT STATUS CHECKS
+        function checkComponentStatus() {
+            const logId = 'statusLog';
+            logTo(logId, '🔍 Checking component status...', 'info');
+            
+            // Check database manager
+            if (window.databaseManager) {
+                logTo(logId, '✅ Database Manager: Loaded', 'success');
+                logTo(logId, `📊 Database Ready: ${window.databaseManager.isReady ? window.databaseManager.isReady() : 'Unknown'}`, 'info');
+            } else {
+                logTo(logId, '❌ Database Manager: NOT LOADED', 'error');
+            }
+
+            // Check auth manager
+            if (window.authManager) {
+                logTo(logId, '✅ Auth Manager: Loaded', 'success');
+                logTo(logId, `🔐 Auth Initialized: ${window.authManager.isInitialized}`, 'info');
+                logTo(logId, `👤 User Authenticated: ${window.authManager.isAuthenticated ? window.authManager.isAuthenticated() : 'Unknown'}`, 'info');
+            } else {
+                logTo(logId, '❌ Auth Manager: NOT LOADED', 'error');
+            }
+
+            // Check app
+            if (window.app) {
+                logTo(logId, '✅ App: Loaded', 'success');
+                logTo(logId, `🚀 App Initialized: ${window.app.isInitialized}`, 'info');
+            } else {
+                logTo(logId, '❌ App: NOT LOADED', 'error');
+            }
+
+            // Check service worker
+            if ('serviceWorker' in navigator) {
+                logTo(logId, '✅ Service Worker: Supported', 'success');
+            } else {
+                logTo(logId, '❌ Service Worker: Not Supported', 'error');
+            }
+        }
+
+        // DATABASE TESTS
+        async function testDatabaseInit() {
+            const logId = 'databaseLog';
+            logTo(logId, '🗄️ Testing database initialization...', 'info');
+            
+            try {
+                if (!window.databaseManager) {
+                    logTo(logId, '❌ Database manager not available', 'error');
+                    return;
+                }
+
+                logTo(logId, '🔄 Initializing database...', 'info');
+                await window.databaseManager.init();
+                logTo(logId, '✅ Database initialized successfully', 'success');
+                logTo(logId, `📊 Database ready: ${window.databaseManager.isReady()}`, 'success');
+                
+            } catch (error) {
+                logTo(logId, `❌ Database initialization failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDatabaseOperations() {
+            const logId = 'databaseLog';
+            logTo(logId, '🔄 Testing database operations...', 'info');
+            
+            try {
+                // Test settings operations
+                await window.databaseManager.saveSetting('test_key', { test: 'data', timestamp: Date.now() });
+                logTo(logId, '✅ Settings save: Success', 'success');
+                
+                const testData = await window.databaseManager.getSetting('test_key');
+                logTo(logId, `✅ Settings retrieve: ${JSON.stringify(testData)}`, 'success');
+                
+                await window.databaseManager.deleteSetting('test_key');
+                logTo(logId, '✅ Settings delete: Success', 'success');
+                
+            } catch (error) {
+                logTo(logId, `❌ Database operations failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDatabaseUsers() {
+            const logId = 'databaseLog';
+            logTo(logId, '👤 Testing user operations...', 'info');
+            
+            try {
+                const testUser = {
+                    phone: '9998887770',
+                    fullName: 'Test User',
+                    email: 'test@debug.com'
+                };
+
+                await window.databaseManager.saveUser(testUser);
+                logTo(logId, '✅ User save: Success', 'success');
+                
+                const retrievedUser = await window.databaseManager.getUser('9998887770');
+                logTo(logId, `✅ User retrieve: ${retrievedUser ? 'Found' : 'Not found'}`, 'success');
+                
+            } catch (error) {
+                logTo(logId, `❌ User operations failed: ${error.message}`, 'error');
+            }
+        }
+
+        // AUTHENTICATION TESTS
+        async function testAuthInit() {
+            const logId = 'authLog';
+            logTo(logId, '🔐 Testing auth initialization...', 'info');
+            
+            try {
+                if (!window.authManager) {
+                    logTo(logId, '❌ Auth manager not available', 'error');
+                    return;
+                }
+
+                // Wait for auth to initialize
+                let attempts = 0;
+                while (attempts < 10 && !window.authManager.isInitialized) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    attempts++;
+                }
+
+                if (window.authManager.isInitialized) {
+                    logTo(logId, '✅ Auth manager initialized', 'success');
+                } else {
+                    logTo(logId, '❌ Auth manager failed to initialize', 'error');
+                }
+                
+            } catch (error) {
+                logTo(logId, `❌ Auth initialization test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAuthOTP() {
+            const logId = 'authLog';
+            logTo(logId, '📱 Testing OTP system...', 'info');
+            
+            try {
+                const testPhone = '9998887771';
+                const result = await window.authManager.sendOTP(testPhone);
+                logTo(logId, `✅ OTP send: ${result.message}`, 'success');
+                
+            } catch (error) {
+                logTo(logId, `❌ OTP test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAuthSession() {
+            const logId = 'authLog';
+            logTo(logId, '🔄 Testing session management...', 'info');
+            
+            try {
+                const session = await window.authManager.validateSession();
+                logTo(logId, `✅ Session validation: ${session.valid ? 'Valid' : 'Invalid - ' + session.reason}`, 'success');
+                
+            } catch (error) {
+                logTo(logId, `❌ Session test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // APP TESTS
+        async function testAppInit() {
+            const logId = 'appLog';
+            logTo(logId, '🚀 Testing app initialization...', 'info');
+            
+            try {
+                if (!window.app) {
+                    logTo(logId, '❌ App not available', 'error');
+                    return;
+                }
+
+                // Wait for app to initialize
+                let attempts = 0;
+                while (attempts < 10 && !window.app.isInitialized) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    attempts++;
+                }
+
+                if (window.app.isInitialized) {
+                    logTo(logId, '✅ App initialized', 'success');
+                    logTo(logId, `📊 App status: ${JSON.stringify(window.app.getAppStatus ? window.app.getAppStatus() : 'No status method')}`, 'info');
+                } else {
+                    logTo(logId, '❌ App failed to initialize', 'error');
+                }
+                
+            } catch (error) {
+                logTo(logId, `❌ App initialization test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testAppComponents() {
+            const logId = 'appLog';
+            logTo(logId, '🔧 Testing app components...', 'info');
+            
+            if (window.app) {
+                logTo(logId, '✅ App instance exists', 'success');
+                logTo(logId, `👤 Current user: ${window.app.currentUser ? 'Exists' : 'None'}`, 'info');
+                logTo(logId, `📊 User stats: ${window.app.userStats ? 'Loaded' : 'Not loaded'}`, 'info');
+                logTo(logId, `🌐 Online status: ${window.app.isOnline}`, 'info');
+            } else {
+                logTo(logId, '❌ App instance not available', 'error');
+            }
+        }
+
+        // SERVICE WORKER TESTS
+        async function testServiceWorker() {
+            const logId = 'swLog';
+            logTo(logId, '🛠️ Testing service worker...', 'info');
+            
+            if (!('serviceWorker' in navigator)) {
+                logTo(logId, '❌ Service workers not supported', 'error');
+                return;
+            }
+
+            try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                logTo(logId, `📊 Active registrations: ${registrations.length}`, 'info');
+                
+                for (const registration of registrations) {
+                    logTo(logId, `🔍 Registration scope: ${registration.scope}`, 'info');
+                    logTo(logId, `🔍 Registration state: ${registration.active ? 'Active' : 'Inactive'}`, 'info');
+                }
+
+                if (registrations.length > 0) {
+                    logTo(logId, '✅ Service worker is registered', 'success');
+                } else {
+                    logTo(logId, '❌ No service worker registrations found', 'error');
+                }
+                
+            } catch (error) {
+                logTo(logId, `❌ Service worker test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // QUICK FIXES
+        function clearLocalStorage() {
+            localStorage.clear();
+            logTo('statusLog', '🧹 Local storage cleared', 'success');
+        }
+
+        async function clearAllCaches() {
+            try {
+                const cacheNames = await caches.keys();
+                for (const cacheName of cacheNames) {
+                    await caches.delete(cacheName);
+                }
+                logTo('swLog', '🧹 All caches cleared', 'success');
+            } catch (error) {
+                logTo('swLog', `❌ Failed to clear caches: ${error.message}`, 'error');
+            }
+        }
+
+        function clearAllData() {
+            localStorage.clear();
+            if (window.databaseManager) {
+                window.databaseManager.clearAllData().catch(console.error);
+            }
+            logTo('statusLog', '🧹 All data cleared', 'success');
+        }
+
+        function reloadApp() {
+            location.reload();
+        }
+
+        // Auto-run basic checks when page loads
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                checkComponentStatus();
+                testServiceWorker();
+            }, 2000);
+        });
+    </script>
+<!-- ... your existing debug.html content ... -->
+
+    <!-- ADD THIS SCRIPT TO TEST EXECUTION -->
+    <script>
+        console.log('🎯 DEBUG: Testing JavaScript Execution');
+        
+        // Test 1: Check if classes are defined
+        console.log('🔍 Checking class definitions:');
+        console.log('DatabaseManager defined:', typeof DatabaseManager);
+        console.log('AuthManager defined:', typeof AuthManager); 
+        console.log('TransparentTransactionsApp defined:', typeof TransparentTransactionsApp);
+        
+        // Test 2: Check if global instances exist
+        console.log('🔍 Checking global instances:');
+        console.log('window.databaseManager:', window.databaseManager);
+        console.log('window.authManager:', window.authManager);
+        console.log('window.app:', window.app);
+        
+        // Test 3: Check script loading status
+        console.log('🔍 Script loading status:');
+        const scripts = document.querySelectorAll('script[src]');
+        scripts.forEach(script => {
+            console.log(`📜 ${script.src}: ${script.complete ? 'Loaded' : 'Loading...'}`);
+        });
+        
+        // Test 4: Try to create instances manually
+        console.log('🔍 Testing manual instantiation:');
+        try {
+            if (typeof DatabaseManager === 'function') {
+                const testDB = new DatabaseManager();
+                console.log('✅ DatabaseManager instantiation: SUCCESS');
+            } else {
+                console.log('❌ DatabaseManager instantiation: CLASS NOT DEFINED');
+            }
+        } catch (error) {
+            console.log('❌ DatabaseManager instantiation: ERROR -', error.message);
+        }
+        
+        try {
+            if (typeof AuthManager === 'function') {
+                const testAuth = new AuthManager();
+                console.log('✅ AuthManager instantiation: SUCCESS');
+            } else {
+                console.log('❌ AuthManager instantiation: CLASS NOT DEFINED');
+            }
+        } catch (error) {
+            console.log('❌ AuthManager instantiation: ERROR -', error.message);
+        }
+        
+        console.log('🎯 DEBUG: Execution test complete');
+    </script>
+
+</body>
+</html>
+
