@@ -34,12 +34,8 @@ async function handleSignup(event) {
         localStorage.setItem('loggedInUser', JSON.stringify(newUser));
         window.location.href = 'index.html';
     } catch (error) {
-        console.error('Signup failed:', error); // This is good, but let's add more detail
-    console.error('Error Name:', error.name); // e.g., "TypeError", "ReferenceError"
-    console.error('Error Message:', error.message); // The specific message
-
-    // Temporarily, let's show the full error in the alert for debugging
-    alert('DEBUG ERROR: ' + error.message + ' | Name: ' + error.name);
+        console.error('Signup failed:', error);
+        alert('An error occurred during signup. Please try again.');
     }
 }
 

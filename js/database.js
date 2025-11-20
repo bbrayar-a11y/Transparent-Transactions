@@ -4,23 +4,6 @@ const DB_VERSION = APP_CONFIG.DB_VERSION;
 const OBJECT_STORES = { users: 'users', contacts: 'contacts', transactions: 'transactions', reports: 'reports' };
 
 async function initDB() {
-console.log("initDB: Starting database initialization...");
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-        request.onerror = (event) => {
-            console.error('initDB: Error opening DB:', event.target.error);
-            reject('Database could not be opened');
-        };
-        request.onsuccess = (event) => {
-            db = event.target.result;
-            console.log("initDB: Database opened successfully");
-            resolve(db);
-        };
-        request.onupgradeneeded = (event) => {
-            console.log("initDB: Upgrade needed from", event.oldVersion, "to", event.newVersion);
-            db = event.target.result;
-            // ... rest of the upgrade logic
-            console.log("initDB: Upgrade complete");
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
         request.onerror = () => reject('Database could not be opened');
