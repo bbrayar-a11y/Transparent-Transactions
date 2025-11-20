@@ -35,7 +35,7 @@ async function handleSignup(event) {
         window.location.href = 'index.html';
     } catch (error) {
         console.error('Signup failed:', error);
-        alert('An error occurred during signup. Please try again.');
+        alert('DEBUG ERROR: ' + error.message); // CHANGE THIS LINE
     }
 }
 
