@@ -1,25 +1,24 @@
 // js/onboarding.js
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("onboarding.js: DOMContentLoaded. Starting script.");
-
-    // Get referral code from URL, with a fallback to the seed code
+    console.log("onboarding.js: Script loaded.");
     const urlParams = new URLSearchParams(window.location.search);
     const referralCode = urlParams.get('ref') || APP_CONFIG.SEED_REFERRAL_CODE;
-    
-    // Get the form and input elements
+
+    // Get references to important DOM elements
     const onboardingForm = document.getElementById('onboarding-form');
     const phoneInput = document.getElementById('phone-number');
     const nameInput = document.getElementById('user-name');
     const referralInput = document.getElementById('referral-code');
 
-    // Pre-fill the referral code
+    // Pre-fill the referral code if it exists in the URL
     if (referralInput) {
         referralInput.value = referralCode.toUpperCase();
         console.log("onboarding.js: Referral code pre-filled:", referralInput.value);
     }
 
-    // Add the submit event listener
+    // Add the submit event listener to the form
+    // This check ensures the listener is only attached if the form element exists
     if (onboardingForm) {
         onboardingForm.addEventListener('submit', handleSignup);
         console.log("onboarding.js: Event listener attached to form.");
@@ -28,15 +27,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+/**
+ * Handles the form submission for new user signup.
+ * @param {Event} event - The form submit event.
+ */
 async function handleSignup(event) {
-    event.preventDefault();
+    event.preventDefault(); // Prevent the default form submission behavior
     console.log("onboarding.js: handleSignup function called.");
 
     const phoneNumber = phoneInput.value;
     const name = nameInput.value;
     const referredBy = referralInput.value.trim().toUpperCase();
-
-    console.log("onboarding.js: Collected data:", { phoneNumber, name, referredBy });
 
     // --- Client-Side Validation ---
     if (!/^\d{10}$/.test(phoneNumber)) {
@@ -54,19 +55,21 @@ async function handleSignup(event) {
     try {
         console.log("onboarding.js: Initializing database...");
         // Ensure the database is initialized before we try to use it
-        await initDB(); 
+        await initDB();
         console.log("onboarding.js: Database initialized.");
 
+        console.log("onboarding.js: Checking for existing user with phone:", phoneNumber);
         const existingUser = await getDataByKey('users', phoneNumber);
-        console.log("onboarding.js: Checked for existing user:", existingUser);
 
         if (existingUser) {
-            console.log("onboarding.js: User already exists. Redirecting to login.");
-            alert('This number is already registered. Please login.');
+            // --- Existing User Flow ---
+            console.log("onboarding.js: User already exists. Redirecting to login page.");
+            alert('This phone number is already registered. Please login.');
             window.location.href = 'login.html';
             return;
         }
 
+        // --- New User Flow ---
         console.log("onboarding.js: Creating new user object...");
         const newUser = {
             phoneNumber: phoneNumber,
@@ -82,20 +85,21 @@ async function handleSignup(event) {
         await addData('users', newUser);
         console.log("onboarding.js: New user added successfully.");
 
-        // Store the new user in localStorage to log them in
+        // --- Session Management ---
+        console.log("onboarding.js: Storing user in localStorage and redirecting.");
         localStorage.setItem('loggedInUser', JSON.stringify(newUser));
-        console.log("onboarding.js: User logged in and stored in localStorage.");
-
-        // Redirect to the dashboard
-        console.log("onboarding.js: Redirecting to index.html...");
         window.location.href = 'index.html';
 
     } catch (error) {
-        console.error('onboarding.js: A critical error occurred during signup:', error);
+        console.error("onboarding.js: A critical error occurred during signup:", error);
         alert('An error occurred during signup. Please try again.');
     }
 }
 
+/**
+ * Generates a simple, unique referral code.
+ * @returns {string} A new referral code.
+ */
 function generateReferralCode() {
     return 'TT' + Math.random().toString(36).substr(2, 9).toUpperCase();
 }
