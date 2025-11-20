@@ -8,53 +8,65 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icons/icon-192x192.png" type="image/png">
     <style>
-/* Modal Styles */
-.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
-.modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 8px; position: relative; }
-.close-btn { color: #aaa; position: absolute; top: 10px; right: 25px; font-size: 28px; font-weight: bold; cursor: pointer; }
-.close-btn:hover, .close-btn:focus { color: black; }
-#transaction-form label { display: block; margin-top: 15px; margin-bottom: 5px; font-weight: bold; }
-#transaction-form input, #transaction-form select, #transaction-form textarea { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-.radio-group label { font-weight: normal; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: #f4f7f6; }
-        .container { max-width: 800px; margin: 20px auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0,0.1); }
         h1, h2 { color: #333; }
         .card { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; text-align: center; }
-        .nav { display: flex; justify-content: space-around; background-color: #007bff; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
-        .nav a { color: white; text-decoration: none; font-weight: bold; }
-        .trust-score { font-size: 2em; font-weight: bold; color: #28a745; text-align: center; }
+        .nav { display: flex; justify-content: space-around; background-color: #007bff; padding: 10px; border-radius: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        .nav a { color: white; text-decoration: none; font-weight: bold; padding: 5px; }
+        .trust-score { font-size: 2em; font-weight: bold; color: #28a745; }
         #user-referral-code { font-family: monospace; font-size: 1.2em; letter-spacing: 2px; color: #d63384; }
+        .hidden { display: none; }
+        .cta-button { font-size: 1.1em; padding: 15px 25px; }
     </style>
 </head>
 <body>
-
     <div class="container">
         <h1>Transparent Transactions</h1>
         <p>Welcome back, <span id="user-name">User</span>!</p>
 
-        <div class="card">
-            <h2>Your Trust Score</h2>
-            <div class="trust-score" id="trust-score">---</div>
+        <!-- First-Time User View -->
+        <div id="first-time-view">
+            <div class="card">
+                <h2>Welcome to Your Trust Network!</h2>
+                <p>Your account is ready. The next step is to add people you know to start building your trusted financial history.</p>
+                <button id="add-first-contact-btn" class="cta-button">Add Your First Contact</button>
+            </div>
+            <div class="card">
+                <h2>Invite & Earn</h2>
+                <p>Your Referral Code:</p>
+                <h3 id="user-referral-code">Loading...</h3>
+                <button id="copy-referral-link-btn">Copy Referral Link</button>
+            </div>
+            <div class="card">
+                <h2>Explore</h2>
+                <p>See how trust is built in our community.</p>
+                <button id="view-reports-btn" class="cta-button">View Published Reports</button>
+            </div>
         </div>
 
-        <div class="card">
-            <h2>Refer & Earn</h2>
-            <p>Your Referral Code:</p>
-            <h3 id="user-referral-code">Loading...</h3>
-            <button id="copy-referral-link-btn">Copy Referral Link</button>
-        </div>
-        
-        <div class="nav">
-            <a href="#" onclick="alert('Contacts view coming soon!');">Contacts</a>
-            <a href="#" id="open-transaction-modal-btn">Record Txn</a>
-            <a href="reports.html">Get Report (₹10)</a>
-            <a href="#" onclick="logout()">Logout</a>
-        </div>
-
-        <div id="main-content">
-            <h2>Recent Activity</h2>
-            <p>Your recent transactions and settlements will appear here.</p>
-            <button id="add-contact-btn">Add Contact from Phone</button>
+        <!-- Standard User View -->
+        <div id="standard-view" class="hidden">
+            <div class="card">
+                <h2>Your Trust Score</h2>
+                <div class="trust-score" id="trust-score">---</div>
+            </div>
+            <div class="card">
+                <h2>Refer & Earn</h2>
+                <p>Your Referral Code:</p>
+                <h3 id="user-referral-code-std">Loading...</h3>
+                <button id="copy-referral-link-btn-std">Copy Referral Link</button>
+            </div>
+            <div class="nav">
+                <a href="#" id="contacts-link">Contacts</a>
+                <a href="#" id="record-txn-link">Record Txn</a>
+                <a href="reports.html">Get Report (₹10)</a>
+                <a href="#" id="logout-link">Logout</a>
+            </div>
+            <div id="main-content">
+                <h2>Recent Activity</h2>
+                <p>Your recent transactions and settlements will appear here.</p>
+            </div>
         </div>
     </div>
 
@@ -63,39 +75,7 @@
     <script src="js/database.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/contacts.js"></script>
+    <script src="js/transactions.js"></script>
     <script src="js/app.js"></script>
-	<script src="js/transactions.js"></script>
-<!-- Transaction Modal -->
-<div id="transaction-modal" class="modal">
-    <div class="modal-content">
-        <span class="close-btn">&times;</span>
-        <h2>Record New Transaction</h2>
-        <form id="transaction-form">
-            <label for="contact-select">Select Contact:</label>
-            <select id="contact-select" required>
-                <option value="">-- Choose a contact --</option>
-                <!-- Contacts will be populated here by JavaScript -->
-            </select>
-            
-            <label for="transaction-amount">Amount (₹):</label>
-            <input type="number" id="transaction-amount" placeholder="e.g., 500" required>
-            
-            <label for="transaction-type">Type:</label>
-            <div class="radio-group">
-                <label><input type="radio" name="type" value="gave" required> I Gave</label>
-                <label><input type="radio" name="type" value="got" required> I Got</label>
-            </div>
-
-            <label for="transaction-date">Date:</label>
-            <input type="date" id="transaction-date" required>
-
-            <label for="transaction-notes">Notes (Optional):</label>
-            <textarea id="transaction-notes" rows="3"></textarea>
-
-            <button type="submit">Save Transaction</button>
-        </form>
-    </div>
-</div>
-
 </body>
 </html>

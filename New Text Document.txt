@@ -1,0 +1,62 @@
+So the onboarding process is:
+
+User hits the referral link.
+Enters his Phone Number, Gets otp, 
+(Referral link is clubbed with the phone number entered in the local database)
+Once authenticated, Gets to enter his name.
+After Meeting all above conditions. Hits continue.
+He is in the dashboard.
+He has three working options, a) Add Contacts b) Invite his friends (Only those who are not existing users of the app) c) View the published reports. 
+Other options are non functional. 
+
+Your comments on it. 
+
+
+
+My Comments: 
+Step 1: Welcome & Identity
+Page: onboarding-step1.html
+Purpose: To make the user feel like this is their account.
+Headline: "Welcome, [User's Name]!"
+Core Action: A single, friendly input field: "What should we call you?" (Pre-filled with the default User 1234, but editable).
+Button: "Continue"
+Why this works: Personalization is the first step to engagement. It immediately invests the user in their profile.
+
+Step 1 is fine. 
+
+Step 2: Build Your Trust Network
+Page: onboarding-step2.html
+Purpose: To solve the "empty app" problem. The app is useless without contacts.
+Headline: "Your trust is built with people you know."
+Core Action: A large, primary button: "Add Your First Contact". This triggers the phone's native contact picker.
+Safety Net: A smaller link below: "Or Enter a Number Manually". 
+This opens a simple form with "Name" and "Phone Number" fields for desktop users or those who can't use the picker.
+Why this works: It forces the user to perform the most critical first action. We explicitly tell them why they're doing it, connecting it to the core value of "trust."
+
+Step 2 is fine.
+
+Step 3: Understand the Core Loop
+Page: onboarding-step3.html
+Purpose: To set expectations and prime the user for the main action on the dashboard.
+Headline: "You're all set! Here's how it works."
+Core Content: A simple, visual 3-step graphic:
+Record: "You record a transaction with a contact."
+Share: "You send them a secure confirmation link."
+Confirm: "They confirm, and it's added to your trusted ledger."
+Final Button: A big, satisfying button: "Go to My Dashboard".
+Why this works: It answers the "What now?" question and ensures the user understands the unique value proposition of the "Digital Shakehand" before they even see the main dashboard.
+
+Step 3 is fine.
+
+Technical Work Involved (Discussion Points)
+Redirection Logic:
+When a brand-new user signs up in auth.js, we will redirect them to onboarding-step1.html instead of index.html.
+The checkLoginStatus() function (which protects the dashboard) will need a check: if the user is logged in but has not completed onboarding, they get redirected back to onboarding-step1.html.
+State Management:
+How do we know if onboarding is complete? We can add a simple flag to the user's object in IndexedDB: onboardingComplete: true.
+This flag is set to true only after the user clicks "Go to My Dashboard" on the final step.
+Data Persistence:
+The name the user enters in Step 1 must be saved to the users store in IndexedDB.
+The contact they add in Step 2 must be saved to the contacts store.
+
+If an existing user hits the referral link, he will be directed to the dashboard, or to the onboarding process where he/she left during their last attempt. Old referral link is maintained. 
