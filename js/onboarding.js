@@ -1,105 +1,148 @@
 // js/onboarding.js
 
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("onboarding.js: Script loaded.");
-    const urlParams = new URLSearchParams(window.location.search);
-    const referralCode = urlParams.get('ref') || APP_CONFIG.SEED_REFERRAL_CODE;
+// --- IMPORTS ---
+import { log } from './logger.js';
+import { getUrlParams, setCurrentUser, getCurrentUserId, clearCurrentUser, generateReferralCode } from './app.js';
+import { addUser, getUserById } from './db.js';
+import { loginWithPhone } from './auth.js';
 
-    // Get references to important DOM elements
-    const onboardingForm = document.getElementById('onboarding-form');
-    const phoneInput = document.getElementById('phone-number');
-    const nameInput = document.getElementById('user-name');
-    const referralInput = document.getElementById('referral-code');
+document.addEventListener('DOMContentLoaded', async () => {
+  log('INFO', 'onboarding.js', 'PAGE_LOAD');
 
-    // Pre-fill the referral code if it exists in the URL
-    if (referralInput) {
-        referralInput.value = referralCode.toUpperCase();
-        console.log("onboarding.js: Referral code pre-filled:", referralInput.value);
+  const params = getUrlParams();
+  const currentUserId = getCurrentUserId();
+  const referrerCode = params.get('ref');
+  const seedKey = params.get('seed');
+
+  log('INFO', 'onboarding.js', 'URL_PARAMS_PARSED', { seedKey, referrerCode, currentUserId });
+
+  // --- Edge Case: Logged-in user clicks a referral link ---
+  if (currentUserId && referrerCode) {
+    log('INFO', 'onboarding.js', 'LOGGED_IN_USER_CLICKS_REFERRAL', { currentUserId, referrerCode });
+    try {
+      const currentUser = await getUserById(currentUserId);
+      if (currentUser) {
+        log('INFO', 'onboarding.js', 'SHOWING_LOGGED_IN_PROMPT');
+        showLoggedInPrompt(currentUser, referrerCode);
+        return; // Stop further execution
+      }
+    } catch (error) {
+      log('ERROR', 'onboarding.js', 'ERROR_FETCHING_CURRENT_USER_FOR_PROMPT', { error: error.message });
     }
-
-    // Add the submit event listener to the form
-    // This check ensures the listener is only attached if the form element exists
-    if (onboardingForm) {
-        onboardingForm.addEventListener('submit', handleSignup);
-        console.log("onboarding.js: Event listener attached to form.");
-    } else {
-        console.error("onboarding.js: ERROR - onboarding-form element not found!");
-    }
+  }
+  
+  log('INFO', 'onboarding.js', 'PROCEEDING_TO_NORMAL_FLOW');
+  
+  // --- Normal Flow: New user or direct access ---
+  if (seedKey === 'MASTER_KEY_2024') {
+    log('INFO', 'onboarding.js', 'SHOWING_SIGNUP_FORM_SEED');
+    showSignupForm('seed');
+  } else if (referrerCode) {
+    log('INFO', 'onboarding.js', 'SHOWING_SIGNUP_FORM_REFERRAL');
+    showSignupForm('referral', referrerCode);
+  } else {
+    log('INFO', 'onboarding.js', 'SHOWING_LOGIN_FORM');
+    showLoginForm();
+  }
 });
 
-/**
- * Handles the form submission for new user signup.
- * @param {Event} event - The form submit event.
- */
-async function handleSignup(event) {
-    event.preventDefault(); // Prevent the default form submission behavior
-    console.log("onboarding.js: handleSignup function called.");
+function showLoggedInPrompt(currentUser, referrerCode) {
+  document.getElementById('signup-form').style.display = 'none';
+  const promptDiv = document.getElementById('logged-in-prompt');
+  promptDiv.style.display = 'block';
+  promptDiv.querySelector('p').innerHTML = `You are currently logged in as <strong>${currentUser.name}</strong>. Would you like to sign up as a new user under referral code <strong>${referrerCode}</strong>?`;
+  
+  document.getElementById('btn-signup-new').onclick = () => {
+    log('INFO', 'onboarding.js', 'USER_CHOOSES_TO_SIGNUP_NEW');
+    clearCurrentUser();
+    promptDiv.style.display = 'none';
+    showSignupForm('referral', referrerCode);
+  };
 
-    const phoneNumber = phoneInput.value;
-    const name = nameInput.value;
-    const referredBy = referralInput.value.trim().toUpperCase();
-
-    // --- Client-Side Validation ---
-    if (!/^\d{10}$/.test(phoneNumber)) {
-        console.error("onboarding.js: Validation failed - Invalid phone number.");
-        alert('Please enter a valid 10-digit phone number.');
-        return;
-    }
-
-    if (!name) {
-        console.error("onboarding.js: Validation failed - Name is empty.");
-        alert('Please enter your name.');
-        return;
-    }
-
-    try {
-        console.log("onboarding.js: Initializing database...");
-        // Ensure the database is initialized before we try to use it
-        await initDB();
-        console.log("onboarding.js: Database initialized.");
-
-        console.log("onboarding.js: Checking for existing user with phone:", phoneNumber);
-        const existingUser = await getDataByKey('users', phoneNumber);
-
-        if (existingUser) {
-            // --- Existing User Flow ---
-            console.log("onboarding.js: User already exists. Redirecting to login page.");
-            alert('This phone number is already registered. Please login.');
-            window.location.href = 'login.html';
-            return;
-        }
-
-        // --- New User Flow ---
-        console.log("onboarding.js: Creating new user object...");
-        const newUser = {
-            phoneNumber: phoneNumber,
-            name: name,
-            referredBy: referredBy,
-            referralCode: generateReferralCode(),
-            createdAt: new Date().toISOString(),
-            profileComplete: false // Key flag for dashboard state
-        };
-        console.log("onboarding.js: New user object:", newUser);
-
-        console.log("onboarding.js: Adding new user to database...");
-        await addData('users', newUser);
-        console.log("onboarding.js: New user added successfully.");
-
-        // --- Session Management ---
-        console.log("onboarding.js: Storing user in localStorage and redirecting.");
-        localStorage.setItem('loggedInUser', JSON.stringify(newUser));
-        window.location.href = 'index.html';
-
-    } catch (error) {
-        console.error("onboarding.js: A critical error occurred during signup:", error);
-        alert('An error occurred during signup. Please try again.');
-    }
+  document.getElementById('btn-go-to-dashboard').onclick = () => {
+    log('INFO', 'onboarding.js', 'USER_CHOOSES_GO_TO_DASHBOARD');
+    window.location.href = 'index.html';
+  };
 }
 
-/**
- * Generates a simple, unique referral code.
- * @returns {string} A new referral code.
- */
-function generateReferralCode() {
-    return 'TT' + Math.random().toString(36).substr(2, 9).toUpperCase();
+function showLoginForm() {
+  document.getElementById('signup-form').style.display = 'none';
+  document.getElementById('login-form').style.display = 'block';
+  document.getElementById('login-form').addEventListener('submit', handleLogin);
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  const phone = event.target.phone.value;
+  const submitBtn = event.target.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Logging in...';
+
+  const user = await loginWithPhone(phone);
+  if (user) {
+    window.location.href = 'index.html';
+  } else {
+    alert('Phone number not found. Please check the number or sign up.');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Login';
+  }
+}
+
+function showSignupForm(type, data = null) {
+  document.getElementById('login-form').style.display = 'none';
+  const signupForm = document.getElementById('signup-form');
+  signupForm.style.display = 'block';
+  
+  if (type === 'referral') {
+    document.getElementById('referrer-info').style.display = 'block';
+    document.getElementById('referrer-code-display').textContent = data;
+  } else {
+    document.getElementById('referrer-info').style.display = 'none';
+  }
+  
+  signupForm.addEventListener('submit', (event) => {
+  log('INFO', 'onboarding.js', 'FORM_SUBMIT_EVENT_FIRED', { type, data });
+  handleSignup(event, type, data);
+});
+}
+
+async function handleSignup(event, type, data) {
+  event.preventDefault();
+  const form = event.target;
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Creating Account...';
+
+  const name = form.name.value;
+  const phone = form.phone.value;
+  const email = form.email.value || null;
+  const referralCode = generateReferralCode();
+
+  let upline = [null, null, null, null];
+  if (type === 'referral') {
+    const chain = data.split(':');
+    const newUpline = [referralCode, ...chain];
+    upline = newUpline.slice(0, 4);
+    while (upline.length < 4) {
+      upline.push(null);
+    }
+  }
+
+  const newUser = { name, phone, email, referralCode, upline };
+
+  try {
+    const userId = await addUser(newUser);
+    setCurrentUser(userId);
+    log('INFO', 'onboarding.js', 'SIGNUP_SUCCESS', { userId, name, phone, referralCode });
+    window.location.href = 'index.html';
+  } catch (error) {
+    if (error.name === 'ConstraintError') {
+      alert('This phone number is already registered. Please try logging in.');
+    } else {
+      alert('An error occurred during sign up. Please try again.');
+    }
+    log('ERROR', 'onboarding.js', 'SIGNUP_FAILED', { error: error.message, user: newUser });
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Continue';
+  }
 }

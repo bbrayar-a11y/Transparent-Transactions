@@ -1,3 +1,81 @@
+| Report Generator's Level | Payout to Upline Level 1 | Payout to Upline Level 2 | Payout to Upline Level 3 | Payout to Upline Level 4 | Total Payout |
+|---|---|---|---|---|---|
+| **Level 1** (Frontline) | **INR 30** | - | - | - | INR 30 |
+| **Level 2** | **INR 16** | **INR 14** | - | - | INR 30 |
+| **Level 3** | **INR 16** | **INR 8** | **INR 6** | - | INR 30 |
+| **Level 4+** | **INR 16** | **INR 8** | **INR 4** | **INR 2** | INR 30 |
+
+
+
+
+I will put it in a simple way
+
+The system starts with INR 30,
+if all upliners are [null], entire 30 is mine
+If upline0 is not null, 16%, if upline1 is null 14% is mine
+If upline0 is not null, 16%, if upline1 is not null 8%, 6%  is mine
+and so on. Okay?
+
+The revenue comes from generating a trust report. 
+If some one in my immediate downline generates a report, All 30% is mine,
+If some one in my immediate downline's downline  generates a report, My immediate downline will get 16% I get 14%
+Next it will be 16%+8%+4%+2%
+From there onwards it becomes 16%+8%+4%+2%+0%+0%
+Which means to say only the immediate upliners will earn the commission. Not even me
+
+
+We must ensure that if [null] is encountered, the commission must come to me. Did we do it?
+
+The Goal is
+When First liner earns commission
+Level 1	16%
+My commission 14%
+
+When Second liner earns commission
+Level 2		16%
+Level 1		8%
+My commission 6%
+
+When Third liner earns commission
+Level 3		16%
+Level 2		8%
+Level  1	4%	
+My commission 2%
+
+When Fourth liner earns commission
+Level 4		16%
+Level 3		8%
+Level  2	4%	
+Level 1		2%
+My commission 0%
+
+Why cant we have
+
+First level	Code-A	Code-A	Code-A	Code-A
+Second level	Code-A	Code-A	Code-A	Code-B
+Third level	Code-A	Code-A	Code-B	Code-C
+Fourth level	Code-A	Code-B	Code-C	Code-D
+
+So the work flow is 
+
+1	User enters thru a referral link
+2	Fills the details----> continue
+3	Data Base Created
+4	User is in the dashboard.
+	Dashboard Shows
+		Name, Phone Number, 
+		Buttons to add contacts, Record Transactions, Reports(For Further Use)
+Your Comments Please
+
+What happens if a user tries to confirm a transaction that's already been confirmed?
+Let us only concentrate on onboarding at this stage. 
+
+Is there a way for users to track their referral network and rewards?
+We must build this within existing framework (indexedDB) No centralised database.
+
+How are disputes or cancellations handled in this transaction flow?
+Let us only concentrate on onboarding at this stage. 
+
 git add .
 git commit -m "Implement onboarding and transaction confirmation flow"
 git push origin main
