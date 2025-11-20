@@ -1,3 +1,8 @@
+git add .
+git commit -m "Implement onboarding and transaction confirmation flow"
+git push origin main
+
+
 So the onboarding process is:
 
 User hits the referral link.
